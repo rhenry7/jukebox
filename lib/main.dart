@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'api_key.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -8,6 +11,7 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   // This widget is the root of your application.
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,6 +35,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int currentPageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTopTracks();
+  }
 
   final List<Widget> _pages = [
     Page1(),
@@ -80,6 +90,25 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     );
+  }
+}
+
+Future<void> fetchTopTracks() async {
+  const String lastfm = apikey;
+  const String url =
+      'http://ws.audioscrobbler.com/2.0/?method=geo.gettoptracks&country=spain&api_key=$lastfm&format=json';
+
+  try {
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print(data);
+    } else {
+      print('Failed to load top tracks. Status code: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error: $e');
   }
 }
 
