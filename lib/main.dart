@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<Widget> _pages = [
     Page1(),
-    Page2(),
+    CardExample(),
     Page3(),
     Page4(),
   ];
@@ -112,6 +112,43 @@ Future<void> fetchTopTracks() async {
   }
 }
 
+class CardExample extends StatelessWidget {
+  const CardExample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Card(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const ListTile(
+              leading: Icon(Icons.album),
+              title: Text('The Enchanted Nightingale'),
+              subtitle: Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                TextButton(
+                  child: const Text('BUY TICKETS'),
+                  onPressed: () {/* ... */},
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  child: const Text('LISTEN'),
+                  onPressed: () {/* ... */},
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class Page1 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -125,7 +162,7 @@ class Page2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text('Second Page'),
+      child: CardExample(),
     );
   }
 }
