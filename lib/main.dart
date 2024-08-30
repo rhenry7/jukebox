@@ -30,14 +30,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   int currentPageIndex = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter += 1;
-    });
-  }
 
   final List<Widget> _pages = [
     Page1(),
@@ -60,7 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
             currentPageIndex = index;
           });
         },
-        selectedIndex: 0,
+        selectedIndex: currentPageIndex,
         indicatorColor: Colors.green,
         destinations: const <Widget>[
           NavigationDestination(
