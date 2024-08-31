@@ -37,13 +37,6 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int currentPageIndex = 0;
-  late List<Track> tracks = [];
-
-  @override
-  void initState() {
-    super.initState();
-    fetchTopTracks();
-  }
 
   final List<Widget> _pages = [
     Page1(),
@@ -96,23 +89,22 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> fetchTopTracks() async {
+Future<Track> fetchTopTracks() async {
   const String lastfm = apikey;
   const String url =
       'http://ws.audioscrobbler.com/2.0/?method=geo.gettoptracks&country=spain&api_key=$lastfm&format=json';
 
-  try {
-    final response = await http.get(Uri.parse(url));
+  final response = await http.get(Uri.parse(url));
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      print(data);
-    } else {
-      print('Failed to load top tracks. Status code: ${response.statusCode}');
-    }
-  } catch (e) {
-    throw Exception("Failed to load tracks");
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    print(data);
+  } else {
+    throw Exception(
+        'Failed to load top tracks. Status code: ${response.statusCode}');
   }
+
+  throw Exception("");
 }
 
 class CardExample extends StatelessWidget {
