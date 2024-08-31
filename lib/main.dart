@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter_test_project/types/types.dart';
+
 import 'api_key.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -35,6 +37,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int currentPageIndex = 0;
+  late List<Track> tracks = [];
 
   @override
   void initState() {
@@ -72,9 +75,9 @@ class _MyHomePageState extends State<MyHomePage> {
             label: "Home",
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
+            selectedIcon: Icon(Icons.library_music_outlined),
+            icon: Icon(Icons.library_music_rounded),
+            label: 'Tracks',
           ),
           NavigationDestination(
             icon: Badge(child: Icon(Icons.notifications_sharp)),
@@ -108,7 +111,7 @@ Future<void> fetchTopTracks() async {
       print('Failed to load top tracks. Status code: ${response.statusCode}');
     }
   } catch (e) {
-    print('Error: $e');
+    throw Exception("Failed to load tracks");
   }
 }
 
