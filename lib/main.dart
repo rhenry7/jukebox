@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<Widget> _pages = [
     Page1(),
-    CardExample(),
+    const CardTracks(),
     Page3(),
     Page4(),
   ];
@@ -99,48 +99,81 @@ Future<Track> fetchTopTracks() async {
   if (response.statusCode == 200) {
     final data = json.decode(response.body);
     print(data);
+    return Track.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   } else {
     throw Exception(
         'Failed to load top tracks. Status code: ${response.statusCode}');
   }
-
-  throw Exception("");
 }
 
-class CardExample extends StatelessWidget {
-  const CardExample({super.key});
+// class CardListView extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return ListView.builder(itemBuilder: (context, index) {
+//       return Card(
+//           child: ListTile(
+//         title: Text("678"),
+//       ));
+//     });
+//   }
+// }
+
+class CardTracks extends StatefulWidget {
+  const CardTracks({super.key});
+
+  @override
+  State<CardTracks> createState() => CardExample();
+}
+
+class CardExample extends State<CardTracks> {
+  late Future<Track> futureTracks;
+  @override
+  void initState() {
+    super.initState();
+    futureTracks = fetchTopTracks();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Card(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const ListTile(
-              leading: Icon(Icons.album),
-              title: Text('The Enchanted Nightingale'),
-              subtitle: Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: <Widget>[
-                TextButton(
-                  child: const Text('BUY TICKETS'),
-                  onPressed: () {/* ... */},
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  child: const Text('LISTEN'),
-                  onPressed: () {/* ... */},
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+        child: FutureBuilder<Track>(
+            future: futureTracks,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Card(
+                    child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const ListTile(
+                      leading: Icon(Icons.album),
+                      title: Text('The Enchanted Nightingale'),
+                      subtitle:
+                          Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        TextButton(
+                          child: const Text('BUY TICKETS'),
+                          onPressed: () {/* ... */},
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          child: const Text('LISTEN'),
+                          onPressed: () {/* ... */},
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ),
+                  ],
+                ));
+              } else if (snapshot.hasError) {
+                print(snapshot);
+                return Text('error found ${snapshot.error}');
+              }
+              // By default, show a loading spinner.
+              return const CircularProgressIndicator();
+            }));
   }
 }
 
@@ -157,7 +190,7 @@ class Page2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: CardExample(),
+      child: CardTracks(),
     );
   }
 }
