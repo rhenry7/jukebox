@@ -4,7 +4,7 @@ class Tracks {
   Tracks({required this.trackList});
 
   factory Tracks.fromJson(Map<String, dynamic> json) {
-    var trackJsonList = json['tracks']['track'] as List;
+    var trackJsonList = json['tracks']['track'] as List<dynamic>? ?? [];
     List<Track> trackList =
         trackJsonList.map((i) => Track.fromJson(i)).toList();
     return Tracks(trackList: trackList);
@@ -48,7 +48,7 @@ class Track {
       streamable: Streamable.fromJson(json['streamable']),
       artist: Artist.fromJson(json['artist']),
       images: images,
-      rank: json['@attr']['rank'] ?? '',
+      rank: json['@attr']?['rank'] ?? '',
     );
   }
 }
@@ -91,8 +91,8 @@ class ImageData {
 
   factory ImageData.fromJson(Map<String, dynamic> json) {
     return ImageData(
-      text: json['#text'],
-      size: json['size'],
+      text: json['#text'] ?? '',
+      size: json['size'] ?? '',
     );
   }
 }
