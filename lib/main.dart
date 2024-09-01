@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/types/types.dart';
 
 import 'api_key.dart';
@@ -17,12 +18,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'JukeBoxd',
+      title: 'Jukeboxd',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.purple.shade50),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'JukeBoxd'),
+      home: const MyHomePage(title: 'Jukeboxd'),
     );
   }
 }
@@ -119,6 +120,7 @@ class CardTracks extends StatefulWidget {
 
 class ListOfTracks extends State<CardTracks> {
   late Future<List<Track>> futureTracks;
+  double? _rating;
   @override
   void initState() {
     super.initState();
@@ -142,6 +144,23 @@ class ListOfTracks extends State<CardTracks> {
                         title: Text(track.name),
                         subtitle: Text(track.artist.name),
                       ),
+                      RatingBar(
+                        minRating: 0,
+                        maxRating: 5,
+                        allowHalfRating: true,
+                        itemSize: 24,
+                        itemPadding:
+                            const EdgeInsets.symmetric(horizontal: 2.0),
+                        ratingWidget: RatingWidget(
+                            full: const Icon(Icons.star, color: Colors.amber),
+                            empty: const Icon(Icons.star, color: Colors.grey),
+                            half: const Icon(Icons.star_half,
+                                color: Colors.amber)),
+                        onRatingUpdate: (rating) {
+                          _rating = rating;
+                          setState(() {});
+                        },
+                      )
                     ],
                   ));
                 });
@@ -155,18 +174,21 @@ class ListOfTracks extends State<CardTracks> {
   }
 }
 
+HalfFilledIcon() {}
+
 // TODO: rename, possibly
 class TabBarExample extends StatelessWidget {
   const TabBarExample({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
+    return const DefaultTabController(
       initialIndex: 1,
       length: 3,
       child: Scaffold(
-        appBar: AppBar(
-          bottom: const TabBar(
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(200), // Set the AppBar height to 0
+          child: TabBar(
             tabs: <Widget>[
               Tab(
                 text: 'Songs',
@@ -180,7 +202,7 @@ class TabBarExample extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: <Widget>[
             Center(
               child: CardTracks(),
