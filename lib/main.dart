@@ -17,12 +17,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'JukeBoxd',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightGreen),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.purple.shade50),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Page'),
+      home: const MyHomePage(title: 'JukeBoxd'),
     );
   }
 }
@@ -60,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         },
         selectedIndex: currentPageIndex,
-        indicatorColor: Colors.green,
+        indicatorColor: Color.fromRGBO(67, 146, 241, 1),
         destinations: const <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Icons.home),
@@ -114,10 +114,10 @@ class CardTracks extends StatefulWidget {
   const CardTracks({super.key});
 
   @override
-  State<CardTracks> createState() => CardExample();
+  State<CardTracks> createState() => ListOfTracks();
 }
 
-class CardExample extends State<CardTracks> {
+class ListOfTracks extends State<CardTracks> {
   late Future<List<Track>> futureTracks;
   @override
   void initState() {
@@ -139,8 +139,8 @@ class CardExample extends State<CardTracks> {
                     children: <Widget>[
                       ListTile(
                         leading: Icon(Icons.album),
-                        title: Text(track.name),
-                      )
+                        title: Text("${track.name} - ${track.artist.name}"),
+                      ),
                     ],
                   ));
                 });
