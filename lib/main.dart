@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<Widget> _pages = [
     Page1(),
-    const CardTracks(),
+    const TabBarExample(),
     Page3(),
     Page4(),
   ];
@@ -70,7 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
           NavigationDestination(
             selectedIcon: Icon(Icons.library_music_outlined),
             icon: Icon(Icons.library_music_rounded),
-            label: 'Tracks',
+            label: 'Feed',
           ),
           NavigationDestination(
             icon: Badge(child: Icon(Icons.notifications_sharp)),
@@ -139,7 +139,8 @@ class ListOfTracks extends State<CardTracks> {
                     children: <Widget>[
                       ListTile(
                         leading: Icon(Icons.album),
-                        title: Text("${track.name} - ${track.artist.name}"),
+                        title: Text(track.name),
+                        subtitle: Text(track.artist.name),
                       ),
                     ],
                   ));
@@ -154,6 +155,51 @@ class ListOfTracks extends State<CardTracks> {
   }
 }
 
+// TODO: rename, possibly
+class TabBarExample extends StatelessWidget {
+  const TabBarExample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      initialIndex: 1,
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          bottom: const TabBar(
+            tabs: <Widget>[
+              Tab(
+                text: 'Songs',
+              ),
+              Tab(
+                text: 'Albums',
+              ),
+              Tab(
+                text: 'Artists',
+              ),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: <Widget>[
+            Center(
+              child: CardTracks(),
+            ),
+            Center(
+              child: Text("It's rainy here"),
+            ),
+            Center(
+              child: Text("It's sunny here"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Test Pages for learning navigation
+// TODO: Delete later
 class Page1 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
