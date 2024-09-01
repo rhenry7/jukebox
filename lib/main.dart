@@ -6,6 +6,7 @@ import 'package:flutter_test_project/types/types.dart';
 import 'api_key.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/widgets.dart' as flutter;
 
 void main() {
   runApp(const MyApp());
@@ -141,9 +142,23 @@ class ListOfTracks extends State<CardTracks> {
                 final track = snapshot.data![index];
                 return Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: Row(
                       children: <Widget>[
+                        // Container(
+                        //   height: 200.0,
+                        //   decoration: BoxDecoration(
+                        //     borderRadius: BorderRadius.circular(10.0),
+                        //     image: DecorationImage(
+                        //       image: flutter.NetworkImage(
+                        //           track.images[index].text),
+                        //       fit: BoxFit.cover,
+                        //       onError: (error, stackTrace) {
+                        //         print("no image found");
+                        //       },
+                        //     ),
+                        //   ),
+                        // ),
                         Expanded(
                           child: ListTile(
                             leading: Icon(Icons.album),
