@@ -1,26 +1,13 @@
-class Tracks {
-  final List<Track> trackList;
-
-  Tracks({required this.trackList});
-
-  factory Tracks.fromJson(Map<String, dynamic> json) {
-    var trackJsonList = json['tracks']['track'] as List<dynamic>? ?? [];
-    List<Track> trackList =
-        trackJsonList.map((i) => Track.fromJson(i)).toList();
-    return Tracks(trackList: trackList);
-  }
-}
-
 class Track {
   final String name;
-  final int duration;
-  final int listeners;
+  final String duration;
+  final String listeners;
   final String mbid;
   final String url;
   final Streamable streamable;
   final Artist artist;
-  final List<ImageData> images;
-  final String rank;
+  final List<Image> images;
+  final int rank;
 
   Track({
     required this.name,
@@ -36,33 +23,18 @@ class Track {
 
   factory Track.fromJson(Map<String, dynamic> json) {
     var imageList = json['image'] as List;
-    List<ImageData> images =
-        imageList.map((i) => ImageData.fromJson(i)).toList();
+    List<Image> images = imageList.map((i) => Image.fromJson(i)).toList();
 
     return Track(
       name: json['name'],
-      duration: int.parse(json['duration'].toString()),
-      listeners: int.parse(json['listeners'].toString()),
-      mbid: json['mbid'] ?? '',
+      duration: json['duration'],
+      listeners: json['listeners'],
+      mbid: json['mbid'],
       url: json['url'],
       streamable: Streamable.fromJson(json['streamable']),
       artist: Artist.fromJson(json['artist']),
       images: images,
-      rank: json['@attr']?['rank'] ?? '',
-    );
-  }
-}
-
-class Streamable {
-  final String text;
-  final String fulltrack;
-
-  Streamable({required this.text, required this.fulltrack});
-
-  factory Streamable.fromJson(Map<String, dynamic> json) {
-    return Streamable(
-      text: json['#text'] ?? '',
-      fulltrack: json['fulltrack'] ?? '',
+      rank: int.parse(json['@attr']['rank']),
     );
   }
 }
@@ -72,27 +44,51 @@ class Artist {
   final String mbid;
   final String url;
 
-  Artist({required this.name, required this.mbid, required this.url});
+  Artist({
+    required this.name,
+    required this.mbid,
+    required this.url,
+  });
 
   factory Artist.fromJson(Map<String, dynamic> json) {
     return Artist(
       name: json['name'],
-      mbid: json['mbid'] ?? '',
+      mbid: json['mbid'],
       url: json['url'],
     );
   }
 }
 
-class ImageData {
+class Streamable {
+  final String text;
+  final String fulltrack;
+
+  Streamable({
+    required this.text,
+    required this.fulltrack,
+  });
+
+  factory Streamable.fromJson(Map<String, dynamic> json) {
+    return Streamable(
+      text: json['#text'],
+      fulltrack: json['fulltrack'],
+    );
+  }
+}
+
+class Image {
   final String text;
   final String size;
 
-  ImageData({required this.text, required this.size});
+  Image({
+    required this.text,
+    required this.size,
+  });
 
-  factory ImageData.fromJson(Map<String, dynamic> json) {
-    return ImageData(
-      text: json['#text'] ?? '',
-      size: json['size'] ?? '',
+  factory Image.fromJson(Map<String, dynamic> json) {
+    return Image(
+      text: json['#text'],
+      size: json['size'],
     );
   }
 }

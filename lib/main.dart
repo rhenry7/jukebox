@@ -89,34 +89,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<Track> fetchTopTracks() async {
+Future<List<Track>> fetchTopTracks() async {
   const String lastfm = apikey;
-  const String url =
-      'http://ws.audioscrobbler.com/2.0/?method=geo.gettoptracks&country=spain&api_key=$lastfm&format=json';
+  final uri = Uri.parse(
+      'https://ws.audioscrobbler.com/2.0/?method=geo.gettoptracks&country=spain&api_key=$lastfm&format=json');
 
-  final response = await http.get(Uri.parse(url));
+  http.Response response = await http.get(uri);
 
   if (response.statusCode == 200) {
     final data = json.decode(response.body);
-    print(data);
-    return Track.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    final List<dynamic> tracksJson = data['tracks']['track'];
+
+    List<Track> tracks = tracksJson.map((trackJson) {
+      return Track.fromJson(trackJson);
+    }).toList();
+    return tracks;
   } else {
     throw Exception(
         'Failed to load top tracks. Status code: ${response.statusCode}');
   }
 }
-
-// class CardListView extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return ListView.builder(itemBuilder: (context, index) {
-//       return Card(
-//           child: ListTile(
-//         title: Text("678"),
-//       ));
-//     });
-//   }
-// }
 
 class CardTracks extends StatefulWidget {
   const CardTracks({super.key});
@@ -126,7 +118,7 @@ class CardTracks extends StatefulWidget {
 }
 
 class CardExample extends State<CardTracks> {
-  late Future<Track> futureTracks;
+  late Future<List<Track>> futureTracks;
   @override
   void initState() {
     super.initState();
@@ -136,37 +128,22 @@ class CardExample extends State<CardTracks> {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: FutureBuilder<Track>(
+        child: FutureBuilder<List<Track>>(
             future: futureTracks,
             builder: (context, snapshot) {
               if (snapshot.hasData) {
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const ListTile(
-                      leading: Icon(Icons.album),
-                      title: Text('The Enchanted Nightingale'),
-                      subtitle:
-                          Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        TextButton(
-                          child: const Text('BUY TICKETS'),
-                          onPressed: () {/* ... */},
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          child: const Text('LISTEN'),
-                          onPressed: () {/* ... */},
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                    ),
-                  ],
-                ));
+                return ListView.builder(itemBuilder: (context, index) {
+                  final track = snapshot.data![index];
+                  return Card(
+                      child: Column(
+                    children: <Widget>[
+                      ListTile(
+                        leading: Icon(Icons.album),
+                        title: Text(track.name),
+                      )
+                    ],
+                  ));
+                });
               } else if (snapshot.hasError) {
                 print(snapshot);
                 return Text('error found ${snapshot.error}');
