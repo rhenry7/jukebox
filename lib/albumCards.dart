@@ -33,7 +33,7 @@ class AlbumList extends State<AlbumCard> {
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
-                print(album.images!.first.url);
+                print(album.genres?.length);
                 final albumImages = album.images;
                 final mediumImage =
                     albumImages!.isNotEmpty ? albumImages.first.url : null;
@@ -48,7 +48,12 @@ class AlbumList extends State<AlbumCard> {
                           subtitle: Text(album.artists!
                               .map((artist) => artist.name)
                               .join(', ')),
-                          trailing: const Icon(Icons.favorite_outline),
+                          trailing: OutlinedButton(
+                            onPressed: () {
+                              debugPrint('Received click');
+                            },
+                            child: const Text("Pop"),
+                          ),
                         ),
                         Container(
                           height: 300.0,
@@ -58,14 +63,20 @@ class AlbumList extends State<AlbumCard> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.only(left: 16.0, top: 16.0),
+                          padding: const EdgeInsets.only(left: 2.0, top: 16.0),
                           alignment: Alignment.centerLeft,
-                          child: const Text(
-                              "I love this one its the absolute best, just the best. Never been betterm never seen this ever."),
+                          child: const ListTile(
+                            //leading: Icon(Icons.account_box_outlined),
+                            title: Text("UserNameExample123 says:"),
+                            subtitle: Text(
+                                '"Its the best, just the absolute best there ever was in the history of ever and ever. Just the bes, dont you think?"',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2),
+                          ),
                         ),
                         Container(
                           padding: const EdgeInsets.only(
-                              left: 10.0, top: 12.0, bottom: 16.0),
+                              left: 10.0, top: 4.0, bottom: 16.0),
                           alignment: Alignment.centerLeft,
                           child: RatingBar(
                             minRating: 0,
