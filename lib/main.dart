@@ -1,6 +1,8 @@
 import 'package:flutter_test_project/trackCards.dart';
 import 'package:flutter/material.dart';
 
+import 'albumCards.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -8,7 +10,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   // This widget is the root of your application.
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
             ColorScheme.fromSeed(seedColor: Color.fromRGBO(22, 110, 216, 1)),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Jukeboxxd'),
+      home: const MyHomePage(title: 'Jukeboxd'),
     );
   }
 }
@@ -116,7 +117,7 @@ class TabBarExample extends StatelessWidget {
               child: CardTracks(),
             ),
             Center(
-              child: Text("It's rainy here"),
+              child: AlbumCard(),
             ),
             Center(
               child: Text("It's sunny here"),

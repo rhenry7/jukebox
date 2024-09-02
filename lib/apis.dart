@@ -15,7 +15,7 @@ Future<List<Album>> fetchSpotifyAlbums() async {
   final getFromSpotify = SpotifyApi(credentials);
   final tracks = await getFromSpotify.playlists
       .getTracksByPlaylistId(
-          '37i9dQZEVXbLRQDuF5jeBp') // replace with list from recommendation;
+          '37i9dQZF1DX1gRalH1mWrP') // replace with list from recommendation;
       .all();
   List<String> albumsIds = [];
 
@@ -25,9 +25,7 @@ Future<List<Album>> fetchSpotifyAlbums() async {
   // might not need this part
   final sb = StringBuffer();
   sb.writeAll(albumsIds, ",");
-  print(albumsIds);
   List<String> limitAlbumIds = albumsIds.sublist(0, 11);
   final albums = await getFromSpotify.albums.list(limitAlbumIds);
-  print(albums.toList());
   return albums.toList();
 }
