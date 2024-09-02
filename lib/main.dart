@@ -1,9 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:flutter_test_project/types/types.dart';
-
 import 'api_key.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -95,38 +91,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<Iterable<spotify.Track>> fetchSpotifyTracks() async {
+Future<List<spotify.Track>> fetchSpotifyTracks() async {
   final credentials = SpotifyApiCredentials(clientId, clientSecret);
   final getFromSpotify = SpotifyApi(credentials);
   final tracks = await getFromSpotify.playlists
       .getTracksByPlaylistId('37i9dQZEVXbLRQDuF5jeBp')
       .all();
-  for (var track in tracks) {
-    print(track.name);
-  }
-  ;
-  return tracks;
-}
-
-Future<List<lastFM.Track>> fetchTopTracks() async {
-  const String lastfm = apikey;
-  final uri = Uri.parse(
-      'https://ws.audioscrobbler.com/2.0/?method=geo.gettoptracks&country=spain&api_key=$lastfm&format=json');
-
-  http.Response response = await http.get(uri);
-
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    final List<dynamic> tracksJson = data['tracks']['track'];
-
-    List<lastFM.Track> tracks = tracksJson.map((trackJson) {
-      return lastFM.Track.fromJson(trackJson);
-    }).toList();
-    return tracks;
-  } else {
-    throw Exception(
-        'Failed to load top tracks. Status code: ${response.statusCode}');
-  }
+  return tracks.toList();
 }
 
 class CardTracks extends StatefulWidget {
@@ -137,51 +108,44 @@ class CardTracks extends StatefulWidget {
 }
 
 class ListOfTracks extends State<CardTracks> {
-  late Future<List<lastFM.Track>> futureTracks;
+  late Future<List<spotify.Track>> spotifyTracks;
   double? _rating;
 
   @override
   void initState() {
     super.initState();
-    fetchSpotifyTracks();
-    futureTracks = fetchTopTracks();
+    spotifyTracks = fetchSpotifyTracks();
   }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: FutureBuilder<List<lastFM.Track>>(
-        future: futureTracks,
+      child: FutureBuilder<List<spotify.Track>>(
+        future: spotifyTracks,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
                 final track = snapshot.data![index];
+                final albumImages = track.album!.images;
+                final smallImageUrl =
+                    albumImages!.isNotEmpty ? albumImages.last.url : null;
                 return Card(
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Row(
                       children: <Widget>[
-                        // Container(
-                        //   height: 200.0,
-                        //   decoration: BoxDecoration(
-                        //     borderRadius: BorderRadius.circular(10.0),
-                        //     image: DecorationImage(
-                        //       image: flutter.NetworkImage(
-                        //           track.images[index].text),
-                        //       fit: BoxFit.cover,
-                        //       onError: (error, stackTrace) {
-                        //         print("no image found");
-                        //       },
-                        //     ),
-                        //   ),
-                        // ),
                         Expanded(
                           child: ListTile(
-                            leading: Icon(Icons.album),
-                            title: Text(track.name),
-                            subtitle: Text(track.artist.name),
+                            leading: smallImageUrl != null
+                                ? flutter.Image.network(smallImageUrl)
+                                : const Icon(Icons
+                                    .music_note), // Fallback if no image is available,
+                            title: Text(track.name as String),
+                            subtitle: Text(track.artists!
+                                .map((artist) => artist.name)
+                                .join(', ')),
                           ),
                         ),
                         RatingBar(
