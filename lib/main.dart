@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/types/types.dart';
@@ -7,6 +8,9 @@ import 'api_key.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/widgets.dart' as flutter;
+import 'package:flutter_test_project/types/types.dart' as lastFM;
+import 'package:spotify/src/models/_models.dart' as spotify;
+import 'package:spotify/spotify.dart';
 
 void main() {
   runApp(const MyApp());
@@ -91,7 +95,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<List<Track>> fetchTopTracks() async {
+Future<Iterable<spotify.Track>> fetchSpotifyTracks() async {
+  final credentials = SpotifyApiCredentials(clientId, clientSecret);
+  final getFromSpotify = SpotifyApi(credentials);
+  final tracks = await getFromSpotify.playlists
+      .getTracksByPlaylistId('37i9dQZEVXbLRQDuF5jeBp')
+      .all();
+  for (var track in tracks) {
+    print(track.name);
+  }
+  ;
+  return tracks;
+}
+
+Future<List<lastFM.Track>> fetchTopTracks() async {
   const String lastfm = apikey;
   final uri = Uri.parse(
       'https://ws.audioscrobbler.com/2.0/?method=geo.gettoptracks&country=spain&api_key=$lastfm&format=json');
@@ -102,8 +119,8 @@ Future<List<Track>> fetchTopTracks() async {
     final data = json.decode(response.body);
     final List<dynamic> tracksJson = data['tracks']['track'];
 
-    List<Track> tracks = tracksJson.map((trackJson) {
-      return Track.fromJson(trackJson);
+    List<lastFM.Track> tracks = tracksJson.map((trackJson) {
+      return lastFM.Track.fromJson(trackJson);
     }).toList();
     return tracks;
   } else {
@@ -120,19 +137,20 @@ class CardTracks extends StatefulWidget {
 }
 
 class ListOfTracks extends State<CardTracks> {
-  late Future<List<Track>> futureTracks;
+  late Future<List<lastFM.Track>> futureTracks;
   double? _rating;
 
   @override
   void initState() {
     super.initState();
+    fetchSpotifyTracks();
     futureTracks = fetchTopTracks();
   }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: FutureBuilder<List<Track>>(
+      child: FutureBuilder<List<lastFM.Track>>(
         future: futureTracks,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
