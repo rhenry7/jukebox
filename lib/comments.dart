@@ -25,14 +25,11 @@ class CommentWidgetState extends State<CommentWidget> {
         child: FutureBuilder<List<UserComment>>(
       future: comments,
       builder: (context, snapshot) {
-        print(snapshot);
         if (snapshot.hasData) {
-          print("found the data");
           return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
                 final comment = snapshot.data![index];
-                print(comment);
                 return Card(
                     child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -44,7 +41,7 @@ class CommentWidgetState extends State<CommentWidget> {
                       child: Text(
                         comment.name,
                         style: const TextStyle(
-                          fontSize: 24.0,
+                          fontSize: 16.0,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -56,14 +53,6 @@ class CommentWidgetState extends State<CommentWidget> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: <Widget>[
-                          const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: Icon(
-                              Icons.album,
-                              size: 58.0,
-                              color: Color.fromRGBO(22, 110, 216, 1),
-                            ),
-                          ),
                           Flexible(
                             child: Text(
                               comment.comment,
@@ -120,7 +109,6 @@ class CommentWidgetState extends State<CommentWidget> {
                 ));
               });
         } else if (snapshot.hasError) {
-          print(snapshot);
           return Text('Error: ${snapshot.error}');
         }
         return const CircularProgressIndicator();
