@@ -58,7 +58,7 @@ class ListOfTracks extends State<CardTracks> {
                           minRating: 0,
                           maxRating: 5,
                           allowHalfRating: true,
-                          itemSize: 24,
+                          itemSize: 18,
                           itemPadding:
                               const EdgeInsets.symmetric(horizontal: 2.0),
                           ratingWidget: RatingWidget(

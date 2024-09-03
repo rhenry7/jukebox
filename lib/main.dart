@@ -1,3 +1,4 @@
+import 'package:flutter_test_project/comments.dart';
 import 'package:flutter_test_project/trackCards.dart';
 import 'package:flutter/material.dart';
 
@@ -36,7 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int currentPageIndex = 0;
 
   final List<Widget> _pages = [
-    Page1(),
+    const CommentWidget(),
     const TabBarExample(),
     Page3(),
     Page4(),
