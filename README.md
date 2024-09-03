@@ -1,17 +1,4 @@
-# flutter_test_project
+# Jukeboxd
 
-A new Flutter project.
+Flutter mobile project for users to write reviews for their favorite or not-so-favorite music albums or songs. Share reviews with friends. Create playlists and discuss whats new in the music world. 
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# jukebox
