@@ -3,6 +3,7 @@ import 'package:flutter_test_project/trackCards.dart';
 import 'package:flutter/material.dart';
 
 import 'albumCards.dart';
+import 'package:gap/gap.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,8 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Jukeboxd',
       theme: ThemeData(
-        colorScheme:
-            ColorScheme.fromSeed(seedColor: Color.fromRGBO(22, 110, 216, 1)),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue.shade300),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Jukeboxd'),
@@ -47,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Color.fromARGB(255, 18, 129, 233),
         title: Text(widget.title),
       ),
       body: _pages[currentPageIndex],
@@ -99,6 +99,13 @@ class TabBarExample extends StatelessWidget {
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(200), // Set the AppBar height to 0
           child: TabBar(
+            labelPadding: EdgeInsets.all(10),
+            labelColor: Colors.black,
+            //isScrollable: true, // add this property
+            unselectedLabelColor: Color(0xff585861),
+            indicatorColor: Colors.greenAccent,
+            indicatorSize: TabBarIndicatorSize.label,
+            // TABS
             tabs: <Widget>[
               Tab(
                 text: 'Songs',
