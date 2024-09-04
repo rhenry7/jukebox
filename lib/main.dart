@@ -1,3 +1,4 @@
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/comments.dart';
 import 'package:flutter_test_project/trackCards.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +38,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int currentPageIndex = 0;
+  final TextEditingController _controller = TextEditingController();
 
   final List<Widget> _pages = [
     const CommentWidget(),
@@ -51,34 +53,84 @@ class _MyHomePageState extends State<MyHomePage> {
       // Assume the third item triggers the bottom sheet
       showModalBottomSheet(
           context: context,
+          isScrollControlled: true,
           builder: (BuildContext context) {
+            initialChildSize:
+            0.9; // Takes up 90% of the screen
+
             return Container(
-              height: 1200,
+              height: 500,
               padding: EdgeInsets.all(16.0),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Bottom Sheet Title',
-                    style: TextStyle(
-                      fontSize: 24.0,
-                      fontWeight: FontWeight.bold,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: BackButton(
+                                style: ButtonStyle(
+                                    elevation:
+                                        MaterialStateProperty.all<double>(1.0)),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                              )),
+                          //child: const Icon(Ionicons.close))),
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text(
+                              'New Review',
+                              style: TextStyle(
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Icon(Ionicons.person_circle_outline,
+                              color: Colors.blueGrey)),
+                    ],
+                  ),
+                  const SizedBox(height: 16.0),
+                  TextField(
+                    controller: _controller,
+                    keyboardType: TextInputType.multiline,
+                    maxLines: null, // Allows the TextField to expand as needed
+                    decoration: const InputDecoration(
+                      //hintText: 'Enter your text here...',
+                      labelText: 'Add your review',
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                  SizedBox(height: 16.0),
-                  Text(
-                    'This is the content of the bottom sheet. You can add more widgets here.',
-                    style: TextStyle(fontSize: 16.0),
-                  ),
-                  Gap(100),
-                  Text(
-                    'This is the content of the bottom sheet. You can add more widgets here.',
-                    style: TextStyle(fontSize: 16.0),
-                  ),
-                  Gap(100),
-                  Text(
-                    'This is the content of the bottom sheet. You can add more widgets here.',
-                    style: TextStyle(fontSize: 16.0),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: 14.0,
+                      left: 2.0,
+                    ),
+                    child: RatingBar(
+                      minRating: 0,
+                      maxRating: 5,
+                      allowHalfRating: true,
+                      itemSize: 24,
+                      itemPadding: const EdgeInsets.symmetric(horizontal: 5.0),
+                      ratingWidget: RatingWidget(
+                        full: const Icon(Icons.star, color: Colors.amber),
+                        empty: const Icon(Icons.star, color: Colors.grey),
+                        half: const Icon(Icons.star_half, color: Colors.amber),
+                      ),
+                      // TODO convert to state or send to DB or something..
+                      onRatingUpdate: (rating) {
+                        print(rating);
+                        setState(() {});
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -102,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(10.0),
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: EdgeInsets.all(8.0),
           ),
         ),
       ),
