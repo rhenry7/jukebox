@@ -1,5 +1,5 @@
 import 'package:flutter_test_project/api_key.dart';
-import 'package:flutter_test_project/userComments.dart';
+import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:spotify/spotify.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
