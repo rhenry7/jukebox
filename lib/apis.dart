@@ -48,3 +48,9 @@ Future<List<UserComment>> fetchMockUserComments() async {
     throw Exception('Failed to load user comments');
   }
 }
+
+// Future<dynamic> fetchFromSearch() async {
+//   final credentials = SpotifyApiCredentials(clientId, clientSecret);
+//   final getFromSpotify = SpotifyApi(credentials);
+//   final search = getFromSpotify.search(Artist());
+// }

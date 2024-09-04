@@ -99,6 +99,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                   const SizedBox(height: 16.0),
+                  const TextField(
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(30),
+                        ),
+                      ),
+                      hintText: 'What to review?',
+                    ),
+                  ),
+                  Gap(20),
                   TextField(
                     controller: _controller,
                     keyboardType: TextInputType.multiline,
