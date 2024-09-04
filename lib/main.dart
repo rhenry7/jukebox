@@ -53,6 +53,12 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         titleTextStyle: TextStyle(color: Colors.white, fontSize: 28),
         toolbarHeight: 34.0,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(10.0),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+          ),
+        ),
       ),
       body: _pages[currentPageIndex],
       bottomNavigationBar: NavigationBar(

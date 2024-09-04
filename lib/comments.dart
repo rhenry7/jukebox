@@ -134,11 +134,23 @@ class CommentWidgetState extends State<CommentWidget> {
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    // NAME
+                                    // NAME AND TIME
                                     Padding(
-                                      padding: const EdgeInsets.all(8.0),
+                                      padding: const EdgeInsets.only(
+                                          right: 8.0,
+                                          left: 10.0,
+                                          top: 10.0,
+                                          bottom: 5.0),
                                       child: Row(
                                         children: [
+                                          const Padding(
+                                            padding: EdgeInsets.only(right: 5),
+                                            child: Icon(
+                                              Ionicons.person_circle_outline,
+                                              color: Color.fromRGBO(
+                                                  22, 110, 216, 1),
+                                            ),
+                                          ),
                                           Text(
                                             comment.name,
                                             style: const TextStyle(
@@ -165,7 +177,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                       ),
                                     ),
                                     // Middle Row (Text and Icon)
-                                    // COMMENT
+                                    // COMMENT AND IMAGE
                                     Padding(
                                       padding: const EdgeInsets.only(
                                           left: 12.0, top: 4.0, right: 10.0),
@@ -173,6 +185,18 @@ class CommentWidgetState extends State<CommentWidget> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.start,
                                         children: <Widget>[
+                                          // COMMENT
+                                          Flexible(
+                                            child: Text(
+                                              comment.comment,
+                                              maxLines: 3,
+                                              style: const TextStyle(
+                                                fontSize: 12.0,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ),
+                                          // IMAGE
                                           Padding(
                                             padding:
                                                 const flutter.EdgeInsets.only(
@@ -196,16 +220,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                               },
                                             ),
                                           ),
-                                          Flexible(
-                                            child: Text(
-                                              comment.comment,
-                                              maxLines: 3,
-                                              style: const TextStyle(
-                                                fontSize: 12.0,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ),
+
                                           const SizedBox(width: 8.0),
                                         ],
                                       ),
@@ -215,28 +230,43 @@ class CommentWidgetState extends State<CommentWidget> {
                                       padding: const EdgeInsets.all(0),
                                       child: Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
+                                            MainAxisAlignment.start,
                                         children: <Widget>[
                                           // LIKES
                                           Padding(
                                             padding: const EdgeInsets.all(0),
                                             child: Row(
                                               children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                      Ionicons.heart_outline,
-                                                      color: Color.fromRGBO(
-                                                          22, 110, 216, 1)),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      "Liked!";
-                                                      Icons.thumb_up;
-                                                      _middleIconColor =
-                                                          Colors.blue;
-                                                    });
-                                                  },
-                                                ),
-                                                Text(comment.likes.toString())
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 8.0),
+                                                  child: Row(
+                                                    children: [
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                            Ionicons
+                                                                .heart_outline,
+                                                            color:
+                                                                Color.fromRGBO(
+                                                                    22,
+                                                                    110,
+                                                                    216,
+                                                                    1)),
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            "Liked!";
+                                                            Icons.thumb_up;
+                                                            _middleIconColor =
+                                                                Colors.blue;
+                                                          });
+                                                        },
+                                                      ),
+                                                      Text(comment.likes
+                                                          .toString()),
+                                                    ],
+                                                  ),
+                                                )
                                               ],
                                             ),
                                           ),
@@ -245,22 +275,36 @@ class CommentWidgetState extends State<CommentWidget> {
                                             padding: const EdgeInsets.all(0),
                                             child: Row(
                                               children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                      Ionicons
-                                                          .chatbubble_outline,
-                                                      color: Color.fromRGBO(
-                                                          22, 110, 216, 1)),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      "Liked!";
-                                                      Icons.thumb_up;
-                                                      _middleIconColor =
-                                                          Colors.blue;
-                                                    });
-                                                  },
-                                                ),
-                                                Text(comment.replies.toString())
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 8.0),
+                                                  child: Row(
+                                                    children: [
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                            Ionicons
+                                                                .chatbubble_outline,
+                                                            color:
+                                                                Color.fromRGBO(
+                                                                    22,
+                                                                    110,
+                                                                    216,
+                                                                    1)),
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            "Liked!";
+                                                            Icons.thumb_up;
+                                                            _middleIconColor =
+                                                                Colors.blue;
+                                                          });
+                                                        },
+                                                      ),
+                                                      Text(comment.replies
+                                                          .toString()),
+                                                    ],
+                                                  ),
+                                                )
                                               ],
                                             ),
                                           ),
@@ -269,45 +313,73 @@ class CommentWidgetState extends State<CommentWidget> {
                                             padding: const EdgeInsets.all(0),
                                             child: Row(
                                               children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                      Ionicons.repeat,
-                                                      color: Color.fromRGBO(
-                                                          22, 110, 216, 1)),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      "Liked!";
-                                                      Icons.thumb_up;
-                                                      _middleIconColor =
-                                                          Colors.blue;
-                                                    });
-                                                  },
-                                                ),
-                                                Text(comment.reposts.toString())
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 8.0),
+                                                  child: Row(
+                                                    children: [
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                            Ionicons.repeat,
+                                                            color:
+                                                                Color.fromRGBO(
+                                                                    22,
+                                                                    110,
+                                                                    216,
+                                                                    1)),
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            "Liked!";
+                                                            Icons.thumb_up;
+                                                            _middleIconColor =
+                                                                Colors.blue;
+                                                          });
+                                                        },
+                                                      ),
+                                                      Text(comment.likes
+                                                          .toString()),
+                                                    ],
+                                                  ),
+                                                )
                                               ],
                                             ),
                                           ),
                                           // SHARES
                                           Padding(
-                                            padding: const EdgeInsets.all(0),
+                                            padding: const EdgeInsets.all(10),
                                             child: Row(
                                               children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                      Ionicons
-                                                          .paper_plane_outline,
-                                                      color: Color.fromRGBO(
-                                                          22, 110, 216, 1)),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      "Liked!";
-                                                      Icons.thumb_up;
-                                                      _middleIconColor =
-                                                          Colors.blue;
-                                                    });
-                                                  },
-                                                ),
-                                                Text(comment.shares.toString())
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 10),
+                                                  child: Row(
+                                                    children: [
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                            Ionicons
+                                                                .paper_plane_outline,
+                                                            color:
+                                                                Color.fromRGBO(
+                                                                    22,
+                                                                    110,
+                                                                    216,
+                                                                    1)),
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            "Liked!";
+                                                            Icons.thumb_up;
+                                                            _middleIconColor =
+                                                                Colors.blue;
+                                                          });
+                                                        },
+                                                      ),
+                                                      Text(comment.shares
+                                                          .toString()),
+                                                    ],
+                                                  ),
+                                                )
                                               ],
                                             ),
                                           ),
