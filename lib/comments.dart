@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 
 class CommentWidget extends StatefulWidget {
@@ -10,9 +11,14 @@ class CommentWidget extends StatefulWidget {
 }
 
 class HeaderTextStyle {
-  static const TextStyle nameOfTextStyle = TextStyle(
+  static const TextStyle extraLarge = TextStyle(
     fontSize: 24,
-    color: Colors.black,
+    color: Color.fromRGBO(22, 110, 216, 1),
+    fontWeight: FontWeight.bold,
+  );
+  static const TextStyle large = TextStyle(
+    fontSize: 18,
+    color: Color.fromRGBO(22, 110, 216, 1),
     fontWeight: FontWeight.bold,
   );
 }
@@ -54,9 +60,15 @@ class CommentWidgetState extends State<CommentWidget> {
             //color: Colors.blue,
             alignment: Alignment.bottomLeft,
             padding: const EdgeInsets.only(left: 10),
-            child: const Text(
-              "Popular This Week",
-              style: HeaderTextStyle.nameOfTextStyle,
+            child: const Column(
+              children: [
+                Gap(10),
+                Text(
+                  "Popular this week",
+                  style: HeaderTextStyle.large,
+                ),
+                Gap(10),
+              ],
             ),
           ),
           Expanded(
@@ -96,8 +108,8 @@ class CommentWidgetState extends State<CommentWidget> {
                                           Text(
                                             comment.name,
                                             style: const TextStyle(
-                                                fontSize: 16.0,
-                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14.0,
+                                                fontWeight: FontWeight.w500,
                                                 color: Color.fromRGBO(
                                                     22, 110, 216, 1)),
                                           ),
