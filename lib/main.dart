@@ -3,6 +3,7 @@ import 'package:flutter_test_project/trackCards.dart';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 
+import 'addReviewsModal.dart';
 import 'albumCards.dart';
 import 'package:gap/gap.dart';
 
@@ -45,6 +46,51 @@ class _MyHomePageState extends State<MyHomePage> {
     Page4(),
   ];
 
+  void _onItemTapped(int index) {
+    if (index == 2) {
+      // Assume the third item triggers the bottom sheet
+      showModalBottomSheet(
+          context: context,
+          builder: (BuildContext context) {
+            return Container(
+              height: 1200,
+              padding: EdgeInsets.all(16.0),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Bottom Sheet Title',
+                    style: TextStyle(
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 16.0),
+                  Text(
+                    'This is the content of the bottom sheet. You can add more widgets here.',
+                    style: TextStyle(fontSize: 16.0),
+                  ),
+                  Gap(100),
+                  Text(
+                    'This is the content of the bottom sheet. You can add more widgets here.',
+                    style: TextStyle(fontSize: 16.0),
+                  ),
+                  Gap(100),
+                  Text(
+                    'This is the content of the bottom sheet. You can add more widgets here.',
+                    style: TextStyle(fontSize: 16.0),
+                  ),
+                ],
+              ),
+            );
+          });
+    } else {
+      setState(() {
+        currentPageIndex = index;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,11 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: _pages[currentPageIndex],
       bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
+        onDestinationSelected: _onItemTapped,
         selectedIndex: currentPageIndex,
         indicatorColor: Color.fromRGBO(67, 146, 241, 1),
         destinations: const <Widget>[
@@ -201,8 +243,29 @@ class Page4 extends StatelessWidget {
 class AddReview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Add Review'),
+    return Center(
+      child: ElevatedButton(
+        child: const Text('showModalBottomSheet'),
+        onPressed: () {
+          showModalBottomSheet<void>(
+            context: context,
+            builder: (BuildContext context) {
+              return Container(
+                height: 200,
+                padding: const EdgeInsets.all(15),
+                color: Colors.blueAccent,
+                child: const Column(
+                  children: [
+                    Icon(Icons.info_outline),
+                    Text('FYI'),
+                    Text('Learn more about Modal Bottom Sheet here'),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
