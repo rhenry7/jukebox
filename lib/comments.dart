@@ -337,7 +337,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                           });
                                                         },
                                                       ),
-                                                      Text(comment.likes
+                                                      Text(comment.reposts
                                                           .toString()),
                                                     ],
                                                   ),
