@@ -112,11 +112,16 @@ class TabBarExample extends StatelessWidget {
           preferredSize: Size.fromHeight(200), // Set the AppBar height to 0
           child: TabBar(
             labelPadding: EdgeInsets.all(10),
-            labelColor: Colors.black,
+            labelColor: Colors.blue,
             //isScrollable: true, // add this property
             unselectedLabelColor: Color(0xff585861),
             indicatorColor: Color.fromARGB(225, 25, 118, 210),
             indicatorSize: TabBarIndicatorSize.tab,
+            labelStyle: TextStyle(
+                fontSize: 14.0,
+                fontWeight: FontWeight.bold,
+                color: Color.fromRGBO(0, 115, 255, 1)),
+
             // TABS
             tabs: <Widget>[
               Tab(

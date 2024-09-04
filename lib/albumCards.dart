@@ -26,14 +26,13 @@ class AlbumList extends State<AlbumCard> {
   Widget build(BuildContext context) {
     return Center(
       child: FutureBuilder<List<Album>>(
-        future: albums,
+        future: albums.then((value) => value.reversed.toList()),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
-                print(album.genres?.length);
                 final albumImages = album.images;
                 final mediumImage =
                     albumImages!.isNotEmpty ? albumImages.first.url : null;

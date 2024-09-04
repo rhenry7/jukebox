@@ -3,6 +3,8 @@ import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:spotify/spotify.dart';
+import 'package:flutter/widgets.dart' as flutter;
 
 class CommentWidget extends StatefulWidget {
   const CommentWidget({super.key});
@@ -23,15 +25,42 @@ class HeaderTextStyle {
   );
 }
 
+// This is dumb. I shouldnt have to fuse these two types together, especially since I just want the data for only the album info
+
+class CommentWithMusicInfo {
+  final List<UserComment> comments;
+  final List<Album> albums;
+
+  CommentWithMusicInfo({
+    required this.comments,
+    required this.albums,
+  });
+}
+
+Future<CommentWithMusicInfo> fetchCombinedData() async {
+  final results = await Future.wait([
+    fetchMockUserComments(), // Future for comments
+    fetchSpotifyAlbums(), // Future for albums
+  ]);
+
+  return CommentWithMusicInfo(
+    comments: results[0] as List<UserComment>,
+    albums: results[1] as List<Album>,
+  );
+}
+
 class CommentWidgetState extends State<CommentWidget> {
   // Define state variables
   Color _middleIconColor = Color.fromRGBO(22, 110, 216, 1);
-  late Future<List<UserComment>> comments;
+  //late Future<List<UserComment>> comments;
+  late Future<List<Album>> albums;
+  late Future<CommentWithMusicInfo>
+      comments; // Future to handle both comments and albums
 
   @override
   void initState() {
     super.initState();
-    comments = fetchMockUserComments();
+    comments = fetchCombinedData();
   }
 
   String formatDateTimeDifference(String isoDateTime) {
@@ -53,7 +82,7 @@ class CommentWidgetState extends State<CommentWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Container(
-      padding: EdgeInsets.only(left: 2, top: 10),
+      padding: const EdgeInsets.only(left: 2, top: 10),
       child: Column(
         children: [
           Container(
@@ -75,32 +104,37 @@ class CommentWidgetState extends State<CommentWidget> {
             child: SingleChildScrollView(
                 child: Column(
               children: [
-                FutureBuilder<List<UserComment>>(
+                FutureBuilder<CommentWithMusicInfo>(
                   future: comments,
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
                       return ListView.builder(
-                          itemCount: snapshot.data!.length,
+                          itemCount: snapshot.data!.albums.length,
                           physics:
-                              NeverScrollableScrollPhysics(), // Disable scrolling for ListView
+                              const NeverScrollableScrollPhysics(), // Disable scrolling for ListView
                           shrinkWrap: true, // Take only the necessary space
                           itemBuilder: (context, index) {
-                            final comment = snapshot.data![index];
+                            final comment = snapshot.data!.comments[index];
+                            final album = snapshot.data!.albums[index];
+                            final albumImages = album!.images;
+                            final smallImageUrl = albumImages!.isNotEmpty
+                                ? albumImages.last.url
+                                : null;
+
                             return Card(
                                 elevation: 0,
                                 margin: const EdgeInsets.all(0),
-                                shape: RoundedRectangleBorder(
+                                shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.horizontal(),
                                   side: BorderSide(
-                                      color: const Color.fromARGB(
-                                          56, 158, 158, 158)),
+                                      color: Color.fromARGB(56, 158, 158, 158)),
                                 ),
                                 color: Colors.transparent,
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    // Top Text (Title)
+                                    // NAME
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Row(
@@ -113,13 +147,14 @@ class CommentWidgetState extends State<CommentWidget> {
                                                 color: Color.fromRGBO(
                                                     22, 110, 216, 1)),
                                           ),
+                                          // TIME STAMP
                                           Padding(
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 12.0),
                                             child: Text(
-                                              formatDateTimeDifference(
-                                                  comment.time.toIso8601String()
-                                                      as String),
+                                              formatDateTimeDifference(comment
+                                                  .time
+                                                  .toIso8601String()),
                                               style: const TextStyle(
                                                 fontSize: 12.0,
                                                 fontWeight: FontWeight.w300,
@@ -130,6 +165,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                       ),
                                     ),
                                     // Middle Row (Text and Icon)
+                                    // COMMENT
                                     Padding(
                                       padding: const EdgeInsets.only(
                                           left: 12.0, top: 4.0, right: 10.0),
@@ -137,6 +173,29 @@ class CommentWidgetState extends State<CommentWidget> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.start,
                                         children: <Widget>[
+                                          Padding(
+                                            padding:
+                                                const flutter.EdgeInsets.only(
+                                                    right: 10.0),
+                                            child: flutter.Image.network(
+                                              smallImageUrl ?? "",
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return const Icon(Icons
+                                                    .error); // Placeholder icon or widget
+                                              },
+                                              loadingBuilder: (context, child,
+                                                  loadingProgress) {
+                                                if (loadingProgress == null) {
+                                                  return child;
+                                                } else {
+                                                  return const Center(
+                                                      child:
+                                                          CircularProgressIndicator()); // Loading indicator
+                                                }
+                                              },
+                                            ),
+                                          ),
                                           Flexible(
                                             child: Text(
                                               comment.comment,
