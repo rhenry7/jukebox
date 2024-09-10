@@ -44,6 +44,7 @@ class ListOfTracks extends State<CardTracks> {
                       final albumImages = track.album!.images;
                       final smallImageUrl =
                           albumImages!.isNotEmpty ? albumImages.last.url : null;
+                      //print(track);
                       return Card(
                         elevation: 0,
                         //margin: const EdgeInsets.all(0),

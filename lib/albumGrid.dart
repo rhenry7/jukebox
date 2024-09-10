@@ -42,12 +42,13 @@ class _AlbumGrid extends State<AlbumGrid> {
                 final albumImages = album.images;
                 final foundImage =
                     albumImages!.isNotEmpty ? albumImages.first.url : "";
+                print(album.label);
                 return Card(
                   elevation: 5, // Shadow elevation for the card
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10), // Rounded corners
                   ),
-                  child: InkWell(
+                  child: InkWell( 
                     onTap: () {
                       // Action to perform when the card is tapped
                       ScaffoldMessenger.of(context).showSnackBar(

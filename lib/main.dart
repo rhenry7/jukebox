@@ -204,7 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
           NavigationDestination(
             selectedIcon: Icon(Icons.library_music_outlined),
             icon: Icon(Icons.library_music_rounded),
-            label: 'Feed',
+            label: 'Charts',
           ),
           NavigationDestination(
             selectedIcon: Icon(Ionicons.add_circle, size: 30.0),
