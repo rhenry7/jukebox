@@ -8,6 +8,8 @@ import 'addReviewsModal.dart';
 import 'albumCards.dart';
 import 'package:gap/gap.dart';
 
+import 'categoryTapBar.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -52,7 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
 
   final List<Widget> _pages = [
-    const CommentWidget(),
+    const CategoryTapBar(),
     const TabBarExample(),
     AddReview(),
     Page3(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:flutter_test_project/categoryTapBar.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart';
@@ -69,13 +70,13 @@ class CommentWidgetState extends State<CommentWidget> {
     Duration difference = DateTime.now().difference(dateTime);
 
     if (difference.inDays >= 1) {
-      return '${difference.inDays} d';
+      return '${difference.inDays}d';
     } else if (difference.inHours >= 1) {
-      return '${difference.inHours} h';
+      return '${difference.inHours}h';
     } else if (difference.inMinutes >= 1) {
-      return '${difference.inMinutes} m';
+      return '${difference.inMinutes}m';
     } else {
-      return '${difference.inSeconds} s';
+      return '${difference.inSeconds}s';
     }
   }
 
@@ -127,7 +128,7 @@ class CommentWidgetState extends State<CommentWidget> {
                               child: Card(
                                   elevation: 1,
                                   margin: const EdgeInsets.all(0),
-                                  shape: RoundedRectangleBorder(
+                                  shape: const RoundedRectangleBorder(
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(8)),
                                     side: BorderSide(
@@ -177,7 +178,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                   Padding(
                                                     padding: const EdgeInsets
                                                         .symmetric(
-                                                        horizontal: 12.0),
+                                                        horizontal: 2.0),
                                                     child: Text(
                                                       formatDateTimeDifference(
                                                           comment.time
@@ -192,6 +193,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                   ),
                                                 ],
                                               ),
+                                              // VIEW MORE BUTTON
                                               ElevatedButton(
                                                 child: Icon(Ionicons
                                                     .ellipsis_horizontal_circle),
@@ -273,10 +275,10 @@ class CommentWidgetState extends State<CommentWidget> {
                                         ),
                                         // Bottom Row (Icons)
                                         Padding(
-                                          padding: const EdgeInsets.all(0),
+                                          padding: const EdgeInsets.all(10),
                                           child: Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.start,
+                                                MainAxisAlignment.spaceBetween,
                                             children: <Widget>[
                                               // LIKES
                                               Padding(
@@ -375,8 +377,8 @@ class CommentWidgetState extends State<CommentWidget> {
                                                   children: [
                                                     Padding(
                                                       padding:
-                                                          const EdgeInsets.only(
-                                                              right: 8.0),
+                                                          const EdgeInsets.all(
+                                                              0),
                                                       child: Row(
                                                         children: [
                                                           IconButton(
@@ -409,13 +411,13 @@ class CommentWidgetState extends State<CommentWidget> {
                                               // SHARES
                                               Padding(
                                                 padding:
-                                                    const EdgeInsets.all(10),
+                                                    const EdgeInsets.all(0),
                                                 child: Row(
                                                   children: [
                                                     Padding(
                                                       padding:
                                                           const EdgeInsets.only(
-                                                              right: 10),
+                                                              right: 0),
                                                       child: Row(
                                                         children: [
                                                           IconButton(
