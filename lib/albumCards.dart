@@ -56,7 +56,8 @@ class AlbumList extends State<AlbumCard> {
                             onPressed: () {
                               debugPrint('Received click');
                             },
-                            child: const Text("Pop"),
+                            child: const Text("Pop",
+                                style: TextStyle(color: Colors.white)),
                           ),
                         ),
                         Container(

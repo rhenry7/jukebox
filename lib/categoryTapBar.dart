@@ -9,6 +9,7 @@ class CategoryTapBar extends StatelessWidget {
     return DefaultTabController(
       initialIndex: 0,
       length: 5, // Number of tabs
+
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(50), // Set the AppBar height to 0

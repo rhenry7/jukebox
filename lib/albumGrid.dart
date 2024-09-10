@@ -32,23 +32,23 @@ class _AlbumGrid extends State<AlbumGrid> {
             return GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2, // Number of columns in the grid
-                crossAxisSpacing: 10.0, // Horizontal space between cards
-                mainAxisSpacing: 10.0, // Vertical space between cards
+                crossAxisSpacing: 5.0, // Horizontal space between cards
+                mainAxisSpacing: 5.0, // Vertical space between cards
               ),
               padding: const EdgeInsets.all(16.0),
-              itemCount: 10, // Number of cards to display
+              itemCount: snapshot.data!.length, // Number of cards to display
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
                 final albumImages = album.images;
                 final foundImage =
                     albumImages!.isNotEmpty ? albumImages.first.url : "";
-                print(album.label);
+                // print(album.label);
                 return Card(
                   elevation: 5, // Shadow elevation for the card
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10), // Rounded corners
                   ),
-                  child: InkWell( 
+                  child: InkWell(
                     onTap: () {
                       // Action to perform when the card is tapped
                       ScaffoldMessenger.of(context).showSnackBar(

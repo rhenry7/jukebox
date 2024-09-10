@@ -15,6 +15,7 @@ class CardTracks extends StatefulWidget {
 
 class ListOfTracks extends State<CardTracks> {
   late Future<List<Track>> spotifyTracks;
+  late Future<Pages<Category>> categories;
   double? _rating;
 
   @override
@@ -22,6 +23,7 @@ class ListOfTracks extends State<CardTracks> {
     super.initState();
     fetchSpotifyAlbums();
     spotifyTracks = fetchSpotifyTracks();
+    categories = fetchSpotifyCatgories();
   }
 
   @override
@@ -44,6 +46,7 @@ class ListOfTracks extends State<CardTracks> {
                       final albumImages = track.album!.images;
                       final smallImageUrl =
                           albumImages!.isNotEmpty ? albumImages.last.url : null;
+
                       //print(track);
                       return Card(
                         elevation: 0,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/categoryTapBar.dart';
@@ -113,7 +114,7 @@ class CommentWidgetState extends State<CommentWidget> {
                           itemBuilder: (context, index) {
                             final comment = snapshot.data!.comments[index];
                             final album = snapshot.data!.albums[index];
-                            final albumImages = album!.images;
+                            final albumImages = album.images;
                             final smallImageUrl = albumImages!.isNotEmpty
                                 ? albumImages.last.url
                                 : null;
@@ -150,6 +151,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
+                                              // USER POST INFO ROW
                                               Row(
                                                 children: [
                                                   const Padding(
@@ -210,6 +212,30 @@ class CommentWidgetState extends State<CommentWidget> {
                                               )
                                             ],
                                           ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12.0),
+                                          child: RatingBar(
+                                              minRating: 3,
+                                              maxRating: 3,
+                                              allowHalfRating: true,
+                                              itemSize: 18,
+                                              itemPadding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 2.0),
+                                              ratingWidget: RatingWidget(
+                                                full: const Icon(Icons.star,
+                                                    color: Colors.black),
+                                                empty: const Icon(Icons.star,
+                                                    color: Colors.black),
+                                                half: const Icon(
+                                                    Icons.star_half,
+                                                    color: Colors.black),
+                                              ),
+                                              onRatingUpdate: (rating) {
+                                                rating;
+                                              }),
                                         ),
                                         // Middle Row (Text and Icon)
                                         // COMMENT AND IMAGE

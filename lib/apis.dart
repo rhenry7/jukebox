@@ -13,6 +13,14 @@ Future<List<Track>> fetchSpotifyTracks() async {
   return tracks.toList();
 }
 
+Future<Pages<Category>> fetchSpotifyCatgories() async {
+  final credentials = SpotifyApiCredentials(clientId, clientSecret);
+  final getFromSpotify = SpotifyApi(credentials);
+  final category = await getFromSpotify.categories.list();
+  print(category.first(10).toString());
+  return category;
+}
+
 Future<List<Album>> fetchSpotifyAlbums() async {
   final credentials = SpotifyApiCredentials(clientId, clientSecret);
   final getFromSpotify = SpotifyApi(credentials);
@@ -28,7 +36,7 @@ Future<List<Album>> fetchSpotifyAlbums() async {
   // might not need this part
   final sb = StringBuffer();
   sb.writeAll(albumsIds, ",");
-  List<String> limitAlbumIds = albumsIds.sublist(0, 11);
+  List<String> limitAlbumIds = albumsIds.sublist(0, 15);
   final albums = await getFromSpotify.albums.list(limitAlbumIds);
   return albums.toList();
 }

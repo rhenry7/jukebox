@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: ''),
+      home: const MyHomePage(title: 'JUKEBOXD'),
     );
   }
 }
@@ -195,7 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onDestinationSelected: _onItemTapped,
         selectedIndex: currentPageIndex,
         indicatorColor: Colors.amber.shade400,
-        destinations: const <Widget>[
+        destinations: <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Ionicons.home_outline),
             icon: Icon(Icons.home),
@@ -207,11 +207,10 @@ class _MyHomePageState extends State<MyHomePage> {
             label: 'Charts',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Ionicons.add_circle, size: 30.0),
-            icon: Icon(
-              Ionicons.add_circle_outline,
-              size: 40,
-            ),
+            selectedIcon: Icon(Ionicons.add_circle,
+                size: 30.0, color: Colors.greenAccent[400]),
+            icon: Icon(Ionicons.add_circle_outline,
+                size: 40, color: Colors.greenAccent[400]),
             label: 'Add',
           ),
           NavigationDestination(
@@ -291,7 +290,7 @@ class TabBarExample extends StatelessWidget {
             ],
           ),
         ),
-        body: TabBarView(
+        body: const TabBarView(
           children: <Widget>[
             Center(
               child: CardTracks(),
