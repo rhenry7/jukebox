@@ -8,6 +8,7 @@ import 'addReviewsModal.dart';
 import 'albumCards.dart';
 import 'package:gap/gap.dart';
 
+import 'albumGrid.dart';
 import 'categoryTapBar.dart';
 
 void main() {
@@ -57,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
     const CategoryTapBar(),
     const TabBarExample(),
     AddReview(),
-    Page3(),
+    const AlbumGrid(),
     Page4(),
   ];
 
@@ -178,11 +179,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(0, 255, 201, 40),
+        backgroundColor: const Color.fromARGB(0, 255, 201, 40),
         title: Text(widget.title),
-        titleTextStyle: TextStyle(color: Colors.white, fontSize: 28),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 28),
         toolbarHeight: 34.0,
-        bottom: PreferredSize(
+        bottom: const PreferredSize(
           preferredSize: Size.fromHeight(10.0),
           child: Padding(
             padding: EdgeInsets.all(8.0),
@@ -240,29 +241,52 @@ class TabBarExample extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(200), // Set the AppBar height to 0
+          preferredSize: Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
-            labelPadding: EdgeInsets.all(10),
             labelColor: Colors.white,
             //isScrollable: true, // add this property
-            unselectedLabelColor: Color(0xff585861),
-            indicatorColor: Colors.red.shade800,
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelStyle: TextStyle(
-                fontSize: 14.0,
-                fontWeight: FontWeight.bold,
-                color: Color.fromRGBO(0, 115, 255, 1)),
+            // unselectedLabelColor: Color(0xff585861),
+            indicator: BoxDecoration(
+              borderRadius:
+                  BorderRadius.circular(25), // Creates pill-shaped indicator
+              color: Colors.red[600], // Background color of the selected tab
+            ),
+            // labelStyle: TextStyle(
+            //     fontSize: 14.0,
+            //     fontWeight: FontWeight.bold,
+            //     color: Color.fromRGBO(0, 115, 255, 1)),
 
             // TABS
-            tabs: <Widget>[
+            tabs: const [
               Tab(
-                text: 'Songs',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                  child: Text(
+                    'Songs',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ),
               Tab(
-                text: 'Albums',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                  child: Text(
+                    'Albums',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ),
               Tab(
-                text: 'Artists',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                  child: Text(
+                    'Artists',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ),
             ],
           ),
