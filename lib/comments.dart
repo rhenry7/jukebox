@@ -94,11 +94,6 @@ class CommentWidgetState extends State<CommentWidget> {
             child: Column(
               children: [
                 Gap(10),
-                Text(
-                  "Trending Reviews",
-                  style: HeaderTextStyle.extraLarge,
-                ),
-                Gap(10),
               ],
             ),
           ),

@@ -15,25 +15,63 @@ class CategoryTapBar extends StatelessWidget {
           child: TabBar(
             isScrollable: true, // Makes the TabBar scrollable
             labelPadding:
-                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+                const EdgeInsets.symmetric(horizontal: 2.0, vertical: 10.0),
             indicator: BoxDecoration(
               borderRadius:
                   BorderRadius.circular(25), // Creates pill-shaped indicator
-              color:
-                  Colors.amber.shade400, // Background color of the selected tab
+              color: Colors.red[600], // Background color of the selected tab
             ),
             tabs: const [
               Tab(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
-                  child: Text('Pop'),
+                  child: Text(
+                    'Pop',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
-              Tab(text: 'Progressive Rock'),
-              Tab(text: 'Soul Funk'),
-              Tab(text: 'Electronic'),
-              Tab(text: 'Jazz'),
+              Tab(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                  child: Text(
+                    'Classical',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+              Tab(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                  child: Text(
+                    'Electronic',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+              Tab(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                  child: Text(
+                    'Rap',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+              Tab(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                  child: Text(
+                    'Rock',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
