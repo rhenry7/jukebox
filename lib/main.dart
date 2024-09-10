@@ -18,12 +18,23 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jukeboxd',
+      title: '',
+      themeMode: ThemeMode.dark,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue.shade300),
+        colorScheme:
+            ColorScheme.fromSeed(seedColor: Color.fromRGBO(214, 40, 40, 80)),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'jukeboxd'),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black, // Black background
+        colorScheme: ColorScheme.dark(
+          primary: Colors.black, // Primary color
+          background: Colors.black, // Background color
+        ),
+        useMaterial3: true,
+      ),
+      home: const MyHomePage(title: ''),
     );
   }
 }
@@ -144,6 +155,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                     ),
                   ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      //Expanded
+                    ],
+                  )
                 ],
               ),
             );
@@ -159,7 +176,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 18, 129, 233),
+        backgroundColor: Color.fromARGB(0, 255, 201, 40),
         title: Text(widget.title),
         titleTextStyle: TextStyle(color: Colors.white, fontSize: 28),
         toolbarHeight: 34.0,
@@ -174,7 +191,7 @@ class _MyHomePageState extends State<MyHomePage> {
       bottomNavigationBar: NavigationBar(
         onDestinationSelected: _onItemTapped,
         selectedIndex: currentPageIndex,
-        indicatorColor: Color.fromRGBO(67, 146, 241, 1),
+        indicatorColor: Colors.amber.shade400,
         destinations: const <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Ionicons.home_outline),
@@ -216,7 +233,7 @@ class TabBarExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const DefaultTabController(
+    return DefaultTabController(
       initialIndex: 0,
       length: 3,
       child: Scaffold(
@@ -224,10 +241,10 @@ class TabBarExample extends StatelessWidget {
           preferredSize: Size.fromHeight(200), // Set the AppBar height to 0
           child: TabBar(
             labelPadding: EdgeInsets.all(10),
-            labelColor: Colors.blue,
+            labelColor: Colors.white,
             //isScrollable: true, // add this property
             unselectedLabelColor: Color(0xff585861),
-            indicatorColor: Color.fromARGB(225, 25, 118, 210),
+            indicatorColor: Colors.red.shade800,
             indicatorSize: TabBarIndicatorSize.tab,
             labelStyle: TextStyle(
                 fontSize: 14.0,
