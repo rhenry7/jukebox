@@ -242,18 +242,26 @@ class TabBarExample extends StatelessWidget {
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
+            padding: EdgeInsets.only(bottom: 5.0),
             labelColor: Colors.white,
-            //isScrollable: true, // add this property
+            isScrollable: true, // add this property
             // unselectedLabelColor: Color(0xff585861),
             indicator: BoxDecoration(
               borderRadius:
                   BorderRadius.circular(25), // Creates pill-shaped indicator
               color: Colors.red[600], // Background color of the selected tab
+              boxShadow: [
+                BoxShadow(
+                  color: Color.fromARGB(255, 255, 9, 9).withAlpha(100),
+                  blurRadius: 16.0,
+                  spreadRadius: 10.0,
+                  offset: const Offset(
+                    1.0,
+                    5.0,
+                  ),
+                ),
+              ],
             ),
-            // labelStyle: TextStyle(
-            //     fontSize: 14.0,
-            //     fontWeight: FontWeight.bold,
-            //     color: Color.fromRGBO(0, 115, 255, 1)),
 
             // TABS
             tabs: const [

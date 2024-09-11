@@ -12,21 +12,33 @@ class CategoryTapBar extends StatelessWidget {
 
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(50), // Set the AppBar height to 0
+          preferredSize: Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
             isScrollable: true, // Makes the TabBar scrollable
-            labelPadding:
-                const EdgeInsets.symmetric(horizontal: 2.0, vertical: 10.0),
+            padding: EdgeInsets.all(15.0),
+            // labelPadding:
+            //     const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
             indicator: BoxDecoration(
               borderRadius:
                   BorderRadius.circular(25), // Creates pill-shaped indicator
               color: Colors.red[600], // Background color of the selected tab
+              boxShadow: [
+                BoxShadow(
+                  color: Color.fromARGB(255, 255, 9, 9).withAlpha(100),
+                  blurRadius: 18.0,
+                  spreadRadius: 10.0,
+                  offset: const Offset(
+                    0.0,
+                    0.0,
+                  ),
+                ),
+              ],
             ),
             tabs: const [
               Tab(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 0.0), // Padding around text
+                      horizontal: 20.0, vertical: 10.0), // Padding around text
                   child: Text(
                     'Pop',
                     style: TextStyle(color: Colors.white),

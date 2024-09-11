@@ -131,7 +131,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                         color:
                                             Color.fromARGB(56, 158, 158, 158)),
                                   ),
-                                  color: Colors.orange.shade100,
+                                  color: Colors.white,
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Column(
@@ -146,7 +146,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                               right: 8.0,
                                               left: 10.0,
                                               top: 10.0,
-                                              bottom: 5.0),
+                                              bottom: 0.0),
                                           child: Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
