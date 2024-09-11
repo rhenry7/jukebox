@@ -57,6 +57,23 @@ Future<List<UserComment>> fetchMockUserComments() async {
   }
 }
 
+Future<List<dynamic>> fetchAlbumsFromTag(String tag) async {
+  final url = Uri.parse(
+      'https://musicbrainz.org/ws/2/release/?query=tag:${tag} AND primarytype:album&fmt=json');
+
+  final response = await http.get(url, headers: {
+    'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
+  });
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    // Extract the releases (albums) from the response
+    return data['releases'];
+  } else {
+    throw Exception('Failed to load rap albums');
+  }
+}
+
 // Future<dynamic> fetchFromSearch() async {
 //   final credentials = SpotifyApiCredentials(clientId, clientSecret);
 //   final getFromSpotify = SpotifyApi(credentials);
