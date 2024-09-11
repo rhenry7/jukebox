@@ -197,8 +197,8 @@ class _MyHomePageState extends State<MyHomePage> {
         indicatorColor: Colors.amber.shade400,
         destinations: <Widget>[
           NavigationDestination(
-            selectedIcon: Icon(Ionicons.home_outline),
-            icon: Icon(Icons.home),
+            selectedIcon: Icon(Ionicons.home),
+            icon: Icon(Ionicons.home),
             label: "Home",
           ),
           NavigationDestination(
@@ -214,13 +214,13 @@ class _MyHomePageState extends State<MyHomePage> {
             label: 'Add',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Ionicons.flash_outline),
-            icon: Icon(Icons.bolt),
+            selectedIcon: Icon(Ionicons.flash),
+            icon: Icon(Ionicons.flash),
             label: 'Trending',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.account_circle_outlined),
-            icon: Icon(Icons.account_circle),
+            selectedIcon: Icon(Ionicons.person_circle),
+            icon: Icon(Ionicons.person_circle),
             label: 'Profile',
           ),
         ],

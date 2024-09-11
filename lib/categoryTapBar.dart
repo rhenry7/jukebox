@@ -15,7 +15,7 @@ class CategoryTapBar extends StatelessWidget {
           preferredSize: Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
             isScrollable: true, // Makes the TabBar scrollable
-            padding: EdgeInsets.all(15.0),
+            padding: EdgeInsets.only(bottom: 5.0),
             // labelPadding:
             //     const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
             indicator: BoxDecoration(

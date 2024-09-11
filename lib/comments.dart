@@ -23,7 +23,7 @@ class HeaderTextStyle {
   );
   static const TextStyle large = TextStyle(
     fontSize: 24,
-    color: Colors.black,
+    color: Colors.white,
     fontWeight: FontWeight.bold,
   );
 }
@@ -54,7 +54,7 @@ Future<CommentWithMusicInfo> fetchCombinedData() async {
 
 class CommentWidgetState extends State<CommentWidget> {
   // Define state variables
-  Color _middleIconColor = Colors.black;
+  Color _middleIconColor = Colors.white;
   //late Future<List<UserComment>> comments;
   late Future<List<Album>> albums;
   late Future<CommentWithMusicInfo>
@@ -131,7 +131,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                         color:
                                             Color.fromARGB(56, 158, 158, 158)),
                                   ),
-                                  color: Colors.white,
+                                  color: Colors.black,
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Column(
@@ -160,7 +160,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                     child: Icon(
                                                       Ionicons
                                                           .person_circle_outline,
-                                                      color: Colors.black,
+                                                      color: Colors.white,
                                                     ),
                                                   ),
                                                   Text(
@@ -169,7 +169,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                         fontSize: 14.0,
                                                         fontWeight:
                                                             FontWeight.normal,
-                                                        color: Colors.black),
+                                                        color: Colors.white),
                                                   ),
                                                   // TIME STAMP
                                                   Padding(
@@ -182,7 +182,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                               .toIso8601String()),
                                                       style: const TextStyle(
                                                         fontSize: 12.0,
-                                                        color: Colors.black,
+                                                        color: Colors.white,
                                                         fontWeight:
                                                             FontWeight.bold,
                                                       ),
@@ -192,8 +192,10 @@ class CommentWidgetState extends State<CommentWidget> {
                                               ),
                                               // VIEW MORE BUTTON
                                               ElevatedButton(
-                                                child: Icon(Ionicons
-                                                    .ellipsis_horizontal_circle),
+                                                child: Icon(
+                                                    Ionicons
+                                                        .ellipsis_horizontal_circle,
+                                                    color: Colors.white),
                                                 onPressed: () => print("hey"),
                                                 // ignore: prefer_const_constructors
                                                 style: ButtonStyle(
@@ -226,12 +228,12 @@ class CommentWidgetState extends State<CommentWidget> {
                                                       horizontal: 2.0),
                                               ratingWidget: RatingWidget(
                                                 full: const Icon(Icons.star,
-                                                    color: Colors.black),
+                                                    color: Colors.white),
                                                 empty: const Icon(Icons.star,
-                                                    color: Colors.black),
+                                                    color: Colors.white),
                                                 half: const Icon(
                                                     Icons.star_half,
-                                                    color: Colors.black),
+                                                    color: Colors.white),
                                               ),
                                               onRatingUpdate: (rating) {
                                                 rating;
@@ -281,7 +283,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                   comment.comment,
                                                   maxLines: 3,
                                                   style: const TextStyle(
-                                                    color: Colors.black,
+                                                    color: Colors.white,
                                                     fontSize: 12.0,
                                                     fontStyle: FontStyle.italic,
                                                     overflow:
@@ -323,7 +325,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                     Ionicons
                                                                         .heart_outline,
                                                                     color: Colors
-                                                                        .black),
+                                                                        .white),
                                                                 onPressed: () {
                                                                   setState(() {
                                                                     "Liked!";
@@ -331,7 +333,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                         .thumb_up;
                                                                     _middleIconColor =
                                                                         Colors
-                                                                            .black;
+                                                                            .white;
                                                                   });
                                                                 },
                                                               ),
@@ -340,7 +342,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                     .toString(),
                                                                 style: TextStyle(
                                                                     color: Colors
-                                                                        .black),
+                                                                        .white),
                                                               ),
                                                             ],
                                                           ),
@@ -367,14 +369,14 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                 Ionicons
                                                                     .chatbubble_outline,
                                                                 color: Colors
-                                                                    .black),
+                                                                    .white),
                                                             onPressed: () {
                                                               setState(() {
                                                                 "Liked!";
                                                                 Icons.thumb_up;
                                                                 _middleIconColor =
                                                                     Colors
-                                                                        .black;
+                                                                        .white;
                                                               });
                                                             },
                                                           ),
@@ -383,7 +385,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                   .toString(),
                                                               style: TextStyle(
                                                                   color: Colors
-                                                                      .black)),
+                                                                      .white)),
                                                         ],
                                                       ),
                                                     )
@@ -406,14 +408,14 @@ class CommentWidgetState extends State<CommentWidget> {
                                                             icon: const Icon(
                                                                 Ionicons.repeat,
                                                                 color: Colors
-                                                                    .black),
+                                                                    .white),
                                                             onPressed: () {
                                                               setState(() {
                                                                 "Liked!";
                                                                 Icons.thumb_up;
                                                                 _middleIconColor =
                                                                     Colors
-                                                                        .black;
+                                                                        .white;
                                                               });
                                                             },
                                                           ),
@@ -422,7 +424,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                   .toString(),
                                                               style: TextStyle(
                                                                   color: Colors
-                                                                      .black)),
+                                                                      .white)),
                                                         ],
                                                       ),
                                                     )
@@ -446,14 +448,14 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                 Ionicons
                                                                     .paper_plane_outline,
                                                                 color: Colors
-                                                                    .black),
+                                                                    .white),
                                                             onPressed: () {
                                                               setState(() {
                                                                 "Liked!";
                                                                 Icons.thumb_up;
                                                                 _middleIconColor =
                                                                     Colors
-                                                                        .black;
+                                                                        .white;
                                                               });
                                                             },
                                                           ),
@@ -462,7 +464,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                   .toString(),
                                                               style: TextStyle(
                                                                   color: Colors
-                                                                      .black)),
+                                                                      .white)),
                                                         ],
                                                       ),
                                                     )
