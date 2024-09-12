@@ -13,7 +13,8 @@ class TracksTapBar extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(100), // Set the AppBar height to 0
+          preferredSize:
+              const Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
             padding: const EdgeInsets.only(bottom: 5.0),
             labelColor: Colors.white,
@@ -42,7 +43,7 @@ class TracksTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Songs',
+                    'Trending',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -52,7 +53,7 @@ class TracksTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Albums',
+                    'Articles',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -62,7 +63,7 @@ class TracksTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Artists',
+                    'New',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),

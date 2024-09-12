@@ -11,7 +11,8 @@ class CategoryTapBar extends StatelessWidget {
       length: 5, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(100), // Set the AppBar height to 0
+          preferredSize:
+              const Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
             padding: const EdgeInsets.only(bottom: 5.0),
             labelColor: Colors.white,
@@ -40,7 +41,7 @@ class CategoryTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Songs',
+                    'Reviews',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -50,7 +51,7 @@ class CategoryTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Albums',
+                    'Playlists',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -60,7 +61,7 @@ class CategoryTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Artists',
+                    'News',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -70,7 +71,7 @@ class CategoryTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Artists',
+                    'Upcoming',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -80,7 +81,7 @@ class CategoryTapBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
-                    'Artists',
+                    'Concerts',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
