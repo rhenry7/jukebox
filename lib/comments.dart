@@ -2,34 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:flutter_test_project/exampleTestPages.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart';
 import 'package:flutter/widgets.dart' as flutter;
-
+import 'helpers.dart';
 import 'subComments.dart';
+import 'trackCards.dart';
 
 class CommentWidget extends StatefulWidget {
   const CommentWidget({super.key});
   @override
   CommentWidgetState createState() => CommentWidgetState();
 }
-
-class HeaderTextStyle {
-  static TextStyle extraLarge = const TextStyle(
-    fontSize: 38,
-    color: Colors.white,
-    fontWeight: FontWeight.bold,
-    wordSpacing: 0.1,
-  );
-  static const TextStyle large = TextStyle(
-    fontSize: 24,
-    color: Colors.white,
-    fontWeight: FontWeight.bold,
-  );
-}
-
-// This is dumb. I shouldnt have to fuse these two types together, especially since I just want the data for only the album info
 
 class CommentWithMusicInfo {
   final List<UserComment> comments;
@@ -65,21 +51,6 @@ class CommentWidgetState extends State<CommentWidget> {
   void initState() {
     super.initState();
     comments = fetchCombinedData();
-  }
-
-  String formatDateTimeDifference(String isoDateTime) {
-    DateTime dateTime = DateTime.parse(isoDateTime);
-    Duration difference = DateTime.now().difference(dateTime);
-
-    if (difference.inDays >= 1) {
-      return '${difference.inDays}d';
-    } else if (difference.inHours >= 1) {
-      return '${difference.inHours}h';
-    } else if (difference.inMinutes >= 1) {
-      return '${difference.inMinutes}m';
-    } else {
-      return '${difference.inSeconds}s';
-    }
   }
 
   @override
@@ -298,6 +269,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                           ),
                                         ),
                                         // Bottom Row (Icons)
+
                                         Padding(
                                           padding: const EdgeInsets.all(10),
                                           child: Row(
@@ -328,6 +300,11 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                     color: Colors
                                                                         .white),
                                                                 onPressed: () {
+                                                                  Navigator.push(
+                                                                      context,
+                                                                      MaterialPageRoute(
+                                                                          builder: (BuildContext context) =>
+                                                                              SubComments()));
                                                                   setState(() {
                                                                     "Liked!";
                                                                     Icons
@@ -342,11 +319,6 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                 onTap: () {
                                                                   print(
                                                                       "tapped inkwell, should route");
-                                                                  Navigator.push(
-                                                                      context,
-                                                                      MaterialPageRoute(
-                                                                          builder: (BuildContext context) =>
-                                                                              const SubCommentThread()));
                                                                 },
                                                                 child: Text(
                                                                   comment.likes
