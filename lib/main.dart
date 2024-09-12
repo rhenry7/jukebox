@@ -4,12 +4,15 @@ import 'package:flutter_test_project/trackCards.dart';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 
+import 'addReviewWidget.dart';
 import 'addReviewsModal.dart';
 import 'albumCards.dart';
 import 'package:gap/gap.dart';
 
 import 'albumGrid.dart';
 import 'categoryTapBar.dart';
+import 'exampleTestPages.dart';
+import 'trackTapBar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,7 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<Widget> _pages = [
     const CategoryTapBar(),
-    const TabBarExample(),
+    const TracksTapBar(),
     AddReview(),
     const AlbumGrid(),
     Page4(),
@@ -194,7 +197,7 @@ class _MyHomePageState extends State<MyHomePage> {
       bottomNavigationBar: NavigationBar(
         onDestinationSelected: _onItemTapped,
         selectedIndex: currentPageIndex,
-        indicatorColor: Colors.amber.shade400,
+        indicatorColor: Colors.white,
         destinations: <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Ionicons.home),
@@ -224,161 +227,6 @@ class _MyHomePageState extends State<MyHomePage> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-}
-
-// TODO: rename, possibly
-class TabBarExample extends StatelessWidget {
-  const TabBarExample({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      initialIndex: 0,
-      length: 3,
-      child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(100), // Set the AppBar height to 0
-          child: TabBar(
-            padding: EdgeInsets.only(bottom: 5.0),
-            labelColor: Colors.white,
-            isScrollable: true, // add this property
-            // unselectedLabelColor: Color(0xff585861),
-            indicator: BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(25), // Creates pill-shaped indicator
-              color: Colors.red[600], // Background color of the selected tab
-              boxShadow: [
-                BoxShadow(
-                  color: Color.fromARGB(255, 255, 9, 9).withAlpha(100),
-                  blurRadius: 16.0,
-                  spreadRadius: 10.0,
-                  offset: const Offset(
-                    1.0,
-                    5.0,
-                  ),
-                ),
-              ],
-            ),
-
-            // TABS
-            tabs: const [
-              Tab(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 0.0), // Padding around text
-                  child: Text(
-                    'Songs',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-              Tab(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 0.0), // Padding around text
-                  child: Text(
-                    'Albums',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-              Tab(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 0.0), // Padding around text
-                  child: Text(
-                    'Artists',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        body: const TabBarView(
-          children: <Widget>[
-            Center(
-              child: CardTracks(),
-            ),
-            Center(
-              child: AlbumCard(),
-            ),
-            Center(
-              child: Text("It's sunny here"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Test Pages for learning navigation
-// TODO: Delete later
-class Page1 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Home Page'),
-    );
-  }
-}
-
-class Page2 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: CardTracks(),
-    );
-  }
-}
-
-class Page3 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Third Page'),
-    );
-  }
-}
-
-class Page4 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Fourth Page'),
-    );
-  }
-}
-
-class AddReview extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ElevatedButton(
-        child: const Text('showModalBottomSheet'),
-        onPressed: () {
-          showModalBottomSheet<void>(
-            context: context,
-            builder: (BuildContext context) {
-              return Container(
-                height: 200,
-                padding: const EdgeInsets.all(15),
-                color: Colors.blueAccent,
-                child: const Column(
-                  children: [
-                    Icon(Icons.info_outline),
-                    Text('FYI'),
-                    Text('Learn more about Modal Bottom Sheet here'),
-                  ],
-                ),
-              );
-            },
-          );
-        },
       ),
     );
   }

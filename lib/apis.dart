@@ -74,9 +74,9 @@ Future<List<dynamic>> fetchAlbumsFromTag(String tag) async {
   }
 }
 
-Future<List<dynamic>> fetchListTracks(String tag, {int limit = 10}) async {
+Future<List<dynamic>> fetchListTracks(String tag, {int limit = 1}) async {
   final url = Uri.parse(
-      'https://musicbrainz.org/ws/2/recording/?query=$tag:rap&fmt=json&limit=$limit');
+      'https://musicbrainz.org/ws/2/recording/?query=tag:rap&fmt=json&limit=1');
 
   final response = await http.get(url, headers: {
     'User-Agent': 'YourAppName/1.0 (your-email@example.com)',
