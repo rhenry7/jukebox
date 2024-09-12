@@ -38,6 +38,7 @@ class SubCommentLists extends State<SubComments> {
                 elevation: 0,
                 //margin: const EdgeInsets.all(0),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Padding(
                       padding: EdgeInsets.all(0.0),
@@ -61,6 +62,27 @@ class SubCommentLists extends State<SubComments> {
                           padding: const EdgeInsets.all(0.0),
                           child: flutter.Image.network(
                               "https://picsum.photos/200"),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: RatingBar(
+                              minRating: 3,
+                              maxRating: 3,
+                              allowHalfRating: true,
+                              itemSize: 18,
+                              itemPadding:
+                                  const EdgeInsets.symmetric(horizontal: 2.0),
+                              ratingWidget: RatingWidget(
+                                full:
+                                    const Icon(Icons.star, color: Colors.white),
+                                empty:
+                                    const Icon(Icons.star, color: Colors.white),
+                                half: const Icon(Icons.star_half,
+                                    color: Colors.white),
+                              ),
+                              onRatingUpdate: (rating) {
+                                rating;
+                              }),
                         ),
                         const Padding(
                           padding: EdgeInsets.all(8.0),
