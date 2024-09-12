@@ -201,29 +201,29 @@ class _MyHomePageState extends State<MyHomePage> {
         destinations: <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Ionicons.home),
-            icon: Icon(Ionicons.home),
+            icon: Icon(Ionicons.home_outline),
             label: "Home",
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.library_music_outlined),
-            icon: Icon(Icons.library_music_rounded),
+            selectedIcon: Icon(Icons.library_music_rounded),
+            icon: Icon(Icons.library_music_outlined),
             label: 'Charts',
           ),
           NavigationDestination(
             selectedIcon: Icon(Ionicons.add_circle,
-                size: 30.0, color: Colors.greenAccent[400]),
+                size: 30.0, color: Colors.greenAccent[700]),
             icon: Icon(Ionicons.add_circle_outline,
-                size: 40, color: Colors.greenAccent[400]),
+                size: 40, color: Colors.greenAccent[700]),
             label: 'Add',
           ),
           NavigationDestination(
             selectedIcon: Icon(Ionicons.flash),
-            icon: Icon(Ionicons.flash),
+            icon: Icon(Ionicons.flash_outline),
             label: 'Trending',
           ),
           NavigationDestination(
             selectedIcon: Icon(Ionicons.person_circle),
-            icon: Icon(Ionicons.person_circle),
+            icon: Icon(Ionicons.person_circle_outline),
             label: 'Profile',
           ),
         ],
