@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/apis.dart';
-import 'package:flutter/widgets.dart' as flutter;
 import 'package:spotify/spotify.dart';
 
 class AlbumCard extends StatefulWidget {
@@ -43,7 +41,7 @@ class AlbumList extends State<AlbumCard> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                       side:
-                          BorderSide(color: Color.fromARGB(103, 158, 158, 158)),
+                          const BorderSide(color: Color.fromARGB(103, 158, 158, 158)),
                     ),
                     child: Column(
                       children: [
@@ -60,7 +58,7 @@ class AlbumList extends State<AlbumCard> {
                                 style: TextStyle(color: Colors.white)),
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           height: 300.0,
                           child: Ink.image(
                             image: cardImage,

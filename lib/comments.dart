@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
-import 'package:flutter_test_project/categoryTapBar.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart';
 import 'package:flutter/widgets.dart' as flutter;
+
+import 'subComments.dart';
 
 class CommentWidget extends StatefulWidget {
   const CommentWidget({super.key});
@@ -15,7 +16,7 @@ class CommentWidget extends StatefulWidget {
 }
 
 class HeaderTextStyle {
-  static TextStyle extraLarge = TextStyle(
+  static TextStyle extraLarge = const TextStyle(
     fontSize: 38,
     color: Colors.white,
     fontWeight: FontWeight.bold,
@@ -92,7 +93,7 @@ class CommentWidgetState extends State<CommentWidget> {
             //color: Colors.blue,
             alignment: Alignment.bottomLeft,
             padding: const EdgeInsets.only(left: 10),
-            child: Column(
+            child: const Column(
               children: [
                 Gap(10),
               ],
@@ -192,10 +193,6 @@ class CommentWidgetState extends State<CommentWidget> {
                                               ),
                                               // VIEW MORE BUTTON
                                               ElevatedButton(
-                                                child: Icon(
-                                                    Ionicons
-                                                        .ellipsis_horizontal_circle,
-                                                    color: Colors.white),
                                                 onPressed: () => print("hey"),
                                                 // ignore: prefer_const_constructors
                                                 style: ButtonStyle(
@@ -211,6 +208,10 @@ class CommentWidgetState extends State<CommentWidget> {
                                                               224,
                                                               130)),
                                                 ),
+                                                child: const Icon(
+                                                    Ionicons
+                                                        .ellipsis_horizontal_circle,
+                                                    color: Colors.white),
                                               )
                                             ],
                                           ),
@@ -337,12 +338,23 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                   });
                                                                 },
                                                               ),
-                                                              Text(
-                                                                comment.likes
-                                                                    .toString(),
-                                                                style: TextStyle(
-                                                                    color: Colors
-                                                                        .white),
+                                                              InkWell(
+                                                                onTap: () {
+                                                                  print(
+                                                                      "tapped inkwell, should route");
+                                                                  Navigator.push(
+                                                                      context,
+                                                                      MaterialPageRoute(
+                                                                          builder: (BuildContext context) =>
+                                                                              const SubCommentThread()));
+                                                                },
+                                                                child: Text(
+                                                                  comment.likes
+                                                                      .toString(),
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white),
+                                                                ),
                                                               ),
                                                             ],
                                                           ),
@@ -383,7 +395,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                           Text(
                                                               comment.replies
                                                                   .toString(),
-                                                              style: TextStyle(
+                                                              style: const TextStyle(
                                                                   color: Colors
                                                                       .white)),
                                                         ],
@@ -422,7 +434,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                           Text(
                                                               comment.reposts
                                                                   .toString(),
-                                                              style: TextStyle(
+                                                              style: const TextStyle(
                                                                   color: Colors
                                                                       .white)),
                                                         ],
@@ -462,7 +474,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                           Text(
                                                               comment.shares
                                                                   .toString(),
-                                                              style: TextStyle(
+                                                              style: const TextStyle(
                                                                   color: Colors
                                                                       .white)),
                                                         ],

@@ -1,5 +1,3 @@
-import 'dart:html';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
@@ -27,15 +25,6 @@ class SubCommentThreadState extends State<SubCommentThread> {
         padding: const EdgeInsets.only(left: 2, top: 10),
         child: Column(
           children: [
-            Container(
-              alignment: Alignment.bottomLeft,
-              padding: const EdgeInsets.only(left: 10),
-              child: Column(
-                children: [
-                  Gap(10),
-                ],
-              ),
-            ),
             Expanded(
                 child: SingleChildScrollView(
                     child: Column(
@@ -48,7 +37,10 @@ class SubCommentThreadState extends State<SubCommentThread> {
                           itemCount: snapshot.data!.length,
                           itemBuilder: (context, index) {
                             final post = snapshot.data![index];
-                            return Text(post.comment);
+                            return Text(
+                              post.comment,
+                              style: TextStyle(color: Colors.white),
+                            );
                           },
                         );
                       } else if (snapshot.hasError) {

@@ -11,9 +11,9 @@ class CategoryTapBar extends StatelessWidget {
       length: 5, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(100), // Set the AppBar height to 0
+          preferredSize: const Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
-            padding: EdgeInsets.only(bottom: 5.0),
+            padding: const EdgeInsets.only(bottom: 5.0),
             labelColor: Colors.white,
             isScrollable: true, // add this property
             // unselectedLabelColor: Color(0xff585861),
@@ -23,7 +23,7 @@ class CategoryTapBar extends StatelessWidget {
               color: Colors.red[600], // Background color of the selected tab
               boxShadow: [
                 BoxShadow(
-                  color: Color.fromARGB(255, 255, 9, 9).withAlpha(100),
+                  color: const Color.fromARGB(255, 255, 9, 9).withAlpha(100),
                   blurRadius: 16.0,
                   spreadRadius: 10.0,
                   offset: const Offset(
@@ -37,7 +37,7 @@ class CategoryTapBar extends StatelessWidget {
             tabs: const [
               Tab(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
                     'Songs',
@@ -47,7 +47,7 @@ class CategoryTapBar extends StatelessWidget {
               ),
               Tab(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
                     'Albums',
@@ -57,7 +57,7 @@ class CategoryTapBar extends StatelessWidget {
               ),
               Tab(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
                     'Artists',
@@ -67,7 +67,7 @@ class CategoryTapBar extends StatelessWidget {
               ),
               Tab(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
                     'Artists',
@@ -77,7 +77,7 @@ class CategoryTapBar extends StatelessWidget {
               ),
               Tab(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 20.0, vertical: 0.0), // Padding around text
                   child: Text(
                     'Artists',

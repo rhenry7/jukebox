@@ -1,12 +1,8 @@
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:flutter_test_project/comments.dart';
-import 'package:flutter_test_project/trackCards.dart';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 
 import 'addReviewWidget.dart';
-import 'addReviewsModal.dart';
-import 'albumCards.dart';
 import 'package:gap/gap.dart';
 
 import 'albumGrid.dart';
@@ -28,13 +24,13 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.dark,
       theme: ThemeData(
         colorScheme:
-            ColorScheme.fromSeed(seedColor: Color.fromRGBO(214, 40, 40, 80)),
+            ColorScheme.fromSeed(seedColor: const Color.fromRGBO(214, 40, 40, 80)),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black, // Black background
-        colorScheme: ColorScheme.dark(
+        colorScheme: const ColorScheme.dark(
           primary: Colors.black, // Primary color
           background: Colors.black, // Background color
         ),
@@ -60,9 +56,9 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<Widget> _pages = [
     const CategoryTapBar(),
     const TracksTapBar(),
-    AddReview(),
+    const AddReview(),
     const AlbumGrid(),
-    Page4(),
+    const Page4(),
   ];
 
   void _onItemTapped(int index) {
@@ -77,7 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
             return Container(
               height: 500,
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -87,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       Row(
                         children: [
                           Padding(
-                              padding: EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.all(8.0),
                               child: BackButton(
                                 style: ButtonStyle(
                                     elevation:
@@ -127,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       hintText: 'What to review?',
                     ),
                   ),
-                  Gap(20),
+                  const Gap(20),
                   TextField(
                     controller: _controller,
                     keyboardType: TextInputType.multiline,
@@ -161,7 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                     ),
                   ),
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       //Expanded
@@ -199,12 +195,12 @@ class _MyHomePageState extends State<MyHomePage> {
         selectedIndex: currentPageIndex,
         indicatorColor: Colors.white,
         destinations: <Widget>[
-          NavigationDestination(
+          const NavigationDestination(
             selectedIcon: Icon(Ionicons.home),
             icon: Icon(Ionicons.home_outline),
             label: "Home",
           ),
-          NavigationDestination(
+          const NavigationDestination(
             selectedIcon: Icon(Icons.library_music_rounded),
             icon: Icon(Icons.library_music_outlined),
             label: 'Charts',
@@ -216,12 +212,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 size: 40, color: Colors.greenAccent[700]),
             label: 'Add',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             selectedIcon: Icon(Ionicons.flash),
             icon: Icon(Ionicons.flash_outline),
             label: 'Trending',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             selectedIcon: Icon(Ionicons.person_circle),
             icon: Icon(Ionicons.person_circle_outline),
             label: 'Profile',

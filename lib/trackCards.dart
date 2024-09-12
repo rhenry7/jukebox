@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter/widgets.dart' as flutter;
@@ -31,7 +30,7 @@ class ListOfTracks extends State<CardTracks> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          Gap(10),
+          const Gap(10),
           Center(
             child: FutureBuilder<List<Track>>(
               future: spotifyTracks,
@@ -39,7 +38,7 @@ class ListOfTracks extends State<CardTracks> {
                 if (snapshot.hasData) {
                   return ListView.builder(
                     itemCount: snapshot.data!.length,
-                    physics: NeverScrollableScrollPhysics(), // Disable
+                    physics: const NeverScrollableScrollPhysics(), // Disable
                     shrinkWrap: true,
                     itemBuilder: (context, index) {
                       final track = snapshot.data![index];
@@ -53,8 +52,8 @@ class ListOfTracks extends State<CardTracks> {
                         //margin: const EdgeInsets.all(0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                              color: const Color.fromARGB(56, 158, 158, 158)),
+                          side: const BorderSide(
+                              color: Color.fromARGB(56, 158, 158, 158)),
                         ),
                         child: Column(
                           children: [
