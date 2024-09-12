@@ -300,11 +300,6 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                     color: Colors
                                                                         .white),
                                                                 onPressed: () {
-                                                                  Navigator.push(
-                                                                      context,
-                                                                      MaterialPageRoute(
-                                                                          builder: (BuildContext context) =>
-                                                                              SubComments()));
                                                                   setState(() {
                                                                     "Liked!";
                                                                     Icons
@@ -355,13 +350,12 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                 color: Colors
                                                                     .white),
                                                             onPressed: () {
-                                                              setState(() {
-                                                                "Liked!";
-                                                                Icons.thumb_up;
-                                                                _middleIconColor =
-                                                                    Colors
-                                                                        .white;
-                                                              });
+                                                              Navigator.push(
+                                                                  context,
+                                                                  MaterialPageRoute(
+                                                                      builder: (BuildContext
+                                                                              context) =>
+                                                                          SubComments()));
                                                             },
                                                           ),
                                                           Text(
