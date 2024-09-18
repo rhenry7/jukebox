@@ -122,12 +122,12 @@ class SubCommentLists extends State<SubComments> {
                                                 Ionicons.heart_outline,
                                                 color: Colors.white),
                                             onPressed: () {
-                                              Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                      builder: (BuildContext
-                                                              context) =>
-                                                          const SubComments()));
+                                              // Navigator.push(
+                                              //     context,
+                                              //     MaterialPageRoute(
+                                              //         builder: (BuildContext
+                                              //                 context) =>
+                                              //             const SubComments()));
                                               setState(() {
                                                 "Liked!";
                                                 Icons.thumb_up;
