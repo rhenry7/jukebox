@@ -4,7 +4,6 @@ import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter/widgets.dart' as flutter;
 import 'package:ionicons/ionicons.dart';
-import 'package:spotify/spotify.dart';
 import 'package:gap/gap.dart';
 
 class SubComments extends StatefulWidget {
@@ -324,12 +323,12 @@ class SubCommentLists extends State<SubComments> {
                                                                 color: Colors
                                                                     .white),
                                                             onPressed: () {
-                                                              Navigator.push(
-                                                                  context,
-                                                                  MaterialPageRoute(
-                                                                      builder: (BuildContext
-                                                                              context) =>
-                                                                          const SubComments()));
+                                                              // Navigator.push(
+                                                              //     context,
+                                                              //     MaterialPageRoute(
+                                                              //         builder: (BuildContext
+                                                              //                 context) =>
+                                                              //             const SubComments()));
                                                               setState(() {
                                                                 "Liked!";
                                                                 Icons.thumb_up;
