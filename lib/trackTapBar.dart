@@ -17,7 +17,7 @@ class TracksTapBar extends StatelessWidget {
               const Size.fromHeight(100), // Set the AppBar height to 0
           child: TabBar(
             padding: const EdgeInsets.only(bottom: 5.0),
-            labelColor: Colors.white,
+            labelColor: Colors.amber,
             isScrollable: true, // add this property
             // unselectedLabelColor: Color(0xff585861),
             indicator: BoxDecoration(

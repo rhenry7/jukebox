@@ -12,7 +12,7 @@ class CategoryTapBar extends StatelessWidget {
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize:
-              const Size.fromHeight(100), // Set the AppBar height to 0
+              const Size.fromHeight(350), // Set the AppBar height to 0
           child: TabBar(
             padding: const EdgeInsets.only(bottom: 5.0),
             labelColor: Colors.white,
@@ -34,6 +34,7 @@ class CategoryTapBar extends StatelessWidget {
                 ),
               ],
             ),
+
             // TABS
             tabs: const [
               Tab(

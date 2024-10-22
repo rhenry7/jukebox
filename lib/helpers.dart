@@ -29,3 +29,13 @@ String formatDateTimeDifference(String isoDateTime) {
     return '${difference.inSeconds}s';
   }
 }
+
+String getCurrentDate() {
+  final date = DateTime.now().toString();
+  final dateParse = DateTime.parse(date);
+  return "${dateParse.day}-${dateParse.month}-${dateParse.year}";
+}
+
+String really() {
+  return "wow";
+}

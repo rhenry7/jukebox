@@ -1,14 +1,14 @@
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/helpers.dart';
 import 'package:ionicons/ionicons.dart';
-
 import 'addReviewWidget.dart';
 import 'package:gap/gap.dart';
-
 import 'albumGrid.dart';
 import 'categoryTapBar.dart';
 import 'exampleTestPages.dart';
 import 'trackTapBar.dart';
+import 'helpers.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,8 +23,8 @@ class MyApp extends StatelessWidget {
       title: '',
       themeMode: ThemeMode.dark,
       theme: ThemeData(
-        colorScheme:
-            ColorScheme.fromSeed(seedColor: const Color.fromRGBO(214, 40, 40, 80)),
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromRGBO(214, 40, 40, 80)),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
@@ -72,11 +72,25 @@ class _MyHomePageState extends State<MyHomePage> {
             0.9; // Takes up 90% of the screen
 
             return Container(
-              height: 500,
+              height: 700,
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(2.0),
+                        child: Text("Date/Date/Date"),
+                      ),
+                      // TODO: Fix, use actual date
+                      Padding(
+                        padding: EdgeInsets.all(2.0),
+                        child: Text("Date/Date/Date"),
+                      )
+                    ],
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -111,7 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               color: Colors.blueGrey)),
                     ],
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 12.0),
                   const TextField(
                     decoration: InputDecoration(
                       prefixIcon: Icon(Icons.search, color: Colors.grey),
@@ -135,26 +149,38 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(
-                      top: 14.0,
-                      left: 2.0,
-                    ),
-                    child: RatingBar(
-                      minRating: 0,
-                      maxRating: 5,
-                      allowHalfRating: true,
-                      itemSize: 24,
-                      itemPadding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      ratingWidget: RatingWidget(
-                        full: const Icon(Icons.star, color: Colors.amber),
-                        empty: const Icon(Icons.star, color: Colors.grey),
-                        half: const Icon(Icons.star_half, color: Colors.amber),
-                      ),
-                      // TODO convert to state or send to DB or something..
-                      onRatingUpdate: (rating) {
-                        print(rating);
-                        setState(() {});
-                      },
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 2.0,
+                          ),
+                          child: RatingBar(
+                            minRating: 0,
+                            maxRating: 5,
+                            allowHalfRating: true,
+                            itemSize: 24,
+                            itemPadding:
+                                const EdgeInsets.symmetric(horizontal: 5.0),
+                            ratingWidget: RatingWidget(
+                              full: const Icon(Icons.star, color: Colors.amber),
+                              empty: const Icon(Icons.star, color: Colors.grey),
+                              half: const Icon(Icons.star_half,
+                                  color: Colors.amber),
+                            ),
+                            // TODO convert to state or send to DB or something..
+                            onRatingUpdate: (rating) {
+                              print(rating);
+                              setState(() {});
+                            },
+                          ),
+                        ),
+                        const Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Icon(Ionicons.heart))
+                      ],
                     ),
                   ),
                   const Row(
