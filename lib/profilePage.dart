@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
+import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:ionicons/ionicons.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -155,7 +156,7 @@ class ProfileView extends State<ProfilePage> {
                     );
                   }));
                 } else if (snapshot.error == null) {
-                  return const Text("Loading profile...");
+                  return const Center(child: Card(child: LoadingWidget()));
                 } else {
                   return Text('${snapshot.data}');
                 }

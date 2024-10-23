@@ -109,7 +109,7 @@ class AlbumList extends State<AlbumCard> {
             print(snapshot);
             return Text('Error: ${snapshot.error}');
           }
-          return const LoadingWidget();
+          return const Center(child: Card(child: LoadingWidget()));
         },
       ),
     );
