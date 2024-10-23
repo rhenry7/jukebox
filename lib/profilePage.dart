@@ -22,97 +22,115 @@ class ProfileView extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: PreferredSize(
-      preferredSize: const Size.fromHeight(350),
-      child: Expanded(
+      preferredSize: const Size.fromHeight(225),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
         child: Card(
-          child: Expanded(
-              child: FutureBuilder<List<UserComment>>(
-                  future: users,
-                  builder: ((context, snapshot) {
-                    if (snapshot.hasData) {
-                      // TODO: Re
-                      final userName = snapshot.data!.first.name;
-                      return ListView.builder(itemBuilder: ((context, index) {
-                        return Column(
-                          children: [
-                            // PROFILE_OVERVIEW
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
+          child: FutureBuilder<List<UserComment>>(
+              future: users,
+              builder: ((context, snapshot) {
+                if (snapshot.hasData) {
+                  // TODO: Reevaluate this thing; can be better
+                  final userName =
+                      snapshot.data?[0].name ?? "userName not found";
+                  return ListView.builder(itemBuilder: ((context, index) {
+                    return Column(
+                      children: [
+                        // PROFILE_OVERVIEW
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
                                   children: [
                                     const Icon(Ionicons.person_outline),
-                                    Text(userName)
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(left: 18.0),
+                                      child: Text(userName),
+                                    )
                                   ],
                                 ),
-                                ElevatedButton.icon(
-                                    onPressed: () => print("buttonPressed"),
-                                    icon: const Icon(
-                                        Ionicons.arrow_forward_circle_outline),
-                                    label: const Text("leave")),
-                              ],
-                            ),
-                            // SETTINGS
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
+                              ),
+                              ElevatedButton.icon(
+                                  onPressed: () => print("buttonPressed"),
+                                  icon: const Icon(
+                                      Ionicons.arrow_forward_circle_outline,
+                                      color: Colors.white),
+                                  label: const Text("",
+                                      style: TextStyle(color: Colors.white))),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
                                   children: [
-                                    Icon(Ionicons.person_outline),
-                                    Text("settings")
+                                    Icon(Ionicons.settings_outline),
+                                    Padding(
+                                      padding: EdgeInsets.only(left: 18.0),
+                                      child: Text("Settings"),
+                                    )
                                   ],
                                 ),
-                                ElevatedButton.icon(
-                                    onPressed: () => print("buttonPressed"),
-                                    icon: const Icon(Ionicons.hammer_outline),
-                                    label: const Text("leave")),
-                              ],
-                            ), // USER_REVIEWS
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
+                              ),
+                              ElevatedButton.icon(
+                                  onPressed: () => print("buttonPressed"),
+                                  icon: const Icon(
+                                      Ionicons.arrow_forward_circle_outline,
+                                      color: Colors.white),
+                                  label: const Text("",
+                                      style: TextStyle(color: Colors.white))),
+                            ],
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
                                   children: [
-                                    Icon(Ionicons.musical_note_outline),
-                                    Text("Reviews")
+                                    Icon(
+                                      Ionicons.exit_outline,
+                                      color: Colors.red,
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.only(left: 18.0),
+                                      child: Text("LogOut"),
+                                    )
                                   ],
                                 ),
-                                ElevatedButton.icon(
-                                    onPressed: () => print("buttonPressed"),
-                                    icon: const Icon(
-                                        Ionicons.arrow_forward_circle_outline),
-                                    label: const Text("leave")),
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Icon(Ionicons.close_circle_outline,
-                                        color: Colors.red),
-                                    Text("LogOut")
-                                  ],
-                                ),
-                                ElevatedButton.icon(
-                                    onPressed: () => print("buttonPressed"),
-                                    icon: const Icon(
-                                        Ionicons.arrow_forward_circle_outline),
-                                    label: const Text("leave")),
-                              ],
-                            )
-                          ],
-                        );
-                      }));
-                    } else {
-                      print(snapshot.error);
-                      return const Text("snapshot error");
-                    }
-                  }))),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // SETTINGS
+                      ],
+                    );
+                  }));
+                } else if (snapshot.error == null) {
+                  return const Text("Loading profile...");
+                } else {
+                  return Text('${snapshot.data}');
+                }
+              })),
         ),
       ),
     ));
