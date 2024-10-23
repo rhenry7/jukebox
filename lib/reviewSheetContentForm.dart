@@ -1,8 +1,9 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/TagInput.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:intl/intl.dart'; // Import the intl package
 
 class MyReviewSheetContentForm extends StatefulWidget {
   const MyReviewSheetContentForm({super.key, required this.title});
@@ -16,6 +17,15 @@ class MyReviewSheetContentForm extends StatefulWidget {
 /// The content of that item will be used to generate the title and the props will be used to autofill some of the form.
 class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   final TextEditingController _controller = TextEditingController();
+  late String currentDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // Format the current date and time
+    DateTime now = DateTime.now();
+    currentDate = DateFormat.yMMMMd('en_US').format(now);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,64 +37,59 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: EdgeInsets.all(2.0),
-                  child: Text("Date/Date/Date"),
+                    padding: const EdgeInsets.all(8.0),
+                    child: BackButton(
+                      style: ButtonStyle(
+                          elevation: MaterialStateProperty.all<double>(1.0)),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    )),
+                //child: const Icon(Ionicons.close))),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Title Of Review',
+                    style: TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                // TODO: Fix, use actual date
-                Padding(
-                  padding: EdgeInsets.all(2.0),
-                  child: Text("Date/Date/Date"),
-                )
               ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: BackButton(
-                          style: ButtonStyle(
-                              elevation:
-                                  MaterialStateProperty.all<double>(1.0)),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        )),
-                    //child: const Icon(Ionicons.close))),
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text(
-                        'Title Of Review',
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Ionicons.person_circle_outline,
-                        color: Colors.blueGrey)),
+                // TODO: Fix, use actual date
+                Padding(
+                  padding: EdgeInsets.all(2.0),
+                  child: Text(currentDate),
+                )
               ],
             ),
-            const SizedBox(height: 12.0),
+            const SizedBox(height: 8.0),
             const Expanded(
               child: TextField(
                 maxLines: null, // Allows the text to wrap and expand vertically
-
                 decoration: InputDecoration(
                   border: InputBorder.none,
-                  hintText: 'What to review?',
+                  hintText: 'What did you think ?',
                 ),
               ),
+            ),
+            const Divider(
+              color: Colors.white,
+              thickness: 0.5,
+            ),
+            const Expanded(child: TagInputScreen()),
+            const Divider(
+              color: Colors.white,
+              thickness: 0.5,
             ),
             const Gap(5),
             Padding(
@@ -115,7 +120,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                     ),
                   ),
                   const Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Icon(
                         Ionicons.heart,
                         color: Colors.grey,
@@ -151,7 +156,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                       backgroundColor: Colors.green, // Button color
                     ),
                     child: const Text(
-                      'Rounded Button',
+                      'Save Review',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),

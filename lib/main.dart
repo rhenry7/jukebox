@@ -1,8 +1,6 @@
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 import 'addReviewWidget.dart';
-import 'package:gap/gap.dart';
 import 'albumGrid.dart';
 import 'categoryTapBar.dart';
 import 'exampleTestPages.dart';
@@ -70,7 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
             initialChildSize:
             0.9; // Takes up 90% of the screen
 
-            return MyReviewSheetContentForm(
+            return const MyReviewSheetContentForm(
               title: '',
             );
           });
