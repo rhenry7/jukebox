@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/apis.dart';
+import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:spotify/spotify.dart';
 
 class AlbumCard extends StatefulWidget {
@@ -40,8 +41,8 @@ class AlbumList extends State<AlbumCard> {
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      side:
-                          const BorderSide(color: Color.fromARGB(103, 158, 158, 158)),
+                      side: const BorderSide(
+                          color: Color.fromARGB(103, 158, 158, 158)),
                     ),
                     child: Column(
                       children: [
@@ -108,7 +109,7 @@ class AlbumList extends State<AlbumCard> {
             print(snapshot);
             return Text('Error: ${snapshot.error}');
           }
-          return const CircularProgressIndicator();
+          return const LoadingWidget();
         },
       ),
     );

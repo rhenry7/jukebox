@@ -3,6 +3,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter/widgets.dart' as flutter;
+import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:gap/gap.dart';
 
@@ -490,7 +491,7 @@ class SubCommentLists extends State<SubComments> {
                           print(snapshot);
                           return Text('Error: ${snapshot.error}');
                         }
-                        return const CircularProgressIndicator();
+                        return const LoadingWidget();
                       },
                     ),
                   ),

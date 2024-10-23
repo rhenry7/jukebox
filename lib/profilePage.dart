@@ -22,7 +22,7 @@ class ProfileView extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: PreferredSize(
-      preferredSize: const Size.fromHeight(225),
+      preferredSize: const Size.fromHeight(275),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Card(
@@ -82,6 +82,35 @@ class ProfileView extends State<ProfilePage> {
                                     Padding(
                                       padding: EdgeInsets.only(left: 18.0),
                                       child: Text("Settings"),
+                                    )
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                  onPressed: () => print("buttonPressed"),
+                                  icon: const Icon(
+                                      Ionicons.arrow_forward_circle_outline,
+                                      color: Colors.white),
+                                  label: const Text("",
+                                      style: TextStyle(color: Colors.white))),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    Icon(Ionicons.musical_notes_outline),
+                                    Padding(
+                                      padding: EdgeInsets.only(left: 18.0),
+                                      child: Text("Reviews"),
                                     )
                                   ],
                                 ),
