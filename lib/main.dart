@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/profilePage.dart';
 import 'package:ionicons/ionicons.dart';
 import 'addReviewWidget.dart';
 import 'albumGrid.dart';
@@ -55,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
     const TracksTapBar(),
     const AddReview(),
     const AlbumGrid(),
-    const Page4(),
+    const ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
