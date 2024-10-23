@@ -87,7 +87,7 @@ class CommentWidgetState extends State<CommentWidget> {
                             final albumImages = album.images;
                             final String? largeImageUrl =
                                 albumImages!.isNotEmpty
-                                    ? albumImages.last.url
+                                    ? albumImages.first.url
                                     : "";
                             final smallImageUrl = albumImages!.isNotEmpty
                                 ? albumImages.last.url

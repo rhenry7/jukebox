@@ -9,6 +9,7 @@ import 'package:gap/gap.dart';
 class SubComments extends StatefulWidget {
   final String title;
   final String imageUrl;
+  // final String ratingValue;
   const SubComments({super.key, required this.title, required this.imageUrl});
 
   @override
@@ -61,28 +62,39 @@ class SubCommentLists extends State<SubComments> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(0.0),
-                          child: flutter.Image.network(widget.imageUrl),
+                          child: SizedBox(
+                            height: 300.0,
+                            child: Ink.image(
+                              image: NetworkImage(widget.imageUrl),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(8.0),
-                          child: RatingBar(
-                              minRating: 3,
-                              maxRating: 3,
-                              allowHalfRating: true,
-                              itemSize: 18,
-                              itemPadding:
-                                  const EdgeInsets.symmetric(horizontal: 2.0),
-                              ratingWidget: RatingWidget(
-                                full:
-                                    const Icon(Icons.star, color: Colors.white),
-                                empty:
-                                    const Icon(Icons.star, color: Colors.white),
-                                half: const Icon(Icons.star_half,
-                                    color: Colors.white),
-                              ),
-                              onRatingUpdate: (rating) {
-                                rating;
-                              }),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              RatingBar(
+                                  minRating: 1,
+                                  maxRating: 5,
+                                  allowHalfRating: false,
+                                  itemSize: 18,
+                                  itemPadding: const EdgeInsets.symmetric(
+                                      horizontal: 2.0),
+                                  ratingWidget: RatingWidget(
+                                    full: const Icon(Icons.star,
+                                        color: Colors.white),
+                                    empty: const Icon(Icons.star,
+                                        color: Colors.white),
+                                    half: const Icon(Icons.star_half,
+                                        color: Colors.white),
+                                  ),
+                                  onRatingUpdate: (rating) {
+                                    rating;
+                                  }),
+                            ],
+                          ),
                         ),
                         const Padding(
                           padding: EdgeInsets.all(8.0),
