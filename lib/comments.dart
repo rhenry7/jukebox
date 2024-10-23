@@ -85,6 +85,10 @@ class CommentWidgetState extends State<CommentWidget> {
                             final comment = snapshot.data!.comments[index];
                             final album = snapshot.data!.albums[index];
                             final albumImages = album.images;
+                            final String? largeImageUrl =
+                                albumImages!.isNotEmpty
+                                    ? albumImages.last.url
+                                    : "";
                             final smallImageUrl = albumImages!.isNotEmpty
                                 ? albumImages.last.url
                                 : null;
@@ -353,7 +357,12 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                   MaterialPageRoute(
                                                                       builder: (BuildContext
                                                                               context) =>
-                                                                          const SubComments()));
+                                                                          SubComments(
+                                                                            title:
+                                                                                album.name ?? "",
+                                                                            imageUrl:
+                                                                                largeImageUrl ?? "",
+                                                                          )));
                                                             },
                                                           ),
                                                           Text(

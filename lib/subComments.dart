@@ -7,7 +7,9 @@ import 'package:ionicons/ionicons.dart';
 import 'package:gap/gap.dart';
 
 class SubComments extends StatefulWidget {
-  const SubComments({super.key});
+  final String title;
+  final String imageUrl;
+  const SubComments({super.key, required this.title, required this.imageUrl});
 
   @override
   State<SubComments> createState() => SubCommentLists();
@@ -39,7 +41,7 @@ class SubCommentLists extends State<SubComments> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.all(0.0),
                       child: Row(
                         children: <Widget>[
@@ -47,7 +49,7 @@ class SubCommentLists extends State<SubComments> {
                             child: ListTile(
                               leading: Icon(Ionicons
                                   .person_circle_outline), // Fallback if no image is available,
-                              title: Text("dr.FlevNavelThe3rd"),
+                              title: Text(widget.title),
                               //subtitle: Text(comment.), use post time data
                             ),
                           ),
@@ -59,8 +61,7 @@ class SubCommentLists extends State<SubComments> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(0.0),
-                          child: flutter.Image.network(
-                              "https://picsum.photos/200"),
+                          child: flutter.Image.network(widget.imageUrl),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(8.0),
