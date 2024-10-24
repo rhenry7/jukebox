@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
-import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_test_project/loadingWidget.dart';
-import 'package:ionicons/ionicons.dart';
 import 'package:gap/gap.dart';
+import 'package:ionicons/ionicons.dart';
 
 class SubComments extends StatefulWidget {
   final String title;
@@ -49,8 +48,8 @@ class SubCommentLists extends State<SubComments> {
                         children: <Widget>[
                           Expanded(
                             child: ListTile(
-                              leading: Icon(Ionicons
-                                  .person_circle_outline), // Fallback if no image is available,
+                              // leading: Icon(Ionicons
+                              //     .person_circle_outline), // Fallback if no image is available,
                               title: Text(widget.title),
                               //subtitle: Text(comment.), use post time data
                             ),
@@ -71,12 +70,41 @@ class SubCommentLists extends State<SubComments> {
                             ),
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              RatingBar(
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          // TODO: use comment data from object passed as prop
+                          child: Text(
+                            "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit",
+                            maxLines: 3,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.0,
+                              fontStyle: FontStyle.italic,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Padding(
+                                  padding:
+                                      EdgeInsets.only(left: 3.0, right: 5.0),
+                                  child: Icon(Ionicons.person_circle_outline),
+                                ),
+                                Text("UserName")
+                              ],
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: RatingBar(
                                   minRating: 1,
                                   maxRating: 5,
                                   allowHalfRating: false,
@@ -94,24 +122,8 @@ class SubCommentLists extends State<SubComments> {
                                   onRatingUpdate: (rating) {
                                     rating;
                                   }),
-                            ],
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          // TODO: use comment data from object passed as prop
-                          child: Text(
-                            "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit",
-                            maxLines: 3,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14.0,
-                              fontStyle: FontStyle.italic,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ),
-                      ],
+                          ]),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(0),
@@ -444,7 +456,8 @@ class SubCommentLists extends State<SubComments> {
                                           ),
                                           // SHARES
                                           Padding(
-                                            padding: const EdgeInsets.all(0),
+                                            padding: const EdgeInsets.only(
+                                                right: 4.0),
                                             child: Row(
                                               children: [
                                                 Padding(
