@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/TagInput.dart';
 import 'package:gap/gap.dart';
-import 'package:ionicons/ionicons.dart';
 import 'package:intl/intl.dart'; // Import the intl package
+import 'package:ionicons/ionicons.dart';
 
 class MyReviewSheetContentForm extends StatefulWidget {
   const MyReviewSheetContentForm({super.key, required this.title});
@@ -31,7 +31,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        height: 700,
+        height: 750,
         width: double.infinity, // or a fixed width
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -65,11 +65,29 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // TODO: Fix, use actual date
                 Padding(
                   padding: EdgeInsets.all(2.0),
                   child: Text(currentDate),
-                )
+                ),
+                Padding(
+                  padding: EdgeInsets.all(2.0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(30.0), // Round radius
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      backgroundColor: Colors.white, // Button color
+                    ),
+                    onPressed: () {
+                      print("add button pressed");
+                    },
+                    child:
+                        Text("add tags", style: TextStyle(color: Colors.black)),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8.0),

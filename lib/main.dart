@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/profilePage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
 import 'addReviewWidget.dart';
@@ -84,8 +85,16 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(0, 255, 201, 40),
-        title: Text(widget.title),
+        // backgroundColor: const Color.fromARGB(0, 255, 201, 40),
+        title: Text(
+          "JUKEBOXD",
+          style: GoogleFonts.gasoekOne(
+            textStyle: TextStyle(
+              color: Colors.red,
+              //letterSpacing: .5,
+            ),
+          ),
+        ),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 28),
         toolbarHeight: 34.0,
         bottom: const PreferredSize(

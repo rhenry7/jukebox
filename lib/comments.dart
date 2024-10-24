@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart';
-import 'package:flutter/widgets.dart' as flutter;
+
 import 'helpers.dart';
 import 'subComments.dart';
 
@@ -196,16 +197,17 @@ class CommentWidgetState extends State<CommentWidget> {
                                           child: RatingBar(
                                               minRating: 3,
                                               maxRating: 3,
-                                              allowHalfRating: true,
+                                              allowHalfRating: false,
+                                              ignoreGestures: true,
                                               itemSize: 18,
                                               itemPadding:
                                                   const EdgeInsets.symmetric(
                                                       horizontal: 2.0),
                                               ratingWidget: RatingWidget(
                                                 full: const Icon(Icons.star,
-                                                    color: Colors.white),
+                                                    color: Colors.yellow),
                                                 empty: const Icon(Icons.star,
-                                                    color: Colors.white),
+                                                    color: Colors.yellow),
                                                 half: const Icon(
                                                     Icons.star_half,
                                                     color: Colors.white),
@@ -274,7 +276,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                         // Bottom Row (Icons)
 
                                         Padding(
-                                          padding: const EdgeInsets.all(10),
+                                          padding: const EdgeInsets.all(5),
                                           child: Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,

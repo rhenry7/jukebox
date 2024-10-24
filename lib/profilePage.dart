@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/ProfileButton.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/loadingWidget.dart';
@@ -38,120 +39,9 @@ class ProfileView extends State<ProfilePage> {
                     return Column(
                       children: [
                         // PROFILE_OVERVIEW
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    const Icon(Ionicons.person_outline),
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(left: 18.0),
-                                      child: Text(userName),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton.icon(
-                                  onPressed: () => print("buttonPressed"),
-                                  icon: const Icon(
-                                      Ionicons.arrow_forward_circle_outline,
-                                      color: Colors.white),
-                                  label: const Text("",
-                                      style: TextStyle(color: Colors.white))),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    Icon(Ionicons.settings_outline),
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 18.0),
-                                      child: Text("Settings"),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton.icon(
-                                  onPressed: () => print("buttonPressed"),
-                                  icon: const Icon(
-                                      Ionicons.arrow_forward_circle_outline,
-                                      color: Colors.white),
-                                  label: const Text("",
-                                      style: TextStyle(color: Colors.white))),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    Icon(Ionicons.musical_notes_outline),
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 18.0),
-                                      child: Text("Reviews"),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton.icon(
-                                  onPressed: () => print("buttonPressed"),
-                                  icon: const Icon(
-                                      Ionicons.arrow_forward_circle_outline,
-                                      color: Colors.white),
-                                  label: const Text("",
-                                      style: TextStyle(color: Colors.white))),
-                            ],
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    Icon(
-                                      Ionicons.exit_outline,
-                                      color: Colors.red,
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 18.0),
-                                      child: Text("LogOut"),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         // SETTINGS
+                        ProfileButton(
+                            name: userName, icon: Ionicons.person_circle),
                       ],
                     );
                   }));
