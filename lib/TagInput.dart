@@ -30,7 +30,7 @@ class _TagInputScreenState extends State<TagInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(2.0),
+      padding: const EdgeInsets.all(10.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -42,7 +42,7 @@ class _TagInputScreenState extends State<TagInputScreen> {
                   controller: _controller,
                   decoration: const InputDecoration(
                     hintText: 'Enter a tag and press +',
-                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(),
                   ),
                 ),
               ),
@@ -53,7 +53,7 @@ class _TagInputScreenState extends State<TagInputScreen> {
               )
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 2),
           // Horizontal scrollable tag list
           SizedBox(
             height: 50, // Height for the horizontal list
