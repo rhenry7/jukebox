@@ -8,8 +8,9 @@ class ProfileButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Color useColor = name == 'LogOut' ? Colors.red : Colors.white;
     return Padding(
-        padding: EdgeInsets.all(10.0),
+        padding: EdgeInsets.all(8.0),
         child:
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Padding(
@@ -17,19 +18,22 @@ class ProfileButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Icon(icon),
+                Icon(
+                  icon,
+                  color: useColor,
+                ),
                 Padding(
-                  padding: const EdgeInsets.only(left: 18.0),
+                  padding: const EdgeInsets.only(left: 8.0),
                   child: Text(name),
                 )
               ],
             ),
           ),
-          ElevatedButton.icon(
-              onPressed: () => print("buttonPressed"),
-              icon: const Icon(Ionicons.arrow_forward_circle_outline,
-                  color: Colors.white),
-              label: const Text("", style: TextStyle(color: Colors.white))),
+          name != 'LogOut'
+              ? IconButton(
+                  onPressed: (() => {}),
+                  icon: const Icon(Ionicons.chevron_forward_outline))
+              : const Text(""),
         ]));
   }
 }
