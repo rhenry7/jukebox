@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_test_project/subComments.dart';
 
+import 'ProfileSignUpWidget.dart';
 import 'comments.dart';
 
 class DateHelper {
@@ -45,6 +45,6 @@ Widget routeToPage(String name) {
   if (name == "Reviews") {
     return const CommentWidget();
   } else {
-    return const SubComments(title: "title", imageUrl: "imageUrl");
+    return const ProfileSignUp();
   }
 }
