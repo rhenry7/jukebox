@@ -13,7 +13,7 @@ class AlbumCard extends StatefulWidget {
 
 class AlbumList extends State<AlbumCard> {
   late Future<List<Album>> albums;
-  double? _rating;
+  double? _rating = 5.0;
 
   @override
   void initState() {

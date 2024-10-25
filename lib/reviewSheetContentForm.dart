@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:flutter_test_project/TagInput.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart'; // Import the intl package
 import 'package:ionicons/ionicons.dart';
 
 class MyReviewSheetContentForm extends StatefulWidget {
-  const MyReviewSheetContentForm({super.key, required this.title});
   final String title;
+  const MyReviewSheetContentForm({super.key, required this.title});
 
   @override
   State<MyReviewSheetContentForm> createState() => _MyReviewSheetContentForm();
@@ -53,7 +52,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                 const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text(
-                    'Title Of Review',
+                    "title",
                     style: TextStyle(
                       fontSize: 18.0,
                       fontWeight: FontWeight.bold,
@@ -69,49 +68,11 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                   padding: EdgeInsets.all(2.0),
                   child: Text(currentDate),
                 ),
-                Padding(
-                  padding: EdgeInsets.all(2.0),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(30.0), // Round radius
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      backgroundColor: Colors.white, // Button color
-                    ),
-                    onPressed: () {
-                      print("add button pressed");
-                    },
-                    child:
-                        Text("add tags", style: TextStyle(color: Colors.black)),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 8.0),
-            const Expanded(
-              child: TextField(
-                maxLines: null, // Allows the text to wrap and expand vertically
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'What did you think ?',
-                ),
-              ),
-            ),
-            const Divider(
-              color: Colors.white,
-              thickness: 0.5,
-            ),
-            const Expanded(child: TagInputScreen()),
-            const Divider(
-              color: Colors.white,
-              thickness: 0.5,
-            ),
-            const Gap(5),
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 0.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -146,13 +107,13 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  //Expanded
-                ],
+            const Expanded(
+              child: TextField(
+                maxLines: null, // Allows the text to wrap and expand vertically
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText: 'What did you think ?',
+                ),
               ),
             ),
             Padding(

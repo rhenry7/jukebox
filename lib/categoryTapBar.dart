@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/comments.dart';
 
+import 'albumCards.dart';
+
 class CategoryTapBar extends StatelessWidget {
   const CategoryTapBar({super.key});
 
@@ -93,8 +95,8 @@ class CategoryTapBar extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
+            AlbumCard(),
             CommentWidget(),
-            Center(child: Text('Tab 2 Content')),
             Center(child: Text('Tab 3 Content')),
             Center(child: Text('Tab 4 Content')),
             Center(child: Text('Tab 5 Content')),
