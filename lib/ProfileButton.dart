@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/comments.dart';
 import 'package:ionicons/ionicons.dart';
+
+import 'helpers.dart';
 
 class ProfileButton extends StatelessWidget {
   final String name;
@@ -10,6 +11,8 @@ class ProfileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color useColor = name == 'LogOut' ? Colors.red : Colors.white;
+    Widget page = routeToPage(name);
+
     return Padding(
         padding: EdgeInsets.all(8.0),
         child:
@@ -33,13 +36,10 @@ class ProfileButton extends StatelessWidget {
           name != 'LogOut'
               ? IconButton(
                   onPressed: () {
-                    name == 'Reviews'
-                        ? Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    const CommentWidget()))
-                        : print("button pressed");
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (BuildContext context) => page));
                   },
                   icon: const Icon(Ionicons.chevron_forward_outline))
               : const Text(""),

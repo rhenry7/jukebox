@@ -238,7 +238,6 @@ class CommentWidgetState extends State<CommentWidget> {
                                                   },
                                                 ),
                                               ),
-
                                               Flexible(
                                                 child: Text(
                                                   comment.comment,
