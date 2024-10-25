@@ -33,7 +33,6 @@ class ProfileView extends State<ProfilePage> {
               builder: ((context, snapshot) {
                 if (snapshot.hasData) {
                   // TODO: Reevaluate this thing; can be better
-
                   return ListView.builder(itemBuilder: ((context, index) {
                     final String userName = snapshot.data?[index].name ?? "";
                     return Column(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/comments.dart';
 import 'package:ionicons/ionicons.dart';
 
 class ProfileButton extends StatelessWidget {
@@ -31,7 +32,15 @@ class ProfileButton extends StatelessWidget {
           ),
           name != 'LogOut'
               ? IconButton(
-                  onPressed: (() => {}),
+                  onPressed: () {
+                    name == 'Reviews'
+                        ? Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (BuildContext context) =>
+                                    const CommentWidget()))
+                        : print("button pressed");
+                  },
                   icon: const Icon(Ionicons.chevron_forward_outline))
               : const Text(""),
         ]));

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/apis.dart';
-import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_test_project/loadingWidget.dart';
-import 'package:spotify/spotify.dart';
 import 'package:gap/gap.dart';
+import 'package:spotify/spotify.dart';
 
 class CardTracks extends StatefulWidget {
   const CardTracks({super.key});
@@ -16,7 +16,7 @@ class CardTracks extends StatefulWidget {
 class ListOfTracks extends State<CardTracks> {
   late Future<List<Track>> spotifyTracks;
   late Future<Pages<Category>> categories;
-  double? _rating;
+  double? _rating = 5.0;
 
   @override
   void initState() {
@@ -46,7 +46,6 @@ class ListOfTracks extends State<CardTracks> {
                       final albumImages = track.album!.images;
                       final smallImageUrl =
                           albumImages!.isNotEmpty ? albumImages.last.url : null;
-
                       //print(track);
                       return Card(
                         elevation: 0,
@@ -97,6 +96,25 @@ class ListOfTracks extends State<CardTracks> {
                                 ],
                               ),
                             ),
+                            const Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+                                      maxLines: 10,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12.0,
+                                        fontStyle: FontStyle.italic,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
                           ],
                         ),
                       );
@@ -110,6 +128,7 @@ class ListOfTracks extends State<CardTracks> {
               },
             ),
           ),
+          //const Gap(10),
         ],
       ),
     );

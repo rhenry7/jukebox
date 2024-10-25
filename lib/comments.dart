@@ -167,55 +167,39 @@ class CommentWidgetState extends State<CommentWidget> {
                                                 ],
                                               ),
                                               // VIEW MORE BUTTON
-                                              ElevatedButton(
-                                                onPressed: () => print("hey"),
-                                                // ignore: prefer_const_constructors
-                                                style: ButtonStyle(
-                                                  elevation:
-                                                      MaterialStateProperty.all(
-                                                          0.0),
-                                                  backgroundColor:
-                                                      MaterialStateProperty.all<
-                                                              Color>(
-                                                          const Color.fromARGB(
-                                                              0,
-                                                              255,
-                                                              224,
-                                                              130)),
-                                                ),
-                                                child: const Icon(
-                                                    Ionicons
-                                                        .ellipsis_horizontal_circle,
-                                                    color: Colors.white),
-                                              )
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12.0),
+                                                child: RatingBar(
+                                                    minRating: 3,
+                                                    maxRating: 3,
+                                                    allowHalfRating: false,
+                                                    ignoreGestures: true,
+                                                    itemSize: 18,
+                                                    itemPadding:
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                            horizontal: 2.0),
+                                                    ratingWidget: RatingWidget(
+                                                      full: const Icon(
+                                                          Icons.star,
+                                                          color: Colors.yellow),
+                                                      empty: const Icon(
+                                                          Icons.star,
+                                                          color: Colors.yellow),
+                                                      half: const Icon(
+                                                          Icons.star_half,
+                                                          color: Colors.white),
+                                                    ),
+                                                    onRatingUpdate: (rating) {
+                                                      rating;
+                                                    }),
+                                              ),
                                             ],
                                           ),
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12.0),
-                                          child: RatingBar(
-                                              minRating: 3,
-                                              maxRating: 3,
-                                              allowHalfRating: false,
-                                              ignoreGestures: true,
-                                              itemSize: 18,
-                                              itemPadding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 2.0),
-                                              ratingWidget: RatingWidget(
-                                                full: const Icon(Icons.star,
-                                                    color: Colors.yellow),
-                                                empty: const Icon(Icons.star,
-                                                    color: Colors.yellow),
-                                                half: const Icon(
-                                                    Icons.star_half,
-                                                    color: Colors.white),
-                                              ),
-                                              onRatingUpdate: (rating) {
-                                                rating;
-                                              }),
-                                        ),
+
                                         // Middle Row (Text and Icon)
                                         // COMMENT AND IMAGE
                                         Padding(
@@ -258,7 +242,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                               Flexible(
                                                 child: Text(
                                                   comment.comment,
-                                                  maxLines: 3,
+                                                  maxLines: 5,
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 12.0,
