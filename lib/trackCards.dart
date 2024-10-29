@@ -97,7 +97,7 @@ class ListOfTracks extends State<CardTracks> {
                               ),
                             ),
                             const Padding(
-                              padding: const EdgeInsets.all(20.0),
+                              padding: EdgeInsets.all(20.0),
                               child: Row(
                                 children: [
                                   Flexible(

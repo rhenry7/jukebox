@@ -14,7 +14,7 @@ class ProfileButton extends StatelessWidget {
     Widget page = routeToPage(name);
 
     return Padding(
-        padding: EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8.0),
         child:
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Padding(

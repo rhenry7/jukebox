@@ -91,7 +91,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                 albumImages!.isNotEmpty
                                     ? albumImages.first.url
                                     : "";
-                            final smallImageUrl = albumImages!.isNotEmpty
+                            final smallImageUrl = albumImages.isNotEmpty
                                 ? albumImages.last.url
                                 : null;
 

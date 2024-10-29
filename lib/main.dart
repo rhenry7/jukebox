@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/profilePage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
 import 'addReviewWidget.dart';
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.black, // Black background
         colorScheme: const ColorScheme.dark(
           primary: Colors.black, // Primary color
-          background: Colors.black, // Background color
+          surface: Colors.black, // Background color
         ),
         useMaterial3: true,
       ),
@@ -87,6 +88,12 @@ class _MyHomePageState extends State<MyHomePage> {
         // backgroundColor: const Color.fromARGB(0, 255, 201, 40),
         title: Text(
           "JUKEBOXD",
+          style: GoogleFonts.gasoekOne(
+            textStyle: const TextStyle(
+              color: Colors.red,
+              //letterSpacing: .5,
+            ),
+          ),
         ),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 28),
         toolbarHeight: 34.0,

@@ -43,7 +43,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                     padding: const EdgeInsets.all(8.0),
                     child: BackButton(
                       style: ButtonStyle(
-                          elevation: MaterialStateProperty.all<double>(1.0)),
+                          elevation: WidgetStateProperty.all<double>(1.0)),
                       onPressed: () {
                         Navigator.pop(context);
                       },
@@ -65,7 +65,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: EdgeInsets.all(2.0),
+                  padding: const EdgeInsets.all(2.0),
                   child: Text(currentDate),
                 ),
               ],

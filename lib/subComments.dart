@@ -43,7 +43,7 @@ class SubCommentLists extends State<SubComments> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Padding(
-                      padding: EdgeInsets.all(0.0),
+                      padding: const EdgeInsets.all(0.0),
                       child: Row(
                         children: <Widget>[
                           Expanded(

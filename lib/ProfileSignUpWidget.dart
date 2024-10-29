@@ -30,15 +30,15 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                 children: [
                   // PROFILE_OVERVIEW
                   // SETTINGS
-                  Gap(30),
-                  Row(
+                  const Gap(30),
+                  const Row(
                     children: [
                       BackButton(),
                     ],
                   ),
-                  Gap(30),
-                  Text("Sign Up", style: TextStyle(fontSize: 20)),
-                  Gap(50),
+                  const Gap(30),
+                  const Text("Sign Up", style: TextStyle(fontSize: 20)),
+                  const Gap(50),
                   TextFormField(
                     decoration: const InputDecoration(
                       icon: Icon(Icons.person),
@@ -104,7 +104,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                           : null;
                     },
                   ),
-                  Gap(70),
+                  const Gap(70),
                   ElevatedButton(
                     onPressed: () {
                       // Action when the button is pressed
@@ -124,7 +124,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
-                  Gap(50),
+                  const Gap(50),
                   ElevatedButton(
                     onPressed: () {
                       // Action when the button is pressed
@@ -144,7 +144,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
-                  Gap(5),
+                  const Gap(5),
                   ElevatedButton(
                     onPressed: () {
                       // Action when the button is pressed
