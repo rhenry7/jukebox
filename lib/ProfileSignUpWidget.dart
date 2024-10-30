@@ -12,6 +12,9 @@ class ProfileSignUp extends StatefulWidget {
 
 class ProfileSignUpPage extends State<ProfileSignUp> {
   // late Future<List<UserComment>> users;
+  late final String userName;
+  late final String? email;
+  late final String? password;
   @override
   void initState() {
     super.initState();
@@ -44,12 +47,14 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     decoration: const InputDecoration(
                       icon: Icon(Icons.person),
                       hintText: 'What do people call you?',
+                      hintStyle: TextStyle(color: Colors.grey),
                       labelText: 'Name *',
                       labelStyle: TextStyle(color: Colors.white),
                     ),
                     onSaved: (String? value) {
-                      // This optional block of code can be used to run
-                      // code when the user saves the form.
+                      if (value != null) {
+                        userName = value;
+                      }
                     },
                     validator: (String? value) {
                       return (value != null && value.contains('@'))
@@ -61,11 +66,15 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.mail_outline),
                       hintText: 'Enter your email',
+                      hintStyle: TextStyle(color: Colors.grey),
                       labelText: 'Email *',
                     ),
                     onSaved: (String? value) {
                       // This optional block of code can be used to run
                       // code when the user saves the form.
+                      if (value != null) {
+                        email = value;
+                      }
                     },
                     validator: (String? value) {
                       return (value != null && value.contains('@'))
@@ -77,11 +86,15 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.eye_outline),
                       hintText: 'Password must be 8 characters long',
+                      hintStyle: TextStyle(color: Colors.grey),
                       labelText: 'Password *',
                     ),
                     onSaved: (String? value) {
                       // This optional block of code can be used to run
                       // code when the user saves the form.
+                      if (value != null) {
+                        password = value;
+                      }
                     },
                     validator: (String? value) {
                       return (value != null && value.contains('@'))
@@ -93,6 +106,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.eye_outline),
                       hintText: 'Passwords must match',
+                      hintStyle: TextStyle(color: Colors.grey),
                       labelText: 'Confirm Password *',
                     ),
                     onSaved: (String? value) {
@@ -110,7 +124,9 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     onPressed: () {
                       // Action when the button is pressed
                       // send to firebase
-                      signUp("testUserEmail@gmail.com", "testUserPassword");
+                      if (email != null && password != null) {
+                        signUp("testUserEmail@gmail.com", "testUserPassword");
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
