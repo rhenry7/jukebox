@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+import 'api_key.dart';
+
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
 /// Example:
@@ -50,20 +52,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCYfDpT_XEF_6bGHhSCt0qTglPAWl9BFsU',
-    appId: '1:412268788730:android:ba888c5cdf66b317fe8243',
+    apiKey: firebaseOptionsKey,
+    appId: firebaseAppId,
     messagingSenderId: '412268788730',
     projectId: 'juxeboxd',
     storageBucket: 'juxeboxd.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAe9PLTDNikFejRu-RoO-zGx6xVxKmTKTE',
-    appId: '1:412268788730:ios:1d617ddb24e7335bfe8243',
+    apiKey: firebaseOptionsKey,
+    appId: firebaseAppId,
     messagingSenderId: '412268788730',
     projectId: 'juxeboxd',
     storageBucket: 'juxeboxd.appspot.com',
-    iosClientId: '412268788730-scupqhk1ra16uvnb6cp1tm3uar8lhv3s.apps.googleusercontent.com',
+    iosClientId:
+        '412268788730-scupqhk1ra16uvnb6cp1tm3uar8lhv3s.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterTestProject',
   );
 }
