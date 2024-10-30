@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "412268788730",
+    "project_id": "juxeboxd",
+    "storage_bucket": "juxeboxd.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:412268788730:android:ba888c5cdf66b317fe8243",
+        "android_client_info": {
+          "package_name": "com.example.flutter_test_project"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "412268788730-ru92oovee22nln8jr506sv3fvbpihb0f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYfDpT_XEF_6bGHhSCt0qTglPAWl9BFsU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "412268788730-ru92oovee22nln8jr506sv3fvbpihb0f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

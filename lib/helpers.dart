@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_test_project/authService.dart';
 
 import 'ProfileSignUpWidget.dart';
 import 'comments.dart';
@@ -46,5 +48,16 @@ Widget routeToPage(String name) {
     return const CommentWidget();
   } else {
     return const ProfileSignUp();
+  }
+}
+
+void signUp(String email, String password) async {
+  AuthService authService = AuthService();
+  User? user = await authService.signUp(email, password);
+
+  if (user != null) {
+    print("Sign-up successful! User ID: ${user.uid}");
+  } else {
+    print("Sign-up failed.");
   }
 }

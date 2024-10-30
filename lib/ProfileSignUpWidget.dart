@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -109,6 +110,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     onPressed: () {
                       // Action when the button is pressed
                       // send to firebase
+                      signUp("testUserEmail@gmail.com", "testUserPassword");
                     },
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
