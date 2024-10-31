@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_test_project/ProfileSignIn.dart';
 import 'package:flutter_test_project/authService.dart';
 
-import 'ProfileSignUpWidget.dart';
 import 'comments.dart';
 
 class DateHelper {
@@ -47,7 +47,7 @@ Widget routeToPage(String name) {
   if (name == "Reviews") {
     return const CommentWidget();
   } else {
-    return const ProfileSignUp();
+    return SignInScreen();
   }
 }
 

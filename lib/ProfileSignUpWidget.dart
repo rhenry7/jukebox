@@ -12,9 +12,14 @@ class ProfileSignUp extends StatefulWidget {
 
 class ProfileSignUpPage extends State<ProfileSignUp> {
   // late Future<List<UserComment>> users;
-  late final String userName;
-  late final String? email;
-  late final String? password;
+  late String userName;
+  late String email;
+  late String password;
+
+  final TextEditingController _userNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -22,7 +27,21 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
   }
 
   @override
+  void dispose() {
+    // Clean up controllers when the widget is disposed
+    _userNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    setState(() {
+      userName = _userNameController.text.trim();
+      email = _emailController.text.trim();
+      password = _passwordController.text.trim();
+    });
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Center(
@@ -44,9 +63,10 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                   const Text("Sign Up", style: TextStyle(fontSize: 20)),
                   const Gap(50),
                   TextFormField(
+                    controller: _userNameController,
                     decoration: const InputDecoration(
                       icon: Icon(Icons.person),
-                      hintText: 'What do people call you?',
+                      hintText: 'What is your username?',
                       hintStyle: TextStyle(color: Colors.grey),
                       labelText: 'Name *',
                       labelStyle: TextStyle(color: Colors.white),
@@ -63,6 +83,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     },
                   ),
                   TextFormField(
+                    controller: _emailController,
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.mail_outline),
                       hintText: 'Enter your email',
@@ -83,6 +104,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     },
                   ),
                   TextFormField(
+                    controller: _passwordController,
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.eye_outline),
                       hintText: 'Password must be 8 characters long',
@@ -103,6 +125,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     },
                   ),
                   TextFormField(
+                    controller: _passwordController,
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.eye_outline),
                       hintText: 'Passwords must match',
@@ -125,8 +148,13 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                       // Action when the button is pressed
                       // send to firebase
                       if (email != null && password != null) {
-                        signUp("testUserEmail@gmail.com", "testUserPassword");
+                        signUp(email!, password!);
                       }
+                      setState(() {
+                        userName = '';
+                        email = '';
+                        password = '';
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(

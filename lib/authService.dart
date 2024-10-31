@@ -32,4 +32,40 @@ class AuthService {
       return null;
     }
   }
+
+  Future<void> signIn(String email, String password) async {
+    try {
+      print(email);
+      // Attempt to sign in with Firebase
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      print("successfully signed in!");
+      // Sign-in successful
+    } on FirebaseAuthException catch (e) {
+      // Handle errors
+      String errorMessage;
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = "No user found with this email.";
+          break;
+        case 'wrong-password':
+          errorMessage = "Incorrect password.";
+          break;
+        case 'invalid-email':
+          errorMessage = "Invalid email address.";
+          break;
+        case 'too-many-requests':
+          errorMessage = "Too many requests. Please try again later.";
+          break;
+        case 'operation-not-allowed':
+          errorMessage = "This operation is not allowed.";
+          break;
+        default:
+          errorMessage = "An error occurred. Please try again.";
+      }
+      print(errorMessage); // Print to console for debugging
+      // Display error message to the user (e.g., using a SnackBar)
+      // ... (Code to display error message)
+    }
+  }
 }
