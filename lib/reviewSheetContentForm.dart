@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:gap/gap.dart';
@@ -15,7 +16,9 @@ class MyReviewSheetContentForm extends StatefulWidget {
 /// one idea is to inherit the props from the previous widget, if that widget is a track or album widget.
 /// The content of that item will be used to generate the title and the props will be used to autofill some of the form.
 class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController reviewController = TextEditingController();
+  final FirebaseAuth auth = FirebaseAuth.instance;
+
   late String currentDate;
 
   @override
@@ -107,13 +110,14 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                 ],
               ),
             ),
-            const Expanded(
+            Expanded(
               child: TextField(
+                controller: reviewController,
                 maxLines: null, // Allows the text to wrap and expand vertically
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'What did you think ?',
-                ),
+                decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'What did you think ?',
+                    hintStyle: TextStyle(color: Colors.grey)),
               ),
             ),
             Padding(
@@ -123,6 +127,10 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                 children: [
                   ElevatedButton(
                     onPressed: () {
+                      if (auth.currentUser != null) {
+                        String userId = auth.currentUser!.uid;
+                        print("logged in user made a post");
+                      }
                       // Action when the button is pressed
                     },
                     style: ElevatedButton.styleFrom(

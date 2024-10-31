@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/helpers.dart';
 import 'package:flutter_test_project/profilePage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
@@ -63,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
     const TracksTapBar(),
     const AddReview(),
     const AlbumGrid(),
-    const ProfilePage(),
+    profileRouter(),
   ];
 
   void _onItemTapped(int index) {
