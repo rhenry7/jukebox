@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test_project/ProfileSignIn.dart';
+import 'package:flutter_test_project/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/authService.dart';
 import 'package:flutter_test_project/profilePage.dart';
 
@@ -51,7 +52,7 @@ Widget routeToPage(String name) {
   if (name == "Reviews") {
     return const CommentWidget();
   } else {
-    return SignInScreen();
+    return ProfileSignUp();
   }
 }
 
@@ -70,13 +71,12 @@ void signUp(String email, String password) async {
   User? user = await authService.signUp(email, password);
 
   if (user != null) {
-    String userId = user.uid ?? '';
-
+    String userId = user.uid;
     await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'name': 'testuserName',
-      'email': email,
       'password': password,
+      'email': email,
       'joinDate': FieldValue.serverTimestamp(),
+      // Add any other fields you'd like to track
     });
     print("Sign-up successful! User ID: ${user.uid}");
   } else {
