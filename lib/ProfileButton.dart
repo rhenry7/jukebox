@@ -8,6 +8,46 @@ class ProfileButton extends StatelessWidget {
   final IoniconsData icon;
   const ProfileButton({super.key, required this.name, required this.icon});
 
+  Future<void> showSignOutConfirmationDialog(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900], // Darker background for the dialog
+          title: const Text(
+            'Confirm Sign Out',
+            style: TextStyle(color: Colors.white), // White text for contrast
+          ),
+          content: const Text(
+            'Are you sure you want to sign out?',
+            style: TextStyle(
+                color: Colors.white70), // Slightly lighter text for readability
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'No',
+                style: TextStyle(color: Colors.redAccent), // Red for contrast
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                signOut();
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Yes',
+                style: TextStyle(
+                    color: Colors.greenAccent), // Green for confirmation
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Color useColor = name == 'LogOut' ? Colors.red : Colors.white;
@@ -33,17 +73,17 @@ class ProfileButton extends StatelessWidget {
               ],
             ),
           ),
-          name != 'LogOut'
-              ? IconButton(
-                  onPressed: () {
-                    Navigator.push(
+          IconButton(
+              onPressed: () {
+                name != 'LogOut'
+                    ? Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (BuildContext context) =>
-                                profileRoute(name)));
-                  },
-                  icon: const Icon(Ionicons.chevron_forward_outline))
-              : const Text(""),
+                                profileRoute(name)))
+                    : showSignOutConfirmationDialog(context);
+              },
+              icon: const Icon(Ionicons.chevron_forward_outline)),
         ]));
   }
 }

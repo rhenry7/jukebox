@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ProfileSignIn.dart';
 import 'package:flutter_test_project/ProfileSignUpWidget.dart';
@@ -106,13 +105,9 @@ void addUserReview() async {
 // Function that uses switch to return a Widget based on the string input
 Widget profileRoute(String route) {
   final FirebaseAuth auth = FirebaseAuth.instance;
+  print(route);
   print(auth.currentUser?.email ?? '');
   switch (route) {
-    case 'Profile':
-      if (auth.currentUser != null) {
-        return ProfilePage();
-      }
-      return SignInScreen();
     case 'Reviews':
       return CommentWidget();
     case 'Notifications':
@@ -120,10 +115,13 @@ Widget profileRoute(String route) {
         onPressed: () {},
         child: Text("This is a Button"),
       );
-    case 'LogOut':
-      return const Icon(Icons.star, size: 50, color: Colors.amber);
     default:
-      return const Text("Unknown widget type",
-          style: TextStyle(color: Colors.red, fontSize: 20));
+      if (auth.currentUser != null) {
+        print("user signed in");
+        return ProfilePage();
+      } else {
+        print("user NOT signed in");
+        return SignInScreen();
+      }
   }
 }
