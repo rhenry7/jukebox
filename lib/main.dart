@@ -1,6 +1,6 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/helpers.dart';
-import 'package:flutter_test_project/profilePage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -9,9 +9,6 @@ import 'albumGrid.dart';
 import 'categoryTapBar.dart';
 import 'reviewSheetContentForm.dart';
 import 'trackTapBar.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
             0.9; // Takes up 90% of the screen
 
             return const MyReviewSheetContentForm(
-              title: '',
+              title: 'track-title',
             );
           });
     } else {

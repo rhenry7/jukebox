@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/loadingWidget.dart';
-import 'package:spotify/spotify.dart';
 import 'package:flutter/widgets.dart' as flutter;
+import 'package:flutter_test_project/loadingWidget.dart';
+import 'package:flutter_test_project/reviewSheetContentForm.dart';
+import 'package:spotify/spotify.dart';
+
 import 'apis.dart';
 
 class AlbumGrid extends StatefulWidget {
@@ -52,9 +54,18 @@ class _AlbumGrid extends State<AlbumGrid> {
                   child: InkWell(
                     onTap: () {
                       // Action to perform when the card is tapped
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Card $index tapped')),
-                      );
+                      showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (BuildContext context) {
+                            initialChildSize:
+                            0.9; // Takes up 90% of the screen
+
+                            return MyReviewSheetContentForm(
+                              title: album.name ?? "no album found",
+                            );
+                          });
+                      ;
                     },
                     child: ClipRRect(
                         borderRadius: BorderRadius.circular(

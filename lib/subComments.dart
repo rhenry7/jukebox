@@ -33,8 +33,8 @@ class SubCommentLists extends State<SubComments> {
       child: Column(
         children: [
           const Gap(50),
-          Padding(
-            padding: const EdgeInsets.only(left: 10.0),
+          const Padding(
+            padding: EdgeInsets.only(left: 10.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
@@ -60,7 +60,7 @@ class SubCommentLists extends State<SubComments> {
                     Padding(
                       padding: const EdgeInsets.all(0.0),
                       child: Row(
-                        children: <Widget>[
+                        children: [
                           Expanded(
                             child: ListTile(
                               // leading: Icon(Ionicons

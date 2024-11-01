@@ -7,7 +7,9 @@ import 'package:ionicons/ionicons.dart';
 
 class MyReviewSheetContentForm extends StatefulWidget {
   final String title;
-  const MyReviewSheetContentForm({super.key, required this.title});
+  final String Artist;
+  const MyReviewSheetContentForm(
+      {super.key, required this.title, required this.Artist});
 
   @override
   State<MyReviewSheetContentForm> createState() => _MyReviewSheetContentForm();
@@ -18,13 +20,11 @@ class MyReviewSheetContentForm extends StatefulWidget {
 class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   final TextEditingController reviewController = TextEditingController();
   final FirebaseAuth auth = FirebaseAuth.instance;
-
   late String currentDate;
 
   @override
   void initState() {
     super.initState();
-    // Format the current date and time
     DateTime now = DateTime.now();
     currentDate = DateFormat.yMMMMd('en_US').format(now);
   }
@@ -52,15 +52,33 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                       },
                     )),
                 //child: const Icon(Ionicons.close))),
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text(
-                    "title",
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.bold,
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(0.0),
+                      child: Text(
+                        widget.title.length > 20
+                            ? '${widget.title.substring(0, 20)}...'
+                            : widget.title,
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    Padding(
+                      padding: EdgeInsets.all(0.0),
+                      child: Text(
+                        "artist",
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
