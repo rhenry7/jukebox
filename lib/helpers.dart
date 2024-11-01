@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ProfileSignIn.dart';
 import 'package:flutter_test_project/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/authService.dart';
@@ -84,11 +85,45 @@ void signUp(String email, String password) async {
   }
 }
 
+void signOut() async {
+  try {
+    FirebaseAuth.instance.signOut();
+    print("user signed out");
+  } catch (e) {
+    print("Error signing out: $e");
+  }
+}
+
 void addUserReview() async {
   final FirebaseAuth auth = FirebaseAuth.instance;
   final database = FirebaseFirestore.instance.collection('users');
   DatabaseReference ref = FirebaseDatabase.instance.ref();
   if (auth.currentUser != null) {
     final db = Firebase.app('jukeboxd');
+  }
+}
+
+// Function that uses switch to return a Widget based on the string input
+Widget profileRoute(String route) {
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  print(auth.currentUser?.email ?? '');
+  switch (route) {
+    case 'Profile':
+      if (auth.currentUser != null) {
+        return ProfilePage();
+      }
+      return SignInScreen();
+    case 'Reviews':
+      return CommentWidget();
+    case 'Notifications':
+      return ElevatedButton(
+        onPressed: () {},
+        child: Text("This is a Button"),
+      );
+    case 'LogOut':
+      return const Icon(Icons.star, size: 50, color: Colors.amber);
+    default:
+      return const Text("Unknown widget type",
+          style: TextStyle(color: Colors.red, fontSize: 20));
   }
 }

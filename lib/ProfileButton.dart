@@ -39,7 +39,8 @@ class ProfileButton extends StatelessWidget {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (BuildContext context) => page));
+                            builder: (BuildContext context) =>
+                                profileRoute(name)));
                   },
                   icon: const Icon(Ionicons.chevron_forward_outline))
               : const Text(""),

@@ -34,10 +34,25 @@ class SubCommentLists extends State<SubComments> {
         children: [
           const Gap(50),
           Padding(
-              padding: const EdgeInsets.all(0.0),
+            padding: const EdgeInsets.only(left: 10.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                BackButton(color: Colors.white),
+              ],
+            ),
+          ),
+          Padding(
+              padding: const EdgeInsets.only(left: 4.0),
               // ADD ALBUM ART, ARTIST, AND PARENT COMMENT INFO
               child: Card(
-                elevation: 0,
+                elevation: 1,
+                margin: const EdgeInsets.all(0),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
+                ),
+
                 //margin: const EdgeInsets.all(0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -125,148 +140,6 @@ class SubCommentLists extends State<SubComments> {
                             ),
                           ]),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          // LIKES
-                          Padding(
-                            padding: const EdgeInsets.all(0),
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(0.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(
-                                                Ionicons.heart_outline,
-                                                color: Colors.white),
-                                            onPressed: () {
-                                              // Navigator.push(
-                                              //     context,
-                                              //     MaterialPageRoute(
-                                              //         builder: (BuildContext
-                                              //                 context) =>
-                                              //             const SubComments()));
-                                              setState(() {
-                                                "Liked!";
-                                                Icons.thumb_up;
-                                              });
-                                            },
-                                          ),
-                                          InkWell(
-                                            onTap: () {
-                                              print(
-                                                  "tapped inkwell, should route");
-                                            },
-                                            child: Text(
-                                              "1231".toString(),
-                                              style: const TextStyle(
-                                                  color: Colors.white),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          // REPLIES
-                          Padding(
-                            padding: const EdgeInsets.all(0),
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 0),
-                                  child: Row(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                            Ionicons.chatbubble_outline,
-                                            color: Colors.white),
-                                        onPressed: () {
-                                          setState(() {
-                                            "Liked!";
-                                            Icons.thumb_up;
-                                          });
-                                        },
-                                      ),
-                                      Text("1231".toString(),
-                                          style: const TextStyle(
-                                              color: Colors.white)),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          // REPOSTS
-                          Padding(
-                            padding: const EdgeInsets.all(0),
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(0),
-                                  child: Row(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Ionicons.repeat,
-                                            color: Colors.white),
-                                        onPressed: () {
-                                          setState(() {
-                                            "Liked!";
-                                            Icons.thumb_up;
-                                          });
-                                        },
-                                      ),
-                                      Text("123".toString(),
-                                          style: const TextStyle(
-                                              color: Colors.white)),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          // SHARES
-                          Padding(
-                            padding: const EdgeInsets.all(0),
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 0),
-                                  child: Row(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                            Ionicons.paper_plane_outline,
-                                            color: Colors.white),
-                                        onPressed: () {
-                                          setState(() {
-                                            "Liked!";
-                                            Icons.thumb_up;
-                                          });
-                                        },
-                                      ),
-                                      Text("23134".toString(),
-                                          style: const TextStyle(
-                                              color: Colors.white)),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               )),
@@ -279,226 +152,242 @@ class SubCommentLists extends State<SubComments> {
                       future: comments,
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
-                          return ListView.builder(
-                            itemCount: snapshot.data!.length,
-                            physics:
-                                const NeverScrollableScrollPhysics(), // Disable
-                            shrinkWrap: true,
-                            itemBuilder: (context, index) {
-                              final comment = snapshot.data![index];
+                          return Padding(
+                            padding: const EdgeInsets.all(0.0),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
 
-                              //print(track);
-                              return Card(
-                                elevation: 0,
-                                //margin: const EdgeInsets.all(0),
-                                child: Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Row(
-                                        children: <Widget>[
-                                          Expanded(
-                                            child: ListTile(
-                                              leading: const Icon(Ionicons
-                                                  .person_add_outline), // Fallback if no image is available,
-                                              title: Text(comment.name),
-                                              //subtitle: Text(comment.), use post time data
+                              itemCount: snapshot.data!.length,
+                              physics:
+                                  const NeverScrollableScrollPhysics(), // Disable
+                              shrinkWrap: true,
+                              itemBuilder: (context, index) {
+                                final comment = snapshot.data![index];
+                                //print(track);
+                                return Card(
+                                  elevation: 0,
+                                  margin: const EdgeInsets.all(5),
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(8)),
+                                    side: BorderSide(
+                                        color:
+                                            Color.fromARGB(56, 158, 158, 158)),
+                                  ),
+
+                                  //margin: const EdgeInsets.all(0),
+                                  child: Column(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(0.0),
+                                        child: Row(
+                                          children: <Widget>[
+                                            Expanded(
+                                              child: ListTile(
+                                                leading: const Icon(Ionicons
+                                                    .person_circle_outline), // Fallback if no image is available,
+                                                title: Text(comment.name),
+                                                //subtitle: Text(comment.), use post time data
+                                              ),
                                             ),
-                                          ),
-                                          //Text(comment.comment),
-                                        ],
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text(
-                                        comment.comment,
-                                        maxLines: 3,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12.0,
-                                          fontStyle: FontStyle.italic,
-                                          overflow: TextOverflow.ellipsis,
+                                            //Text(comment.comment),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: <Widget>[
-                                          // LIKES
-                                          Padding(
-                                            padding: const EdgeInsets.all(0),
-                                            child: Row(
-                                              children: [
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(0.0),
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.start,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          IconButton(
-                                                            icon: const Icon(
-                                                                Ionicons
-                                                                    .heart_outline,
-                                                                color: Colors
-                                                                    .white),
-                                                            onPressed: () {
-                                                              // Navigator.push(
-                                                              //     context,
-                                                              //     MaterialPageRoute(
-                                                              //         builder: (BuildContext
-                                                              //                 context) =>
-                                                              //             const SubComments()));
-                                                              setState(() {
-                                                                "Liked!";
-                                                                Icons.thumb_up;
-                                                              });
-                                                            },
-                                                          ),
-                                                          InkWell(
-                                                            onTap: () {
-                                                              print(
-                                                                  "tapped inkwell, should route");
-                                                            },
-                                                            child: Text(
-                                                              comment.likes
-                                                                  .toString(),
-                                                              style: const TextStyle(
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          comment.comment,
+                                          maxLines: 3,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12.0,
+                                            fontStyle: FontStyle.italic,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: <Widget>[
+                                            // LIKES
+                                            Padding(
+                                              padding: const EdgeInsets.all(0),
+                                              child: Row(
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            0.0),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Row(
+                                                          children: [
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                  Ionicons
+                                                                      .heart_outline,
                                                                   color: Colors
                                                                       .white),
+                                                              onPressed: () {
+                                                                // Navigator.push(
+                                                                //     context,
+                                                                //     MaterialPageRoute(
+                                                                //         builder: (BuildContext
+                                                                //                 context) =>
+                                                                //             const SubComments()));
+                                                                setState(() {
+                                                                  "Liked!";
+                                                                  Icons
+                                                                      .thumb_up;
+                                                                });
+                                                              },
                                                             ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                )
-                                              ],
+                                                            InkWell(
+                                                              onTap: () {
+                                                                print(
+                                                                    "tapped inkwell, should route");
+                                                              },
+                                                              child: Text(
+                                                                comment.likes
+                                                                    .toString(),
+                                                                style: const TextStyle(
+                                                                    color: Colors
+                                                                        .white),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                          // REPLIES
-                                          Padding(
-                                            padding: const EdgeInsets.all(0),
-                                            child: Row(
-                                              children: [
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          right: 0),
-                                                  child: Row(
-                                                    children: [
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                            Ionicons
-                                                                .chatbubble_outline,
-                                                            color:
-                                                                Colors.white),
-                                                        onPressed: () {
-                                                          setState(() {
-                                                            "Liked!";
-                                                            Icons.thumb_up;
-                                                          });
-                                                        },
-                                                      ),
-                                                      Text(
-                                                          comment.replies
-                                                              .toString(),
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white)),
-                                                    ],
-                                                  ),
-                                                )
-                                              ],
+                                            // REPLIES
+                                            Padding(
+                                              padding: const EdgeInsets.all(0),
+                                              child: Row(
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            right: 0),
+                                                    child: Row(
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                              Ionicons
+                                                                  .chatbubble_outline,
+                                                              color:
+                                                                  Colors.white),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              "Liked!";
+                                                              Icons.thumb_up;
+                                                            });
+                                                          },
+                                                        ),
+                                                        Text(
+                                                            comment.replies
+                                                                .toString(),
+                                                            style:
+                                                                const TextStyle(
+                                                                    color: Colors
+                                                                        .white)),
+                                                      ],
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                          // REPOSTS
-                                          Padding(
-                                            padding: const EdgeInsets.all(0),
-                                            child: Row(
-                                              children: [
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(0),
-                                                  child: Row(
-                                                    children: [
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                            Ionicons.repeat,
-                                                            color:
-                                                                Colors.white),
-                                                        onPressed: () {
-                                                          setState(() {
-                                                            "Liked!";
-                                                            Icons.thumb_up;
-                                                          });
-                                                        },
-                                                      ),
-                                                      Text(
-                                                          comment.reposts
-                                                              .toString(),
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white)),
-                                                    ],
-                                                  ),
-                                                )
-                                              ],
+                                            // REPOSTS
+                                            Padding(
+                                              padding: const EdgeInsets.all(0),
+                                              child: Row(
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(0),
+                                                    child: Row(
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                              Ionicons.repeat,
+                                                              color:
+                                                                  Colors.white),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              "Liked!";
+                                                              Icons.thumb_up;
+                                                            });
+                                                          },
+                                                        ),
+                                                        Text(
+                                                            comment.reposts
+                                                                .toString(),
+                                                            style:
+                                                                const TextStyle(
+                                                                    color: Colors
+                                                                        .white)),
+                                                      ],
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                          // SHARES
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                right: 4.0),
-                                            child: Row(
-                                              children: [
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          right: 0),
-                                                  child: Row(
-                                                    children: [
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                            Ionicons
-                                                                .paper_plane_outline,
-                                                            color:
-                                                                Colors.white),
-                                                        onPressed: () {
-                                                          setState(() {
-                                                            "Liked!";
-                                                            Icons.thumb_up;
-                                                          });
-                                                        },
-                                                      ),
-                                                      Text(
-                                                          comment.shares
-                                                              .toString(),
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white)),
-                                                    ],
-                                                  ),
-                                                )
-                                              ],
+                                            // SHARES
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  right: 4.0),
+                                              child: Row(
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            right: 0),
+                                                    child: Row(
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                              Ionicons
+                                                                  .paper_plane_outline,
+                                                              color:
+                                                                  Colors.white),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              "Liked!";
+                                                              Icons.thumb_up;
+                                                            });
+                                                          },
+                                                        ),
+                                                        Text(
+                                                            comment.shares
+                                                                .toString(),
+                                                            style:
+                                                                const TextStyle(
+                                                                    color: Colors
+                                                                        .white)),
+                                                      ],
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           );
                         } else if (snapshot.hasError) {
                           print(snapshot);
