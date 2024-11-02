@@ -84,6 +84,29 @@ void signUp(String email, String password) async {
   }
 }
 
+void submitReview(String text, double score) async {
+  /*
+  / need: artist, genre, text, ratingScore
+   */
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    print(text.toString());
+    String userId = user.uid;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'review': text,
+        'score': score,
+        'reviewTime': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print("could not post review");
+      print(e.toString());
+    }
+  } else {
+    print('could not place review, user not signed in');
+  }
+}
+
 void signOut() async {
   try {
     FirebaseAuth.instance.signOut();

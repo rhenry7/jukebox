@@ -45,6 +45,9 @@ class _AlbumGrid extends State<AlbumGrid> {
                 final albumImages = album.images;
                 final foundImage =
                     albumImages!.isNotEmpty ? albumImages.first.url : "";
+                final artists = album.artists?.map((n) => n.name).join("");
+                final albumType = album.albumType.toString();
+
                 // print(album.label);
                 return Card(
                   elevation: 5, // Shadow elevation for the card
@@ -63,6 +66,7 @@ class _AlbumGrid extends State<AlbumGrid> {
 
                             return MyReviewSheetContentForm(
                               title: album.name ?? "no album found",
+                              Artist: artists ?? "unknown",
                             );
                           });
                       ;
