@@ -66,7 +66,7 @@ Widget profileRouter() {
   }
 }
 
-void signUp(String userName, String email, String password) async {
+Future<void> signUp(String userName, String email, String password) async {
   AuthService authService = AuthService();
   User? user = await authService.signUp(email, password);
   // add userId, userDisplay name

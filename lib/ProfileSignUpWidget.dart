@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
+
+import 'main.dart';
 
 class ProfileSignUp extends StatefulWidget {
   const ProfileSignUp({super.key});
@@ -54,11 +57,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                   // PROFILE_OVERVIEW
                   // SETTINGS
                   const Gap(30),
-                  const Row(
-                    children: [
-                      BackButton(),
-                    ],
-                  ),
+
                   const Gap(30),
                   const Text("Sign Up", style: TextStyle(fontSize: 20)),
                   const Gap(50),
@@ -144,15 +143,53 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                   ),
                   const Gap(70),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       // Action when the button is pressed
-                      // send to firebase
-                      signUp(userName, email, password);
-                      setState(() {
-                        userName = '';
-                        email = '';
-                        password = '';
-                      });
+                      try {
+                        // Send to Firebase
+                        await signUp(userName, email,
+                            password); // Ensure signUp is an async function
+
+                        // After successful sign-up, check if the user is authenticated
+                        if (FirebaseAuth.instance.currentUser != null) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (context) => MyHomePage(
+                                    title:
+                                        "JUKEBOXD")), // Replace with your app's main widget
+                            (Route<dynamic> route) =>
+                                false, // Removes all previous routes
+                          );
+
+                          // Show SnackBar after navigating
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Welcome Back!'),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                onPressed: () {
+                                  // Do something when the action is pressed
+                                  print('Undo pressed');
+                                },
+                              ),
+                            ),
+                          );
+                        }
+
+                        // Clear input fields
+                        setState(() {
+                          userName = '';
+                          email = '';
+                          password = '';
+                        });
+                      } catch (e) {
+                        // Handle sign-up errors here
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Sign-up failed: $e'),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(

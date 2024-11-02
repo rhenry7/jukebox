@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/profilePage.dart';
+import 'package:flutter_test_project/main.dart';
 import 'package:ionicons/ionicons.dart';
 
 import 'helpers.dart';
@@ -26,7 +26,9 @@ class ProfileButton extends StatelessWidget {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => {
+                Navigator.of(context).pop(),
+              },
               child: const Text(
                 'No',
                 style: TextStyle(color: Colors.redAccent), // Red for contrast
@@ -35,10 +37,18 @@ class ProfileButton extends StatelessWidget {
             TextButton(
               onPressed: () {
                 signOut();
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => ProfilePage()));
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          MyApp()), // Replace with your app's main widget
+                  (Route<dynamic> route) =>
+                      false, // Removes all previous routes
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('You have signed out!'),
+                  ),
+                );
                 //Navigator.of(context).pop();
               },
               child: const Text(
