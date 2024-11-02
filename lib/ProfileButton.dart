@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/profilePage.dart';
 import 'package:ionicons/ionicons.dart';
 
 import 'helpers.dart';
@@ -34,7 +35,11 @@ class ProfileButton extends StatelessWidget {
             TextButton(
               onPressed: () {
                 signOut();
-                Navigator.of(context).pop();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => ProfilePage()));
+                //Navigator.of(context).pop();
               },
               child: const Text(
                 'Yes',
