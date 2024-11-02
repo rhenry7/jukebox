@@ -23,6 +23,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   final FirebaseAuth auth = FirebaseAuth.instance;
 
   late String currentDate;
+  late bool liked = false;
   double ratingScore = 0;
 
   final TextEditingController reviewController = TextEditingController();
@@ -85,12 +86,18 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
     reviewController.dispose();
   }
 
+  void toggleHeart() {
+    setState(() {
+      liked = !liked;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 750,
       width: double.infinity, // or a fixed width
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -175,11 +182,14 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                     },
                   ),
                 ),
-                const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(
-                      Ionicons.heart,
-                      color: Colors.grey,
+                Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: toggleHeart,
+                      child: Icon(
+                        Ionicons.heart,
+                        color: liked == true ? Colors.red : Colors.grey,
+                      ),
                     ))
               ],
             ),
@@ -206,8 +216,10 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                     if (auth.currentUser != null) {
                       String userId = auth.currentUser!.uid;
                       String review = reviewController.text;
-                      submitReview(
-                          review, ratingScore, widget.Artist, widget.title);
+                      submitReview(review, ratingScore, widget.Artist,
+                          widget.title, liked);
+                      Navigator.pop(context);
+
                       print("logged in user made a post");
                     } else {
                       showSubmissionAuthErrorModal(context);

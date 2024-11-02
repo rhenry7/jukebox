@@ -84,8 +84,8 @@ void signUp(String email, String password) async {
   }
 }
 
-void submitReview(
-    String review, double score, String artist, String title) async {
+void submitReview(String review, double score, String artist, String title,
+    bool liked) async {
   print(artist);
   User? user = FirebaseAuth.instance.currentUser;
   if (user != null) {
@@ -104,6 +104,7 @@ void submitReview(
         'artist': artist,
         'title': title,
         'review': review,
+        'liked': liked,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
       });
     } catch (e) {
