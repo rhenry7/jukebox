@@ -10,8 +10,12 @@ import 'package:ionicons/ionicons.dart';
 class MyReviewSheetContentForm extends StatefulWidget {
   final String title;
   final String Artist;
+  final String? albumImageUrl;
   const MyReviewSheetContentForm(
-      {super.key, required this.title, required this.Artist});
+      {super.key,
+      required this.title,
+      required this.Artist,
+      required this.albumImageUrl});
 
   @override
   State<MyReviewSheetContentForm> createState() => _MyReviewSheetContentForm();
@@ -21,10 +25,10 @@ class MyReviewSheetContentForm extends StatefulWidget {
 /// The content of that item will be used to generate the title and the props will be used to autofill some of the form.
 class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   final FirebaseAuth auth = FirebaseAuth.instance;
-
   late String currentDate;
   late bool liked = false;
   double ratingScore = 0;
+  Color background = Colors.white10;
 
   final TextEditingController reviewController = TextEditingController();
 
@@ -95,6 +99,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      decoration: BoxDecoration(color: background),
       height: 750,
       width: double.infinity, // or a fixed width
       padding: const EdgeInsets.all(12.0),
@@ -113,43 +118,32 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                       Navigator.pop(context);
                     },
                   )),
-              //child: const Icon(Ionicons.close))),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.end,
+
+              Row(
                 children: [
                   Padding(
-                    padding: EdgeInsets.all(0.0),
-                    child: Text(
-                      widget.title.length > 20
-                          ? '${widget.title.substring(0, 20)}...'
-                          : widget.title,
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(auth.currentUser?.displayName ?? "username"),
                   ),
-                  Padding(
-                    padding: EdgeInsets.all(0.0),
-                    child: Text(
-                      widget.Artist,
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  Icon(Ionicons.person_circle_outline),
                 ],
-              ),
+              )
+              //child: const Icon(Ionicons.close))),
             ],
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(2.0),
-                child: Text(currentDate),
+              Expanded(
+                child: ListTile(
+                  leading: widget.albumImageUrl != null
+                      ? Image.network(widget.albumImageUrl ?? "")
+                      : const Icon(Icons
+                          .music_note), // Fallback if no image is available,
+                  title:
+                      Text(widget.title, style: TextStyle(color: Colors.white)),
+                  subtitle: Text(widget.Artist),
+                ),
               ),
             ],
           ),
@@ -185,6 +179,13 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                 Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors
+                            .transparent, // Removes shadow to keep it fully transparent
+                        elevation:
+                            0, // Removes the elevation to avoid any shadow effect
+                      ),
                       onPressed: toggleHeart,
                       child: Icon(
                         Ionicons.heart,
@@ -196,12 +197,12 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
           ),
           SizedBox(
             width: 500, // Fixed width
-            height: 500, // Fixed height
+            height: 300, // Fixed height
             child: TextField(
               controller: reviewController,
               maxLines: null, // Allows the text to wrap and expand vertically
               decoration: const InputDecoration(
-                  //border: InputBorder,
+                  border: InputBorder.none,
                   hintText: 'What did you think ?',
                   hintStyle: TextStyle(color: Colors.grey)),
             ),

@@ -147,9 +147,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     onPressed: () {
                       // Action when the button is pressed
                       // send to firebase
-                      if (email != null && password != null) {
-                        signUp(email!, password!);
-                      }
+                      signUp(userName, email, password);
                       setState(() {
                         userName = '';
                         email = '';

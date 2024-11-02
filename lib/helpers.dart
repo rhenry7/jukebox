@@ -66,15 +66,18 @@ Widget profileRouter() {
   }
 }
 
-void signUp(String email, String password) async {
+void signUp(String userName, String email, String password) async {
   AuthService authService = AuthService();
   User? user = await authService.signUp(email, password);
+  // add userId, userDisplay name
 
   if (user != null) {
     String userId = user.uid;
     await FirebaseFirestore.instance.collection('users').doc(userId).set({
       'password': password,
       'email': email,
+      'userId': userId,
+      'userName': userName,
       'joinDate': FieldValue.serverTimestamp(),
       // Add any other fields you'd like to track
     });
@@ -86,6 +89,7 @@ void signUp(String email, String password) async {
 
 void submitReview(String review, double score, String artist, String title,
     bool liked) async {
+  // album display image url
   print(artist);
   User? user = FirebaseAuth.instance.currentUser;
   if (user != null) {
