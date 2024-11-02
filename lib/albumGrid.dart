@@ -91,7 +91,7 @@ class _AlbumGrid extends State<AlbumGrid> {
             print(snapshot);
             return Text('Error: ${snapshot.error}');
           }
-          return const LoadingWidget();
+          return const Center(child: LoadingWidget());
         },
       ),
     );

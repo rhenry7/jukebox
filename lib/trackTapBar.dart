@@ -10,7 +10,7 @@ class TracksTapBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       initialIndex: 0,
-      length: 3,
+      length: 2,
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize:
@@ -58,16 +58,6 @@ class TracksTapBar extends StatelessWidget {
                   ),
                 ),
               ),
-              Tab(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 0.0), // Padding around text
-                  child: Text(
-                    'New',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -78,9 +68,6 @@ class TracksTapBar extends StatelessWidget {
             ),
             Center(
               child: AlbumCard(),
-            ),
-            Center(
-              child: Text("It's sunny here"),
             ),
           ],
         ),

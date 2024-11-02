@@ -121,9 +121,9 @@ class _MyHomePageState extends State<MyHomePage> {
             label: "Home",
           ),
           const NavigationDestination(
-            selectedIcon: Icon(Icons.library_music_rounded),
-            icon: Icon(Icons.library_music_outlined),
-            label: 'Charts',
+            selectedIcon: Icon(Ionicons.planet_outline),
+            icon: Icon(Ionicons.planet),
+            label: 'Discovery',
           ),
           NavigationDestination(
             selectedIcon: Icon(Ionicons.add_circle,

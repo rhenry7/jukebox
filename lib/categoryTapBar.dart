@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/comments.dart';
-
-import 'albumCards.dart';
+import 'package:flutter_test_project/trackCards.dart';
 
 class CategoryTapBar extends StatelessWidget {
   const CategoryTapBar({super.key});
@@ -10,7 +9,7 @@ class CategoryTapBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       initialIndex: 0,
-      length: 5, // Number of tabs
+      length: 2, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize:
@@ -44,7 +43,7 @@ class CategoryTapBar extends StatelessWidget {
                     padding: EdgeInsets.symmetric(
                         horizontal: 20.0, vertical: 0.0), // Padding around text
                     child: Text(
-                      'Reviews',
+                      'Friends',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -54,37 +53,7 @@ class CategoryTapBar extends StatelessWidget {
                     padding: EdgeInsets.symmetric(
                         horizontal: 20.0, vertical: 0.0), // Padding around text
                     child: Text(
-                      'Playlists',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 0.0), // Padding around text
-                    child: Text(
-                      'News',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 0.0), // Padding around text
-                    child: Text(
-                      'Upcoming',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 0.0), // Padding around text
-                    child: Text(
-                      'Concerts',
+                      'Community',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -95,11 +64,8 @@ class CategoryTapBar extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
-            AlbumCard(),
             CommentWidget(),
-            Center(child: Text('Tab 3 Content')),
-            Center(child: Text('Tab 4 Content')),
-            Center(child: Text('Tab 5 Content')),
+            CardTracks(),
           ],
         ),
       ),
