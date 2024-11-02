@@ -23,7 +23,6 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   final FirebaseAuth auth = FirebaseAuth.instance;
 
   late String currentDate;
-  late String review;
   double ratingScore = 0;
 
   final TextEditingController reviewController = TextEditingController();
@@ -80,10 +79,14 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    // Clean up controllers
+    reviewController.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    setState(() {
-      review = reviewController.text.trim();
-    });
     return Container(
       height: 750,
       width: double.infinity, // or a fixed width
@@ -200,10 +203,11 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    print(auth.currentUser);
                     if (auth.currentUser != null) {
                       String userId = auth.currentUser!.uid;
-                      submitReview(review, ratingScore);
+                      String review = reviewController.text;
+                      submitReview(
+                          review, ratingScore, widget.Artist, widget.title);
                       print("logged in user made a post");
                     } else {
                       showSubmissionAuthErrorModal(context);
