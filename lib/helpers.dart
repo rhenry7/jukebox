@@ -81,6 +81,7 @@ Future<void> signUp(String userName, String email, String password) async {
       'userId': userId,
       'displayName': userName,
       'joinDate': FieldValue.serverTimestamp(),
+      'friends': []
       // Add any other fields you'd like to track
     });
     print("Sign-up successful! User ID: ${user.uid}");
@@ -109,6 +110,7 @@ Future<void> submitReview(String review, double score, String artist,
         'artist': artist,
         'title': title,
         'review': review,
+        'score': score,
         'liked': liked,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
       });
@@ -146,7 +148,14 @@ Widget profileRoute(String route) {
   print(auth.currentUser?.email ?? '');
   switch (route) {
     case 'Reviews':
-      return CommentWidget();
+      return Scaffold(
+          appBar: PreferredSize(
+              preferredSize: Size.fromHeight(675),
+              child: Column(
+                children: [
+                  Expanded(child: CommentWidget()),
+                ],
+              )));
     case 'Notifications':
       return ElevatedButton(
         onPressed: () {},
@@ -155,7 +164,7 @@ Widget profileRoute(String route) {
     default:
       if (auth.currentUser != null) {
         print("user signed in");
-        return ProfilePage();
+        return const Scaffold(body: Center(child: Text("coming soon")));
       } else {
         print("user NOT signed in");
         return SignInScreen();

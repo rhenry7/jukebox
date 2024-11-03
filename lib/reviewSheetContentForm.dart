@@ -27,14 +27,13 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   final FirebaseAuth auth = FirebaseAuth.instance;
   late String currentDate;
   late bool liked = false;
-  double ratingScore = 0;
+  late double ratingScore = 0;
   Color background = Colors.white10;
   final TextEditingController reviewController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    ratingScore = 0;
     DateTime now = DateTime.now();
     currentDate = DateFormat.yMMMMd('en_US').format(now);
   }
@@ -224,9 +223,9 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                             widget.title, liked);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Review posted!'),
+                            content: Text('Review Posted!'),
                             action: SnackBarAction(
-                              label: 'ok',
+                              label: 'Ok.',
                               onPressed: () {
                                 // Do something when the action is pressed
                                 print('Undo pressed');

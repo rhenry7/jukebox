@@ -35,7 +35,6 @@ class ProfileView extends State<ProfilePage> {
                 if (snapshot.hasData) {
                   // TODO: Reevaluate this thing; can be better
                   return ListView.builder(itemBuilder: ((context, index) {
-                    print(FirebaseAuth.instance.currentUser);
                     final String userName =
                         FirebaseAuth.instance.currentUser?.displayName ??
                             "no user name";
