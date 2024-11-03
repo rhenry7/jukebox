@@ -4,7 +4,8 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Sign up function
-  Future<User?> signUp(String email, String password) async {
+  Future<User?> signUp(
+      String displayName, String email, String password) async {
     try {
       // Attempt to create a new user
       UserCredential userCredential =
@@ -13,8 +14,17 @@ class AuthService {
         password: password,
       );
 
-      // Return the newly created user
-      return userCredential.user;
+      // Get the current user
+      User? user = userCredential.user;
+
+      // Check if user is not null and update the displayName
+      if (user != null) {
+        await user.updateDisplayName(displayName);
+        await user.reload();
+        user = _auth.currentUser; // Refresh the user instance after update
+      }
+
+      return user;
     } on FirebaseAuthException catch (e) {
       // Handle different error codes from Firebase
       if (e.code == 'email-already-in-use') {

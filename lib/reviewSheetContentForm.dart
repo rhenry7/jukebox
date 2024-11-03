@@ -29,7 +29,6 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
   late bool liked = false;
   double ratingScore = 0;
   Color background = Colors.white10;
-
   final TextEditingController reviewController = TextEditingController();
 
   @override
@@ -131,6 +130,8 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
               //child: const Icon(Ionicons.close))),
             ],
           ),
+          Gap(10),
+          // ALBUM IMAGE AND INFO
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -147,6 +148,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
               ),
             ],
           ),
+          Gap(10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 0.0),
             child: Row(
@@ -213,13 +215,39 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (auth.currentUser != null) {
                       String userId = auth.currentUser!.uid;
                       String review = reviewController.text;
-                      submitReview(review, ratingScore, widget.Artist,
-                          widget.title, liked);
-                      Navigator.pop(context);
+                      try {
+                        await submitReview(review, ratingScore, widget.Artist,
+                            widget.title, liked);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Review posted!'),
+                            action: SnackBarAction(
+                              label: 'ok',
+                              onPressed: () {
+                                // Do something when the action is pressed
+                                print('Undo pressed');
+                              },
+                            ),
+                          ),
+                        );
+                        Navigator.pop(context);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content:
+                              Text('Could not submit review ${e.toString()}'),
+                          action: SnackBarAction(
+                            label: 'Undo',
+                            onPressed: () {
+                              // Do something when the action is pressed
+                              print('Undo pressed');
+                            },
+                          ),
+                        ));
+                      }
 
                       print("logged in user made a post");
                     } else {

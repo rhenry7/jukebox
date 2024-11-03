@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ProfileButton.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
@@ -34,7 +35,10 @@ class ProfileView extends State<ProfilePage> {
                 if (snapshot.hasData) {
                   // TODO: Reevaluate this thing; can be better
                   return ListView.builder(itemBuilder: ((context, index) {
-                    final String userName = snapshot.data?[index].name ?? "";
+                    print(FirebaseAuth.instance.currentUser);
+                    final String userName =
+                        FirebaseAuth.instance.currentUser?.displayName ??
+                            "no user name";
                     return Column(
                       children: [
                         // PROFILE_OVERVIEW

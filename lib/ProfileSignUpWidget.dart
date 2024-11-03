@@ -15,7 +15,7 @@ class ProfileSignUp extends StatefulWidget {
 
 class ProfileSignUpPage extends State<ProfileSignUp> {
   // late Future<List<UserComment>> users;
-  late String userName;
+  late String userName; //displayName
   late String email;
   late String password;
 

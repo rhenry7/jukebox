@@ -58,6 +58,8 @@ Widget routeToPage(String name) {
 
 Widget profileRouter() {
   final FirebaseAuth auth = FirebaseAuth.instance;
+  print(auth.currentUser);
+  print(auth.currentUser?.displayName ?? "");
   print(auth.currentUser?.email ?? '');
   if (auth.currentUser != null) {
     return ProfilePage();
@@ -68,7 +70,7 @@ Widget profileRouter() {
 
 Future<void> signUp(String userName, String email, String password) async {
   AuthService authService = AuthService();
-  User? user = await authService.signUp(email, password);
+  User? user = await authService.signUp(userName, email, password);
   // add userId, userDisplay name
 
   if (user != null) {
@@ -77,7 +79,7 @@ Future<void> signUp(String userName, String email, String password) async {
       'password': password,
       'email': email,
       'userId': userId,
-      'userName': userName,
+      'displayName': userName,
       'joinDate': FieldValue.serverTimestamp(),
       // Add any other fields you'd like to track
     });
@@ -87,8 +89,8 @@ Future<void> signUp(String userName, String email, String password) async {
   }
 }
 
-void submitReview(String review, double score, String artist, String title,
-    bool liked) async {
+Future<void> submitReview(String review, double score, String artist,
+    String title, bool liked) async {
   // album display image url
   print(artist);
   User? user = FirebaseAuth.instance.currentUser;
@@ -104,7 +106,6 @@ void submitReview(String review, double score, String artist, String title,
         'userName': user.displayName,
         'email': user.email,
         'userId': userId,
-        'songTitle': "artist",
         'artist': artist,
         'title': title,
         'review': review,
