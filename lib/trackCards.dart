@@ -23,7 +23,7 @@ class ListOfTracks extends State<CardTracks> {
     super.initState();
     fetchSpotifyAlbums();
     spotifyTracks = fetchSpotifyTracks();
-    categories = fetchSpotifyCatgories();
+    //categories = fetchSpotifyCatgories();
   }
 
   @override

@@ -17,6 +17,7 @@ Future<Pages<Category>> fetchSpotifyCatgories() async {
   final credentials = SpotifyApiCredentials(clientId, clientSecret);
   final getFromSpotify = SpotifyApi(credentials);
   final category = getFromSpotify.categories.list();
+  print(category);
   print(category.first(10).toString());
   return category;
 }

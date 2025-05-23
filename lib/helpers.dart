@@ -90,8 +90,21 @@ Future<void> signUp(String userName, String email, String password) async {
   }
 }
 
+Future<List<Map<String, dynamic>>> fetchUserReviews(String userId) async {
+  QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('reviews')
+      .orderBy('date', descending: true) // Optional: orders by timestamp
+      .get();
+
+  return snapshot.docs
+      .map((doc) => doc.data() as Map<String, dynamic>)
+      .toList();
+}
+
 Future<void> submitReview(String review, double score, String artist,
-    String title, bool liked) async {
+    String title, bool liked, String albumImageUrl) async {
   // album display image url
   print(artist);
   User? user = FirebaseAuth.instance.currentUser;
@@ -113,6 +126,7 @@ Future<void> submitReview(String review, double score, String artist,
         'score': score,
         'liked': liked,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
+        'albumImageUrl': albumImageUrl,
       });
     } catch (e) {
       print("could not post review");

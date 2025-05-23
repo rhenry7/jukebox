@@ -10,7 +10,7 @@ import 'package:ionicons/ionicons.dart';
 class MyReviewSheetContentForm extends StatefulWidget {
   final String title;
   final String Artist;
-  final String? albumImageUrl;
+  final String albumImageUrl;
   const MyReviewSheetContentForm(
       {super.key,
       required this.title,
@@ -220,7 +220,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                       String review = reviewController.text;
                       try {
                         await submitReview(review, ratingScore, widget.Artist,
-                            widget.title, liked);
+                            widget.title, liked, widget.albumImageUrl);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Review Posted!'),
