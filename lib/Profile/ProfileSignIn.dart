@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'ProfileSignUpWidget.dart';
-import '../authService.dart';
+import 'auth/authService.dart';
 
 class SignInScreen extends StatefulWidget {
   @override

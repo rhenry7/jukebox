@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test_project/trackCards.dart';
 
 import '../_comments.dart';
+import 'discoveryFreshTrackCards.dart';
 import 'discoveryTrackCards.dart';
 
 class DiscoveryTapBar extends StatelessWidget {
@@ -66,7 +67,7 @@ class DiscoveryTapBar extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            ReviewsList(),
+            VinylReviewsList(),
             const DiscoveryTrackCards(),
           ],
         ),

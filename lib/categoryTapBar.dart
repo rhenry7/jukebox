@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/comments.dart';
 import 'package:flutter_test_project/trackCards.dart';
 
 import '_comments.dart';
@@ -66,7 +67,7 @@ class CategoryTapBar extends StatelessWidget {
         body: TabBarView(
           children: [
             ReviewsList(),
-            const CardTracks(),
+            const CommentWidget(), // contains the widget with the nested comments
           ],
         ),
       ),

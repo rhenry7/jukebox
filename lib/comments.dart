@@ -30,7 +30,7 @@ class CommentWithMusicInfo {
 Future<CommentWithMusicInfo> fetchCombinedData() async {
   final results = await Future.wait([
     fetchMockUserComments(), // Future for comments
-    fetchSpotifyAlbums(), // Future for albums
+    fetchPopularAlbums(), // Future for albums
   ]);
 
   return CommentWithMusicInfo(
@@ -287,194 +287,199 @@ class CommentWidgetState extends State<CommentWidget> {
                                             ),
                                             // Bottom Row (Icons)
 
-                                            // Padding(
-                                            //   padding: const EdgeInsets.all(5),
-                                            //   child: Row(
-                                            //     mainAxisAlignment:
-                                            //         MainAxisAlignment.spaceBetween,
-                                            //     children: <Widget>[
-                                            //       // LIKES
-                                            //       Padding(
-                                            //         padding:
-                                            //             const EdgeInsets.all(0),
-                                            //         child: Row(
-                                            //           children: [
-                                            //             Padding(
-                                            //               padding:
-                                            //                   const EdgeInsets.all(
-                                            //                       0.0),
-                                            //               child: Row(
-                                            //                 mainAxisAlignment:
-                                            //                     MainAxisAlignment
-                                            //                         .start,
-                                            //                 children: [
-                                            //                   Row(
-                                            //                     children: [
-                                            //                       IconButton(
-                                            //                         icon: const Icon(
-                                            //                             Ionicons
-                                            //                                 .heart_outline,
-                                            //                             color: Colors
-                                            //                                 .white),
-                                            //                         onPressed: () {
-                                            //                           setState(() {
-                                            //                             "Liked!";
-                                            //                             Icons
-                                            //                                 .thumb_up;
-                                            //                             _middleIconColor =
-                                            //                                 Colors
-                                            //                                     .white;
-                                            //                           });
-                                            //                         },
-                                            //                       ),
-                                            //                       InkWell(
-                                            //                         onTap: () {
-                                            //                           print(
-                                            //                               "tapped inkwell, should route");
-                                            //                         },
-                                            //                         child: Text(
-                                            //                           comment.likes
-                                            //                               .toString(),
-                                            //                           style: const TextStyle(
-                                            //                               color: Colors
-                                            //                                   .white),
-                                            //                         ),
-                                            //                       ),
-                                            //                     ],
-                                            //                   ),
-                                            //                 ],
-                                            //               ),
-                                            //             )
-                                            //           ],
-                                            //         ),
-                                            //       ),
-                                            //       // REPLIES
-                                            //       Padding(
-                                            //         padding:
-                                            //             const EdgeInsets.all(0),
-                                            //         child: Row(
-                                            //           children: [
-                                            //             Padding(
-                                            //               padding:
-                                            //                   const EdgeInsets.only(
-                                            //                       right: 0),
-                                            //               child: Row(
-                                            //                 children: [
-                                            //                   IconButton(
-                                            //                     icon: const Icon(
-                                            //                         Ionicons
-                                            //                             .chatbubble_outline,
-                                            //                         color: Colors
-                                            //                             .white),
-                                            //                     onPressed: () {
-                                            //                       Navigator.push(
-                                            //                           context,
-                                            //                           MaterialPageRoute(
-                                            //                               builder: (BuildContext
-                                            //                                       context) =>
-                                            //                                   SubComments(
-                                            //                                     title:
-                                            //                                         album.name ?? "",
-                                            //                                     imageUrl:
-                                            //                                         largeImageUrl ?? "",
-                                            //                                   )));
-                                            //                     },
-                                            //                   ),
-                                            //                   Text(
-                                            //                       comment.replies
-                                            //                           .toString(),
-                                            //                       style: const TextStyle(
-                                            //                           color: Colors
-                                            //                               .white)),
-                                            //                 ],
-                                            //               ),
-                                            //             )
-                                            //           ],
-                                            //         ),
-                                            //       ),
-                                            //       // REPOSTS
-                                            //       Padding(
-                                            //         padding:
-                                            //             const EdgeInsets.all(0),
-                                            //         child: Row(
-                                            //           children: [
-                                            //             Padding(
-                                            //               padding:
-                                            //                   const EdgeInsets.all(
-                                            //                       0),
-                                            //               child: Row(
-                                            //                 children: [
-                                            //                   IconButton(
-                                            //                     icon: const Icon(
-                                            //                         Ionicons.repeat,
-                                            //                         color: Colors
-                                            //                             .white),
-                                            //                     onPressed: () {
-                                            //                       setState(() {
-                                            //                         "Liked!";
-                                            //                         Icons.thumb_up;
-                                            //                         _middleIconColor =
-                                            //                             Colors
-                                            //                                 .white;
-                                            //                       });
-                                            //                     },
-                                            //                   ),
-                                            //                   Text(
-                                            //                       comment.reposts
-                                            //                           .toString(),
-                                            //                       style: const TextStyle(
-                                            //                           color: Colors
-                                            //                               .white)),
-                                            //                 ],
-                                            //               ),
-                                            //             )
-                                            //           ],
-                                            //         ),
-                                            //       ),
-                                            //       // SHARES
-                                            //       Padding(
-                                            //         padding:
-                                            //             const EdgeInsets.all(0),
-                                            //         child: Row(
-                                            //           children: [
-                                            //             Padding(
-                                            //               padding:
-                                            //                   const EdgeInsets.only(
-                                            //                       right: 0),
-                                            //               child: Row(
-                                            //                 children: [
-                                            //                   IconButton(
-                                            //                     icon: const Icon(
-                                            //                         Ionicons
-                                            //                             .paper_plane_outline,
-                                            //                         color: Colors
-                                            //                             .white),
-                                            //                     onPressed: () {
-                                            //                       setState(() {
-                                            //                         "Liked!";
-                                            //                         Icons.thumb_up;
-                                            //                         _middleIconColor =
-                                            //                             Colors
-                                            //                                 .white;
-                                            //                       });
-                                            //                     },
-                                            //                   ),
-                                            //                   Text(
-                                            //                       comment.shares
-                                            //                           .toString(),
-                                            //                       style: const TextStyle(
-                                            //                           color: Colors
-                                            //                               .white)),
-                                            //                 ],
-                                            //               ),
-                                            //             )
-                                            //           ],
-                                            //         ),
-                                            //       ),
-
-                                            //     ],
-                                            //   ),
-                                            // ),
+                                            Padding(
+                                              padding: const EdgeInsets.all(5),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: <Widget>[
+                                                  // LIKES
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(0),
+                                                    child: Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(0.0),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Row(
+                                                                children: [
+                                                                  IconButton(
+                                                                    icon: const Icon(
+                                                                        Ionicons
+                                                                            .heart_outline,
+                                                                        color: Colors
+                                                                            .white),
+                                                                    onPressed:
+                                                                        () {
+                                                                      setState(
+                                                                          () {
+                                                                        "Liked!";
+                                                                        Icons
+                                                                            .thumb_up;
+                                                                        _middleIconColor =
+                                                                            Colors.white;
+                                                                      });
+                                                                    },
+                                                                  ),
+                                                                  InkWell(
+                                                                    onTap: () {
+                                                                      print(
+                                                                          "tapped inkwell, should route");
+                                                                    },
+                                                                    child: Text(
+                                                                      comment
+                                                                          .likes
+                                                                          .toString(),
+                                                                      style: const TextStyle(
+                                                                          color:
+                                                                              Colors.white),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  // REPLIES
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(0),
+                                                    child: Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  right: 0),
+                                                          child: Row(
+                                                            children: [
+                                                              IconButton(
+                                                                icon: const Icon(
+                                                                    Ionicons
+                                                                        .chatbubble_outline,
+                                                                    color: Colors
+                                                                        .white),
+                                                                onPressed: () {
+                                                                  Navigator.push(
+                                                                      context,
+                                                                      MaterialPageRoute(
+                                                                          builder: (BuildContext context) => SubComments(
+                                                                                title: album.name ?? "",
+                                                                                imageUrl: largeImageUrl ?? "",
+                                                                              )));
+                                                                },
+                                                              ),
+                                                              Text(
+                                                                  comment
+                                                                      .replies
+                                                                      .toString(),
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white)),
+                                                            ],
+                                                          ),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  // REPOSTS
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(0),
+                                                    child: Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(0),
+                                                          child: Row(
+                                                            children: [
+                                                              IconButton(
+                                                                icon: const Icon(
+                                                                    Ionicons
+                                                                        .repeat,
+                                                                    color: Colors
+                                                                        .white),
+                                                                onPressed: () {
+                                                                  setState(() {
+                                                                    "Liked!";
+                                                                    Icons
+                                                                        .thumb_up;
+                                                                    _middleIconColor =
+                                                                        Colors
+                                                                            .white;
+                                                                  });
+                                                                },
+                                                              ),
+                                                              Text(
+                                                                  comment
+                                                                      .reposts
+                                                                      .toString(),
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white)),
+                                                            ],
+                                                          ),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  // SHARES
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(0),
+                                                    child: Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  right: 0),
+                                                          child: Row(
+                                                            children: [
+                                                              IconButton(
+                                                                icon: const Icon(
+                                                                    Ionicons
+                                                                        .paper_plane_outline,
+                                                                    color: Colors
+                                                                        .white),
+                                                                onPressed: () {
+                                                                  setState(() {
+                                                                    "Liked!";
+                                                                    Icons
+                                                                        .thumb_up;
+                                                                    _middleIconColor =
+                                                                        Colors
+                                                                            .white;
+                                                                  });
+                                                                },
+                                                              ),
+                                                              Text(
+                                                                  comment.shares
+                                                                      .toString(),
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white)),
+                                                            ],
+                                                          ),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       )),

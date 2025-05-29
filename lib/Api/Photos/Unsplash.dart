@@ -78,22 +78,24 @@ class UnsplashService {
     try {
       final url =
           Uri.parse('$_baseUrl/search/photos').replace(queryParameters: {
-        'query': 'vinyl records collection aesthetic',
+        'query': 'vinyl records',
         'per_page': '30',
-        'orientation': 'square',
+        'orientation': 'squarish',
         'client_id': _accessKey,
       });
 
       final response = await http.get(url);
-
+      print("response: ${response.body}");
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final results = data['results'] as List;
+        print(results[0]);
 
         if (results.isNotEmpty) {
           final randomIndex =
               DateTime.now().millisecondsSinceEpoch % results.length;
-          return results[randomIndex]['urls']['regular'];
+          print("found: ${results[randomIndex]['urls']['small']}");
+          return results[randomIndex]['urls']['small'];
         }
       }
 

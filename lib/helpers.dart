@@ -5,7 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/Profile/ProfileSignUpWidget.dart';
-import 'package:flutter_test_project/authService.dart';
+import 'package:flutter_test_project/Profile/auth/authService.dart';
 import 'package:flutter_test_project/Profile/profilePage.dart';
 
 import 'comments.dart';
@@ -52,7 +52,7 @@ Widget routeToPage(String name) {
   if (name == "Reviews") {
     return const CommentWidget();
   } else {
-    return ProfileSignUp();
+    return const ProfileSignUp();
   }
 }
 
@@ -62,7 +62,7 @@ Widget profileRouter() {
   print(auth.currentUser?.displayName ?? "");
   print(auth.currentUser?.email ?? '');
   if (auth.currentUser != null) {
-    return ProfilePage();
+    return const ProfilePage();
   } else {
     return SignInScreen();
   }
@@ -162,7 +162,7 @@ Widget profileRoute(String route) {
   print(auth.currentUser?.email ?? '');
   switch (route) {
     case 'Reviews':
-      return Scaffold(
+      return const Scaffold(
           appBar: PreferredSize(
               preferredSize: Size.fromHeight(675),
               child: Column(
@@ -173,7 +173,7 @@ Widget profileRoute(String route) {
     case 'Notifications':
       return ElevatedButton(
         onPressed: () {},
-        child: Text("This is a Button"),
+        child: const Text("This is a Button"),
       );
     default:
       if (auth.currentUser != null) {
