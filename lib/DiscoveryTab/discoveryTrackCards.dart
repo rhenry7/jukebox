@@ -6,13 +6,13 @@ import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:gap/gap.dart';
 import 'package:spotify/spotify.dart';
 
-class CardTracks extends StatefulWidget {
-  const CardTracks({super.key});
+class DiscoveryTrackCards extends StatefulWidget {
+  const DiscoveryTrackCards({super.key});
   @override
-  State<CardTracks> createState() => ListOfTracks();
+  State<DiscoveryTrackCards> createState() => ListOfTracks();
 }
 
-class ListOfTracks extends State<CardTracks> {
+class ListOfTracks extends State<DiscoveryTrackCards> {
   late Future<List<Track>> spotifyTracks;
   late Future<Pages<Category>> categories;
   double? _rating = 5.0;
@@ -20,8 +20,7 @@ class ListOfTracks extends State<CardTracks> {
   @override
   void initState() {
     super.initState();
-    fetchPopularAlbums();
-    spotifyTracks = fetchSpotifyTracks();
+    spotifyTracks = fetchExploreTracks();
     //categories = fetchSpotifyCatgories();
   }
 
@@ -45,6 +44,7 @@ class ListOfTracks extends State<CardTracks> {
                       final albumImages = track.album!.images;
                       final smallImageUrl =
                           albumImages!.isNotEmpty ? albumImages.last.url : null;
+                          final trackDescription = track.album!.releaseDate;
                       //print(track);
                       return Card(
                         elevation: 0,

@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/ProfileButton.dart';
+import 'package:flutter_test_project/Profile/ProfileButton.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/loadingWidget.dart';

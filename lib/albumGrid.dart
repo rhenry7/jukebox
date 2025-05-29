@@ -19,7 +19,7 @@ class _AlbumGrid extends State<AlbumGrid> {
   @override
   void initState() {
     super.initState();
-    imageUrls = fetchSpotifyAlbums();
+    imageUrls = fetchPopularAlbums();
   }
 
   @override

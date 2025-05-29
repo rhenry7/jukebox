@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/helpers.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
@@ -58,7 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<Widget> _pages = [
     const CategoryTapBar(),
-    const TracksTapBar(),
+    const DiscoveryTapBar(),
     const AddReview(),
     const AlbumGrid(),
     profileRouter(),
