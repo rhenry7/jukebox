@@ -44,7 +44,7 @@ class DiscoveryTapBar extends StatelessWidget {
                     padding: EdgeInsets.symmetric(
                         horizontal: 20.0, vertical: 0.0), // Padding around text
                     child: Text(
-                      'Fresh',
+                      'Playlists',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),

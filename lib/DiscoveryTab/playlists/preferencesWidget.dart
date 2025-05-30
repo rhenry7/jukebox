@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/api_key.dart';
-import 'package:flutter_test_project/preferences.dart';
+import 'package:flutter_test_project/DiscoveryTab/playlists/preferences.dart';
 import 'package:spotify/spotify.dart';
 
 class PersonalizedPlaylistsTab extends StatefulWidget {

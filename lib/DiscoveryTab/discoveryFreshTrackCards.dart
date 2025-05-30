@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/api_key.dart';
-import 'package:flutter_test_project/preferences.dart';
-import 'package:flutter_test_project/preferencesWidget.dart';
+import 'package:flutter_test_project/DiscoveryTab/playlists/preferences.dart';
+import 'package:flutter_test_project/DiscoveryTab/playlists/preferencesWidget.dart';
 import 'package:spotify/spotify.dart';
 
 class PersonalizedPlaylistsList extends StatefulWidget {
