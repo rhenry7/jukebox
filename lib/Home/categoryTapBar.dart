@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/comments.dart';
 
-import '../_comments.dart';
+import '_comments.dart';
 
 class CategoryTapBar extends StatelessWidget {
   const CategoryTapBar({super.key});

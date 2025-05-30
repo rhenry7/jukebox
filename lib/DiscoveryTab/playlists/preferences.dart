@@ -59,7 +59,7 @@ class PersonalizedPlaylistService {
       List<Playlist> personalizedPlaylists = [];
 
       // Search for playlists based on recommendations
-      for (var recommendation in recommendations.take(5)) {
+      for (var recommendation in recommendations.take(3)) {
         try {
           for (String query in recommendation.searchQueries) {
             final searchResults = await spotify.search.get(query, types: [

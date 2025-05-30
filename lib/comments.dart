@@ -58,7 +58,7 @@ class CommentWidgetState extends State<CommentWidget> {
     return Scaffold(
         body: Center(
       child: Container(
-        padding: const EdgeInsets.only(left: 2, top: 10),
+        padding: const EdgeInsets.only(left: 2),
         child: Column(
           children: [
             Container(
