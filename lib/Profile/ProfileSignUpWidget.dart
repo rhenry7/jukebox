@@ -4,7 +4,7 @@ import 'package:flutter_test_project/helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 
-import '../Home/main.dart';
+import '../main.dart';
 
 class ProfileSignUp extends StatefulWidget {
   const ProfileSignUp({super.key});
@@ -154,7 +154,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         if (FirebaseAuth.instance.currentUser != null) {
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
-                                builder: (context) => MyHomePage(
+                                builder: (context) => const MyHomePage(
                                     title:
                                         "JUKEBOXD")), // Replace with your app's main widget
                             (Route<dynamic> route) =>
@@ -164,7 +164,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                           // Show SnackBar after navigating
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Welcome Back!'),
+                              content: const Text('Welcome Back!'),
                               action: SnackBarAction(
                                 label: 'Undo',
                                 onPressed: () {

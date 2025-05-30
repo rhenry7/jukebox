@@ -5,6 +5,8 @@ import 'ProfileSignUpWidget.dart';
 import 'auth/authService.dart';
 
 class SignInScreen extends StatefulWidget {
+  const SignInScreen({super.key});
+
   @override
   _SignInScreenState createState() => _SignInScreenState();
 }
@@ -66,7 +68,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       },
                       style: ButtonStyle(
                           backgroundColor:
-                              MaterialStateProperty.all(Colors.red)),
+                              WidgetStateProperty.all(Colors.red)),
                       child: const Text(
                         "Sign In",
                       )),
@@ -77,12 +79,12 @@ class _SignInScreenState extends State<SignInScreen> {
                           context,
                           MaterialPageRoute(
                               builder: (BuildContext context) =>
-                                  ProfileSignUp()));
+                                  const ProfileSignUp()));
                     },
-                    child: const Text("Sign Up"),
                     style: ButtonStyle(
                         backgroundColor:
-                            MaterialStateProperty.all(Colors.green))),
+                            WidgetStateProperty.all(Colors.green)),
+                    child: const Text("Sign Up")),
               ],
             ),
           ],

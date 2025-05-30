@@ -123,13 +123,13 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                     padding: const EdgeInsets.all(8.0),
                     child: Text(auth.currentUser?.displayName ?? "username"),
                   ),
-                  Icon(Ionicons.person_circle_outline),
+                  const Icon(Ionicons.person_circle_outline),
                 ],
               )
               //child: const Icon(Ionicons.close))),
             ],
           ),
-          Gap(10),
+          const Gap(10),
           // ALBUM IMAGE AND INFO
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -141,13 +141,13 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                       : const Icon(Icons
                           .music_note), // Fallback if no image is available,
                   title:
-                      Text(widget.title, style: TextStyle(color: Colors.white)),
+                      Text(widget.title, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(widget.Artist),
                 ),
               ),
             ],
           ),
-          Gap(10),
+          const Gap(10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 0.0),
             child: Row(
@@ -223,7 +223,7 @@ class _MyReviewSheetContentForm extends State<MyReviewSheetContentForm> {
                             widget.title, liked, widget.albumImageUrl);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Review Posted!'),
+                            content: const Text('Review Posted!'),
                             action: SnackBarAction(
                               label: 'Ok.',
                               onPressed: () {

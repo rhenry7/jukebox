@@ -5,11 +5,10 @@ import 'package:flutter_test_project/helpers.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
-import '../addReviewWidget.dart';
-import '../albumGrid.dart';
-import '../categoryTapBar.dart';
-import '../reviewSheetContentForm.dart';
-import '../trackTapBar.dart';
+import 'addReviewWidget.dart';
+import 'albumGrid.dart';
+import 'Home/categoryTapBar.dart';
+import 'reviewSheetContentForm.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

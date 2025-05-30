@@ -48,7 +48,7 @@ Future<List<Track>> fetchExploreTracks() async {
           }
         }
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
         print('Error with explore query "$query": $e');
         continue;
@@ -107,7 +107,7 @@ Future<List<Track>> fetchTrendingTracks() async {
           }
         }
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
         print('Error with trending query "$query": $e');
         continue;
@@ -166,7 +166,7 @@ Future<List<Track>> fetchHiddenGemTracks() async {
           }
         }
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
         print('Error with hidden gems query "$query": $e');
         continue;
@@ -216,7 +216,7 @@ Future<List<Track>> fetchNewReleaseTracks() async {
           }
         }
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
         print('Error with new release query "$query": $e');
         continue;
@@ -295,7 +295,7 @@ Future<List<Album>> fetchExploreAlbums() async {
         }
 
         // Small delay to avoid rate limiting
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
         print('Error with query "$query": $e');
         continue;
@@ -378,7 +378,7 @@ Future<List<Album>> fetchNewDiscoveries() async {
           }
         }
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
         print('Error with new releases query "$query": $e');
         continue;

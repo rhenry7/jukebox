@@ -70,7 +70,6 @@ class _AlbumGrid extends State<AlbumGrid> {
                               albumImageUrl: foundImage ?? "",
                             );
                           });
-                      ;
                     },
                     child: ClipRRect(
                         borderRadius: BorderRadius.circular(

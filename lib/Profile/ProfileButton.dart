@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/Home/main.dart';
+import 'package:flutter_test_project/main.dart';
 import 'package:ionicons/ionicons.dart';
 
 import '../helpers.dart';
@@ -40,12 +40,12 @@ class ProfileButton extends StatelessWidget {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                       builder: (context) =>
-                          MyApp()), // Replace with your app's main widget
+                          const MyApp()), // Replace with your app's main widget
                   (Route<dynamic> route) =>
                       false, // Removes all previous routes
                 );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('You have signed out!'),
                   ),
                 );

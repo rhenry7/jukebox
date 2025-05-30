@@ -12,7 +12,7 @@ class UnsplashService {
   static const String _baseUrl = 'https://api.unsplash.com';
 
   // Cache to avoid repeated API calls for the same search
-  static Map<String, String> _imageCache = {};
+  static final Map<String, String> _imageCache = {};
 
   static Future<String?> getVinylImage({
     required String albumName,
@@ -20,7 +20,7 @@ class UnsplashService {
   }) async {
     try {
       // Create a cache key
-      final cacheKey = '${albumName}_${artistName}'.toLowerCase();
+      final cacheKey = '${albumName}_$artistName'.toLowerCase();
       if (_imageCache.containsKey(cacheKey)) {
         return _imageCache[cacheKey];
       }
@@ -63,7 +63,7 @@ class UnsplashService {
         }
 
         // Small delay between requests to respect rate limits
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       return null;
@@ -169,7 +169,7 @@ class _VinylPhotoWidgetState extends State<VinylPhotoWidget> {
           color: Colors.grey[300],
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Center(
+        child: const Center(
           child: SizedBox(
             width: 20,
             height: 20,
@@ -188,7 +188,7 @@ class _VinylPhotoWidgetState extends State<VinylPhotoWidget> {
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -264,7 +264,7 @@ Widget buildReviewListTile(UserReview review) {
     trailing: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.star, color: Colors.amber, size: 16),
+        const Icon(Icons.star, color: Colors.amber, size: 16),
         Text('${review.rating ?? 0}/5'),
       ],
     ),
