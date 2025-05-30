@@ -46,8 +46,7 @@ class PersonalizedPlaylistService {
   Future<List<Playlist>> fetchPersonalizedPlaylists(
       UserPreferences preferences) async {
     try {
-      final credentials = SpotifyApiCredentials(clientId, clientSecret);
-      final spotify = SpotifyApi(credentials);
+      final spotify = SpotifyApi(SpotifyApiCredentials(clientId, clientSecret));
 
       // Generate playlist recommendations based on user preferences
       List<PlaylistRecommendation> recommendations =
@@ -60,7 +59,7 @@ class PersonalizedPlaylistService {
       List<Playlist> personalizedPlaylists = [];
 
       // Search for playlists based on recommendations
-      for (var recommendation in recommendations.take(15)) {
+      for (var recommendation in recommendations.take(5)) {
         try {
           for (String query in recommendation.searchQueries) {
             final searchResults = await spotify.search.get(query, types: [
@@ -86,8 +85,6 @@ class PersonalizedPlaylistService {
                 }
               }
             }
-
-            await Future.delayed(const Duration(milliseconds: 150));
           }
         } catch (e) {
           print(
@@ -112,8 +109,7 @@ class PersonalizedPlaylistService {
         int followersB = b.followers?.total ?? 0;
         return followersB.compareTo(followersA);
       });
-
-      return finalPlaylists.take(25).toList();
+      return finalPlaylists.take(10).toList();
     } catch (e) {
       print('Error fetching personalized playlists: $e');
       return [];
