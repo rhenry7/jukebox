@@ -66,8 +66,8 @@ class _AlbumGrid extends State<AlbumGrid> {
 
                             return MyReviewSheetContentForm(
                               title: album.name ?? "no album found",
-                              Artist: artists ?? "unknown",
                               albumImageUrl: foundImage ?? "",
+                              artist: artists ?? "unknown",
                             );
                           });
                     },

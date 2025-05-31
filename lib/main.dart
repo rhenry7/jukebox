@@ -76,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
             return const MyReviewSheetContentForm(
               title: 'track-title',
-              Artist: 'artist',
+              artist: 'artist',
               albumImageUrl: "",
             );
           });
