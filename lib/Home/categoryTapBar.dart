@@ -37,6 +37,7 @@ class CategoryTapBar extends StatelessWidget {
                   ),
                 ],
               ),
+              dividerColor: const Color.fromARGB(104, 78, 72, 72),
               // TABS
               tabs: const [
                 Tab(

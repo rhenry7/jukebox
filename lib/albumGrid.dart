@@ -25,9 +25,6 @@ class _AlbumGrid extends State<AlbumGrid> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Whats Hot'),
-      ),
       body: FutureBuilder<List<Album>>(
         future: imageUrls,
         builder: (context, snapshot) {
@@ -38,7 +35,7 @@ class _AlbumGrid extends State<AlbumGrid> {
                 crossAxisSpacing: 5.0, // Horizontal space between cards
                 mainAxisSpacing: 5.0, // Vertical space between cards
               ),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(8.0),
               itemCount: snapshot.data!.length, // Number of cards to display
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
