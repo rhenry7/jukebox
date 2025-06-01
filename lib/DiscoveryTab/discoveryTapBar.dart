@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../News/NewsWidget.dart';
 import 'discoveryFreshTrackCards.dart';
 import 'discoveryTrackCards.dart';
 
@@ -10,11 +11,11 @@ class DiscoveryTapBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       initialIndex: 0,
-      length: 2, // Number of tabs
+      length: 3, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize:
-              const Size.fromHeight(350), // Set the AppBar height to 0
+              const Size.fromHeight(100), // Set the AppBar height to 0
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: TabBar(
@@ -59,6 +60,16 @@ class DiscoveryTapBar extends StatelessWidget {
                     ),
                   ),
                 ),
+                Tab(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 20.0, vertical: 0.0), // Padding around text
+                    child: Text(
+                      'Articles',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -67,6 +78,20 @@ class DiscoveryTapBar extends StatelessWidget {
           children: [
             PersonalizedPlaylistsList(),
             DiscoveryTrackCards(),
+            MusicNewsWidget(
+              filterKeywords: [
+                'music',
+                'music album',
+                'music artist',
+                'music genre',
+                'hip hop',
+                'pop music',
+                'rock music',
+                'jazz music',
+                'indie music',
+                'electronic music',
+              ],
+            ),
           ],
         ),
       ),
