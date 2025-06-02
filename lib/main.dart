@@ -4,6 +4,7 @@ import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/MusicTaste.dart';
 import 'package:flutter_test_project/News/News.dart';
 import 'package:flutter_test_project/News/NewsWidget.dart';
+import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/helpers.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
@@ -63,9 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
     const CategoryTapBar(),
     const DiscoveryTapBar(),
     const AddReview(),
-    MusicTasteProfileWidget(
-      onPreferencesChanged: (EnhancedUserPreferences) {},
-    ),
+    const AlbumGrid(),
     profileRouter(),
   ];
 

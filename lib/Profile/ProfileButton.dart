@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/main.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -66,7 +67,6 @@ class ProfileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color useColor = name == 'LogOut' ? Colors.red : Colors.white;
-    Widget page = routeToPage(name);
 
     return Padding(
         padding: const EdgeInsets.all(8.0),

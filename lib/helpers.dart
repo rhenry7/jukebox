@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/MusicTaste.dart';
 import 'package:flutter_test_project/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/Profile/auth/authService.dart';
@@ -48,47 +49,8 @@ String getCurrentDate() {
   return "${dateParse.day}-${dateParse.month}-${dateParse.year}";
 }
 
-Widget routeToPage(String name) {
-  if (name == "Reviews") {
-    return const CommentWidget();
-  } else {
-    return const ProfileSignUp();
-  }
-}
 
-Widget profileRouter() {
-  final FirebaseAuth auth = FirebaseAuth.instance;
-  print(auth.currentUser);
-  print(auth.currentUser?.displayName ?? "");
-  print(auth.currentUser?.email ?? '');
-  if (auth.currentUser != null) {
-    return const ProfilePage();
-  } else {
-    return SignInScreen();
-  }
-}
 
-Future<void> signUp(String userName, String email, String password) async {
-  AuthService authService = AuthService();
-  User? user = await authService.signUp(userName, email, password);
-  // add userId, userDisplay name
-
-  if (user != null) {
-    String userId = user.uid;
-    await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'password': password,
-      'email': email,
-      'userId': userId,
-      'displayName': userName,
-      'joinDate': FieldValue.serverTimestamp(),
-      'friends': []
-      // Add any other fields you'd like to track
-    });
-    print("Sign-up successful! User ID: ${user.uid}");
-  } else {
-    print("Sign-up failed.");
-  }
-}
 
 Future<List<Map<String, dynamic>>> fetchUserReviews(String userId) async {
   QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -137,14 +99,7 @@ Future<void> submitReview(String review, double score, String artist,
   }
 }
 
-void signOut() async {
-  try {
-    FirebaseAuth.instance.signOut();
-    print("user signed out");
-  } catch (e) {
-    print("Error signing out: $e");
-  }
-}
+
 
 void addUserReview() async {
   final FirebaseAuth auth = FirebaseAuth.instance;
@@ -155,33 +110,4 @@ void addUserReview() async {
   }
 }
 
-// Function that uses switch to return a Widget based on the string input
-Widget profileRoute(String route) {
-  final FirebaseAuth auth = FirebaseAuth.instance;
-  print(route);
-  print(auth.currentUser?.email ?? '');
-  switch (route) {
-    case 'Reviews':
-      return const Scaffold(
-          appBar: PreferredSize(
-              preferredSize: Size.fromHeight(675),
-              child: Column(
-                children: [
-                  Expanded(child: CommentWidget()),
-                ],
-              )));
-    case 'Notifications':
-      return ElevatedButton(
-        onPressed: () {},
-        child: const Text("This is a Button"),
-      );
-    default:
-      if (auth.currentUser != null) {
-        print("user signed in");
-        return const Scaffold(body: Center(child: Text("coming soon")));
-      } else {
-        print("user NOT signed in");
-        return SignInScreen();
-      }
-  }
-}
+

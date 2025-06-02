@@ -25,7 +25,7 @@ class ProfileView extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: PreferredSize(
-      preferredSize: const Size.fromHeight(275),
+      preferredSize: const Size.fromHeight(375),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Card(
@@ -34,11 +34,11 @@ class ProfileView extends State<ProfilePage> {
               builder: ((context, snapshot) {
                 if (snapshot.hasData) {
                   // TODO: Reevaluate this thing; can be better
-                  return ListView.builder(itemBuilder: ((context, index) {
-                    final String userName =
-                        FirebaseAuth.instance.currentUser?.displayName ??
-                            "no user name";
-                    return Column(
+                  final String userName =
+                      FirebaseAuth.instance.currentUser?.displayName ??
+                          "no user name";
+                  return SingleChildScrollView(
+                    child: Column(
                       children: [
                         // PROFILE_OVERVIEW
                         // SETTINGS
@@ -48,13 +48,15 @@ class ProfileView extends State<ProfilePage> {
                             name: "Reviews",
                             icon: Ionicons.musical_notes_outline),
                         const ProfileButton(
+                            name: "Preferences", icon: Ionicons.analytics_outline),
+                        const ProfileButton(
                             name: "Notifications",
                             icon: Ionicons.notifications_outline),
                         const ProfileButton(
                             name: "LogOut", icon: Ionicons.exit_outline),
                       ],
-                    );
-                  }));
+                    ),
+                  );
                 } else if (snapshot.error == null) {
                   return const Center(child: Card(child: LoadingWidget()));
                 } else {
