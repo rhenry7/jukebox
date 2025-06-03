@@ -39,6 +39,8 @@ class DiscoveryTapBar extends StatelessWidget {
                 ],
               ),
               // TABS
+              dividerColor: const Color.fromARGB(104, 78, 72, 72),
+
               tabs: const [
                 Tab(
                   child: Padding(
