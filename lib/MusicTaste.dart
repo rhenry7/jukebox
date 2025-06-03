@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:developer';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 // Enhanced UserPreferences model with additional fields
@@ -73,6 +78,30 @@ class EnhancedUserPreferences {
       repeatCounts: repeatCounts ?? this.repeatCounts,
     );
   }
+
+  @override
+  String toString() {
+    return 'EnhancedUserPreferences(favoriteGenres: $favoriteGenres, favoriteArtists: $favoriteArtists, dislikedGenres: $dislikedGenres, genreWeights: $genreWeights, recentlyPlayed: $recentlyPlayed, savedTracks: $savedTracks, audioFeatureProfile: $audioFeatureProfile, moodPreferences: $moodPreferences, tempoPreferences: $tempoPreferences, contextualPreferences: $contextualPreferences, lastUpdated: $lastUpdated, totalListeningTime: $totalListeningTime, skipCounts: $skipCounts, repeatCounts: $repeatCounts)';
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'favoriteGenres': favoriteGenres,
+      'favoriteArtists': favoriteArtists,
+      'dislikedGenres': dislikedGenres,
+      'genreWeights': genreWeights,
+      'recentlyPlayed': recentlyPlayed.map((track) => track.toJson()).toList(),
+      'savedTracks': savedTracks,
+      'audioFeatureProfile': audioFeatureProfile,
+      'moodPreferences': moodPreferences,
+      'tempoPreferences': tempoPreferences,
+      'contextualPreferences': contextualPreferences,
+      'lastUpdated': lastUpdated.toIso8601String(),
+      'totalListeningTime': totalListeningTime,
+      'skipCounts': skipCounts,
+      'repeatCounts': repeatCounts,
+    };
+  }
 }
 
 // Track history model with enhanced metadata
@@ -100,6 +129,38 @@ class TrackHistory {
     this.context = 'unknown',
     this.audioFeatures,
   });
+
+  toJson() {
+    return {
+      'trackId': trackId,
+      'trackName': trackName,
+      'artistName': artistName,
+      'genres': genres,
+      'playedAt': playedAt.toIso8601String(),
+      'listeningDuration': listeningDuration,
+      'wasSkipped': wasSkipped,
+      'wasRepeated': wasRepeated,
+      'context': context,
+      'audioFeatures': audioFeatures,
+    };
+  }
+
+  static TrackHistory fromJson(Map<String, dynamic> json) {
+    return TrackHistory(
+      trackId: json['trackId'],
+      trackName: json['trackName'],
+      artistName: json['artistName'],
+      genres: List<String>.from(json['genres']),
+      playedAt: DateTime.parse(json['playedAt']),
+      listeningDuration: json['listeningDuration'],
+      wasSkipped: json['wasSkipped'] ?? false,
+      wasRepeated: json['wasRepeated'] ?? false,
+      context: json['context'] ?? 'unknown',
+      audioFeatures: json['audioFeatures'] != null
+          ? Map<String, double>.from(json['audioFeatures'])
+          : null,
+    );
+  }
 }
 
 // Main taste profile collection widget
@@ -203,6 +264,27 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
     widget.onPreferencesChanged(_preferences);
   }
 
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+
+  Future<void> _uploadPreferences() async {
+    if (userId.isEmpty) {
+      print("User not logged in, cannot upload preferences.");
+      return;
+    }
+
+    final data = _preferences.toJson();
+    data['lastUpdated'] = FieldValue.serverTimestamp();
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('musicPreferences')
+        .doc('profile')
+        .set(data, SetOptions(merge: true));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -295,7 +377,12 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _updatePreferences,
+        onPressed: () {
+          _updatePreferences();
+          print(_preferences);
+          print("Preferences Updated");
+          _uploadPreferences();
+        },
         backgroundColor: Colors.deepPurple,
         icon: const Icon(Icons.save, color: Colors.white),
         label: const Text('Save', style: TextStyle(color: Colors.white)),
