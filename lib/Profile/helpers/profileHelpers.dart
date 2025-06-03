@@ -3,11 +3,39 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/MusicTaste.dart';
+import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/Profile/auth/authService.dart';
 import 'package:flutter_test_project/Profile/profilePage.dart';
 import 'package:flutter_test_project/comments.dart';
+
+
+Future<Map<String, dynamic>> getCurrentUser() async {
+  User? user = FirebaseAuth.instance.currentUser;
+
+  if (user != null) {
+    try {
+      var documentSnapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+
+      if (documentSnapshot.exists) {
+        Map<String, dynamic> userData = documentSnapshot.data()!;
+        print("User data: $userData");
+        return userData; // Return the user data
+        // Access specific data: userData['fieldName']
+      } else {
+        print("User document does not exist.");
+      }
+    } catch (e) {
+      print("Error getting user data: $e");
+    }
+  } else {
+    print("No user is signed in.");
+  }
+  throw Exception("Failed to get user data.");
+}
 
 Widget profileRoute(String route) {
   final FirebaseAuth auth = FirebaseAuth.instance;

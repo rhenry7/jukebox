@@ -5,6 +5,48 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+class MusicPreferences {
+  final List<String> favoriteGenres;
+  final Map<String, double> genreWeights;
+
+  MusicPreferences({
+    required this.favoriteGenres,
+    required this.genreWeights,
+  });
+
+  factory MusicPreferences.fromJson(Map<String, dynamic> json) {
+    return MusicPreferences(
+      favoriteGenres: List<String>.from(json['favoriteGenres'] ?? []),
+      genreWeights: Map<String, double>.from(json['genreWeights'] ?? {}),
+    );
+  }
+}
+
+Future<MusicPreferences?> fetchMusicPreferences() async {
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+  try {
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('musicPreferences')
+        .doc('profile')
+        .get();
+
+    if (docSnapshot.exists) {
+      final data = docSnapshot.data();
+      if (data != null) {
+        return MusicPreferences.fromJson(data);
+      }
+    }
+    return null;
+  } catch (e) {
+    print('Error fetching music preferences: $e');
+    return null;
+  }
+}
+
 // Enhanced UserPreferences model with additional fields
 class EnhancedUserPreferences {
   final List<String> favoriteGenres;

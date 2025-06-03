@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/MusicTaste.dart';
+import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/Profile/auth/authService.dart';
