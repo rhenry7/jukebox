@@ -102,6 +102,33 @@ class EnhancedUserPreferences {
       'repeatCounts': repeatCounts,
     };
   }
+
+  static EnhancedUserPreferences fromJson(Map<String, dynamic> json) {
+    return EnhancedUserPreferences(
+      favoriteGenres: List<String>.from(json['favoriteGenres'] ?? []),
+      favoriteArtists: List<String>.from(json['favoriteArtists'] ?? []),
+      dislikedGenres: List<String>.from(json['dislikedGenres'] ?? []),
+      genreWeights: Map<String, double>.from(json['genreWeights'] ?? {}),
+      recentlyPlayed: (json['recentlyPlayed'] as List<dynamic>?)
+              ?.map((track) => TrackHistory.fromJson(track))
+              .toList() ??
+          [],
+      savedTracks: List<String>.from(json['savedTracks'] ?? []),
+      audioFeatureProfile:
+          Map<String, double>.from(json['audioFeatureProfile'] ?? {}),
+      moodPreferences: Map<String, double>.from(json['moodPreferences'] ?? {}),
+      tempoPreferences:
+          Map<String, double>.from(json['tempoPreferences'] ?? {}),
+      contextualPreferences:
+          Map<String, List<String>>.from(json['contextualPreferences'] ?? {}),
+      lastUpdated: json['lastUpdated'] is Timestamp
+          ? (json['lastUpdated'] as Timestamp).toDate()
+          : DateTime.parse(json['lastUpdated'] as String),
+      totalListeningTime: json['totalListeningTime'] ?? 0,
+      skipCounts: Map<String, int>.from(json['skipCounts'] ?? {}),
+      repeatCounts: Map<String, int>.from(json['repeatCounts'] ?? {}),
+    );
+  }
 }
 
 // Track history model with enhanced metadata
@@ -167,6 +194,7 @@ class TrackHistory {
 class MusicTasteProfileWidget extends StatefulWidget {
   final EnhancedUserPreferences? initialPreferences;
   final Function(EnhancedUserPreferences) onPreferencesChanged;
+
   final bool isOnboarding;
 
   const MusicTasteProfileWidget({
@@ -184,7 +212,9 @@ class MusicTasteProfileWidget extends StatefulWidget {
 class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  late Future<EnhancedUserPreferences> _preferencesFuture;
   late EnhancedUserPreferences _preferences;
+  bool _loadedPreferences = false;
 
   // Available options
   final List<String> _availableGenres = [
@@ -243,15 +273,24 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
     'Commute': ['Driving', 'Walking', 'Public Transport', 'Cycling'],
   };
 
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _preferences = widget.initialPreferences ??
-        EnhancedUserPreferences(
-          favoriteGenres: [],
-          favoriteArtists: [],
-        );
+
+    _preferencesFuture = _fetchPreferences();
+    _preferencesFuture.then((prefs) {
+      setState(() {
+        _preferences = prefs;
+      });
+      if (widget.isOnboarding) {
+        _updatePreferences();
+      }
+    });
   }
 
   @override
@@ -264,10 +303,6 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
     widget.onPreferencesChanged(_preferences);
   }
 
-  final String userId = FirebaseAuth.instance.currentUser != null
-      ? FirebaseAuth.instance.currentUser!.uid
-      : "";
-
   Future<void> _uploadPreferences() async {
     if (userId.isEmpty) {
       print("User not logged in, cannot upload preferences.");
@@ -275,7 +310,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
     }
 
     final data = _preferences.toJson();
-    data['lastUpdated'] = FieldValue.serverTimestamp();
+    data['lastUpdated'] = DateTime.now().toIso8601String();
 
     await FirebaseFirestore.instance
         .collection('users')
@@ -285,108 +320,146 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
         .set(data, SetOptions(merge: true));
   }
 
+  Future<EnhancedUserPreferences> _fetchPreferences() async {
+    if (userId.isEmpty) {
+      print("User not logged in, cannot fetch preferences.");
+      return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('musicPreferences')
+        .doc('profile')
+        .get();
+
+    if (doc.exists) {
+      _preferences = EnhancedUserPreferences.fromJson(doc.data()!);
+      return _preferences;
+    } else {
+      return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
+    }
+  }
+
+  Future<void> handleSavePreferences() async {
+    try {
+      await _uploadPreferences();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preferences saved successfully!')),
+      );
+    } catch (e) {
+      log('Error saving preferences: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save preferences.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            color: Colors.transparent,
-            child: TabBar(
-              isScrollable: true,
-              controller: _tabController,
-              padding: const EdgeInsets.only(
-                  left: 2.0), // Control how close to left edge
-
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              indicator: BoxDecoration(
-                borderRadius:
-                    BorderRadius.circular(25), // Creates pill-shaped indicator
-                color: Colors.red[600], // Background color of the selected tab
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 255, 9, 9).withAlpha(100),
-                    blurRadius: 36.0,
-                    spreadRadius: 10.0,
-                    offset: const Offset(
-                      1.0,
-                      5.0,
+    return FutureBuilder<EnhancedUserPreferences>(
+      future: _preferencesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error loading preferences'));
+        } else if (!snapshot.hasData) {
+          return Center(child: Text('No preferences found'));
+        } else {
+          // Assign loaded preferences if not already set
+          if (_loadedPreferences) {
+            _preferences = snapshot.data!;
+            _loadedPreferences = true;
+          }
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Container(
+                  color: Colors.transparent,
+                  child: TabBar(
+                    isScrollable: true,
+                    controller: _tabController,
+                    padding: const EdgeInsets.only(left: 2.0),
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                      color: Colors.red[600],
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color.fromARGB(255, 255, 9, 9)
+                              .withAlpha(100),
+                          blurRadius: 36.0,
+                          spreadRadius: 10.0,
+                          offset: const Offset(1.0, 5.0),
+                        ),
+                      ],
                     ),
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 0.0),
+                          child: Text('Genres',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      Tab(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 0.0),
+                          child: Text('Moods',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      Tab(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 0.0),
+                          child: Text('Tempo',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      Tab(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 0.0),
+                          child: Text('Context',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-              dividerColor: Colors.transparent,
-              tabs: const [
-                Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 0.0), // Padding around text
-                    child: Text(
-                      'Genres',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 0.0), // Padding around text
-                    child: Text(
-                      'Moods',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 0.0), // Padding around text
-                    child: Text(
-                      'Tempo',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 0.0), // Padding around text
-                    child: Text(
-                      'Context',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
+            ),
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildGenreSelection(),
+                _buildMoodSelection(),
+                _buildTempoSelection(),
+                _buildContextualSelection(),
               ],
             ),
-          ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildGenreSelection(),
-          _buildMoodSelection(),
-          _buildTempoSelection(),
-          _buildContextualSelection(),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _updatePreferences();
-          print(_preferences);
-          print("Preferences Updated");
-          _uploadPreferences();
-        },
-        backgroundColor: Colors.deepPurple,
-        icon: const Icon(Icons.save, color: Colors.white),
-        label: const Text('Save', style: TextStyle(color: Colors.white)),
-      ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () {
+                _updatePreferences();
+                handleSavePreferences();
+              },
+              backgroundColor: Colors.green,
+              icon: const Icon(Icons.save, color: Colors.white),
+              label: const Text('Save', style: TextStyle(color: Colors.white)),
+            ),
+          );
+        }
+      },
     );
   }
 
