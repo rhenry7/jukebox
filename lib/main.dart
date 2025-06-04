@@ -8,10 +8,10 @@ import 'package:flutter_test_project/News/News.dart';
 import 'package:flutter_test_project/News/NewsWidget.dart';
 import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/helpers.dart';
-import 'package:flutter_test_project/MusicPreferences/recommendationGenerator.dart';
+import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/recommendationGenerator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
-import 'package:flutter_test_project/MusicPreferences/helpers/helpers.dart';
+import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/helpers.dart';
 
 import 'addReviewWidget.dart';
 import 'albumGrid.dart';
@@ -77,7 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
     const AddReview(),
     const AlbumGrid(),
     // TODO: fix recommended album thing
-    //const RecommendedAlbumScreen(genreWeights: user?.genreWeights ?? {}),
+    //const RecommendedAlbumScreen(),
     profileRouter(),
   ];
 

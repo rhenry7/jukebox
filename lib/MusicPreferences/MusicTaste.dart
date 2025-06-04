@@ -384,6 +384,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
   }
 
   Future<void> handleSavePreferences() async {
+    print(EnhancedUserPreferences.fromJson(_preferences.toJson()));
     try {
       await _uploadPreferences();
       ScaffoldMessenger.of(context).showSnackBar(
