@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ai/firebase_ai.dart';
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
@@ -17,6 +20,9 @@ import 'addReviewWidget.dart';
 import 'albumGrid.dart';
 import 'Home/categoryTapBar.dart';
 import 'reviewSheetContentForm.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ai/firebase_ai.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,9 +81,9 @@ class _MyHomePageState extends State<MyHomePage> {
     const CategoryTapBar(),
     const DiscoveryTapBar(),
     const AddReview(),
-    const AlbumGrid(),
+    //const AlbumGrid(),
     // TODO: fix recommended album thing
-    //const RecommendedAlbumScreen(),
+    const RecommendedAlbumScreen(),
     profileRouter(),
   ];
 

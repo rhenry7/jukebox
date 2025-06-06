@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_test_project/api_key.dart';
 import 'package:http/http.dart' as http;
 
 // Token Response Model
@@ -23,10 +24,7 @@ class SpotifyToken {
 }
 
 // Function to get Spotify access token using Client Credentials flow
-Future<String> getSpotifyAccessToken({
-  required String clientId,
-  required String clientSecret,
-}) async {
+Future<String> getSpotifyAccessToken() async {
   // Encode credentials in base64
   final credentials = base64Encode(utf8.encode('$clientId:$clientSecret'));
 
