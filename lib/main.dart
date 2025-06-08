@@ -4,6 +4,7 @@ import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/recommendationGenerator.dart';
+import 'package:flutter_test_project/albumGrid.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -58,19 +59,12 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   late Future<MusicPreferences?> _preferencesFuture;
 
-// @override
-//   void initState() {
-//     super.initState();
-//     _preferencesFuture = fetchMusicPreferences(userId);
-//   }
 
   final List<Widget> _pages = [
     const CategoryTapBar(),
     const DiscoveryTapBar(),
     const AddReview(),
-    //const AlbumGrid(),
-    // TODO: fix recommended album thing
-    const RecommendedAlbumScreen(),
+    const AlbumGrid(),
     profileRouter(),
   ];
 

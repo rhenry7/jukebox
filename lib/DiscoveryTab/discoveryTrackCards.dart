@@ -29,7 +29,7 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          const Gap(10),
+          const SizedBox(height: 16),
           Center(
             child: FutureBuilder<List<Track>>(
               future: spotifyTracks,

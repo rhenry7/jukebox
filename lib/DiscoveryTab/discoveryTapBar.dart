@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/recommendationGenerator.dart';
 
 import '../News/NewsWidget.dart';
 import 'discoveryFreshTrackCards.dart';
@@ -11,7 +12,7 @@ class DiscoveryTapBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       initialIndex: 0,
-      length: 3, // Number of tabs
+      length: 4, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize:
@@ -42,6 +43,16 @@ class DiscoveryTapBar extends StatelessWidget {
               dividerColor: const Color.fromARGB(104, 78, 72, 72),
 
               tabs: const [
+                Tab(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 20.0, vertical: 0.0), // Padding around text
+                    child: Text(
+                      'Recommended',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
                 Tab(
                   child: Padding(
                     padding: EdgeInsets.symmetric(
@@ -78,11 +89,11 @@ class DiscoveryTapBar extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
+            RecommendedAlbumScreen(),
             PersonalizedPlaylistsList(),
             DiscoveryTrackCards(),
             MusicNewsWidget(
               filterKeywords: [
-                'music',
                 'music album',
                 'music artist',
                 'music genre',

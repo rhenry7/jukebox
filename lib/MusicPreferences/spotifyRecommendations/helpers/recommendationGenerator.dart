@@ -140,6 +140,10 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
   @override
   void initState() {
     super.initState();
+    _loadRecommendations();
+  }
+
+  void _loadRecommendations() {
     _fetchUserPreferences().then((preferences) {
       setState(() {
         _albumsFuture =
@@ -153,6 +157,13 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
         _isInitialized = true;
       });
     });
+  }
+
+  void _refreshRecommendations() {
+    setState(() {
+      _isInitialized = false;
+    });
+    _loadRecommendations();
   }
 
   Future<EnhancedUserPreferences> _fetchUserPreferences() async {
@@ -182,20 +193,54 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Recommended Albums')),
-      body: !_isInitialized
-          ? const Center(child: CircularProgressIndicator())
-          : _albumsFuture == null
-              ? const Center(child: Text('Failed to load recommendations'))
-              : FutureBuilder<List<MusicRecommendation>>(
-                  future: _albumsFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return AlbumList(albums: snapshot.data!);
-                    }
-                    return const DiscoBallLoading();
-                  },
-                ),
+      body: Column(
+        children: [
+          Expanded(
+            child: !_isInitialized
+                ? const Center(child: CircularProgressIndicator())
+                : _albumsFuture == null
+                    ? const Center(
+                        child: Text('Failed to load recommendations'))
+                    : FutureBuilder<List<MusicRecommendation>>(
+                        future: _albumsFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return Column(
+                              children: [
+                                const SizedBox(height: 16),
+                                Expanded(
+                                  child: AlbumList(albums: snapshot.data!),
+                                ),
+                                // Padding(
+                                //   padding: const EdgeInsets.all(16.0),
+                                //   child: SizedBox(
+                                //     width: double.infinity,
+                                //     child: ElevatedButton.icon(
+                                //       onPressed: _refreshRecommendations,
+                                //       icon: const Icon(Icons.refresh),
+                                //       label: const Text(''),
+                                //       style: ElevatedButton.styleFrom(
+                                //         shape: RoundedRectangleBorder(
+                                //           borderRadius: BorderRadius.circular(
+                                //               25), // Creates pill-shaped indicatorRound radius
+                                //         ),
+                                //         padding: const EdgeInsets.symmetric(
+                                //             horizontal: 24, vertical: 12),
+                                //         backgroundColor:
+                                //             Colors.yellow[600], // Button color
+                                //       ),
+                                //     ),
+                                //   ),
+                                // ),
+                              ],
+                            );
+                          }
+                          return const DiscoBallLoading();
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }
