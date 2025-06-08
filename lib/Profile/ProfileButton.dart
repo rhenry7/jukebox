@@ -3,7 +3,6 @@ import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/main.dart';
 import 'package:ionicons/ionicons.dart';
 
-import '../helpers.dart';
 
 class ProfileButton extends StatelessWidget {
   final String name;

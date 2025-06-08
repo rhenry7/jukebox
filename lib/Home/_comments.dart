@@ -53,11 +53,11 @@ class ReviewsList extends State<UserReviewsCollection> {
 
         return Container(
             decoration: const BoxDecoration(),
-            margin: EdgeInsets.symmetric(),
-            padding: EdgeInsets.symmetric(),
+            margin: const EdgeInsets.symmetric(),
+            padding: const EdgeInsets.symmetric(),
             child: Column(
               children: [
-                Gap(10),
+                const Gap(10),
                 Expanded(
                   child: FriendsReviewList(reviews: reviews),
                 ),

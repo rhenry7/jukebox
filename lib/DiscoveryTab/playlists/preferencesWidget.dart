@@ -283,7 +283,7 @@ class PlaylistCard extends StatelessWidget {
                           const Icon(Icons.people, size: 16, color: Colors.grey),
                           const SizedBox(width: 4),
                           Text(
-                            '${_formatFollowerCount(playlist.followers!.total!)}',
+                            _formatFollowerCount(playlist.followers!.total!),
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: Colors.grey[600],

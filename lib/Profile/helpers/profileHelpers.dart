@@ -59,7 +59,7 @@ Widget profileRoute(String route) {
         return const Scaffold(body: Center(child: Text("coming soon")));
       } else {
         print("user NOT signed in");
-        return SignInScreen();
+        return const SignInScreen();
       }
   }
 }
@@ -81,7 +81,7 @@ Widget profileRouter() {
   if (auth.currentUser != null) {
     return const ProfilePage();
   } else {
-    return SignInScreen();
+    return const SignInScreen();
   }
 }
 

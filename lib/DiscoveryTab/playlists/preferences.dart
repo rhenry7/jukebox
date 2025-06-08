@@ -74,9 +74,8 @@ class PersonalizedPlaylistService {
                       // Convert to full Playlist if needed
                       final playlist =
                           await spotify.playlists.get(playlistSimple.id!);
-                      if (playlist != null &&
-                          playlist.tracks?.total != null &&
-                          playlist.tracks!.total! > 10) {
+                      if (playlist.tracks?.total != null &&
+                          playlist.tracks!.total > 10) {
                         // Filter out small playlists
                         personalizedPlaylists.add(playlist);
                       }
@@ -276,24 +275,22 @@ class PersonalizedPlaylistService {
       for (String playlistId in likedPlaylistIds) {
         try {
           final playlist = await spotify.playlists.get(playlistId);
-          if (playlist != null) {
-            String playlistText =
-                '${playlist.name} ${playlist.description}'.toLowerCase();
+          String playlistText =
+              '${playlist.name} ${playlist.description}'.toLowerCase();
 
-            // Simple genre detection (you might want to use Spotify's audio features API for better analysis)
-            for (String genre in _getAllGenres()) {
-              if (playlistText.contains(genre.toLowerCase())) {
-                updatedWeights[genre] = (updatedWeights[genre] ?? 0.5) + 0.1;
-                if (updatedWeights[genre]! > 1.0) updatedWeights[genre] = 1.0;
+          // Simple genre detection (you might want to use Spotify's audio features API for better analysis)
+          for (String genre in _getAllGenres()) {
+            if (playlistText.contains(genre.toLowerCase())) {
+              updatedWeights[genre] = (updatedWeights[genre] ?? 0.5) + 0.1;
+              if (updatedWeights[genre]! > 1.0) updatedWeights[genre] = 1.0;
 
-                if (!newFavoriteGenres.contains(genre) &&
-                    updatedWeights[genre]! > 0.7) {
-                  newFavoriteGenres.add(genre);
-                }
+              if (!newFavoriteGenres.contains(genre) &&
+                  updatedWeights[genre]! > 0.7) {
+                newFavoriteGenres.add(genre);
               }
             }
           }
-        } catch (e) {
+                } catch (e) {
           print('Error analyzing liked playlist $playlistId: $e');
         }
       }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/apis.dart';
-import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:gap/gap.dart';
 import 'package:spotify/spotify.dart';
 
@@ -44,7 +44,7 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
                       final albumImages = track.album!.images;
                       final smallImageUrl =
                           albumImages!.isNotEmpty ? albumImages.last.url : null;
-                          final trackDescription = track.album!.releaseDate;
+                      final trackDescription = track.album!.releaseDate;
                       //print(track);
                       return Card(
                         elevation: 0,
@@ -123,7 +123,7 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
                   print(snapshot);
                   return Text('Error: ${snapshot.error}');
                 }
-                return const LoadingWidget();
+                return const DiscoBallLoading();
               },
             ),
           ),

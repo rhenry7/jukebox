@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/api_key.dart';
 import 'package:flutter_test_project/DiscoveryTab/playlists/preferences.dart';
 import 'package:flutter_test_project/DiscoveryTab/playlists/preferencesWidget.dart';
@@ -228,17 +229,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
     }
 
     if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Colors.white),
-            SizedBox(height: 16),
-            Text('Finding playlists for you...',
-                style: TextStyle(color: Colors.white)),
-          ],
-        ),
-      );
+      return const DiscoBallLoading();
     }
 
     if (_error != null) {

@@ -406,9 +406,9 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
-          return Center(child: Text('Error loading preferences'));
+          return const Center(child: Text('Error loading preferences'));
         } else if (!snapshot.hasData) {
-          return Center(child: Text('No preferences found'));
+          return const Center(child: Text('No preferences found'));
         } else {
           // Assign loaded preferences if not already set
           if (_loadedPreferences) {

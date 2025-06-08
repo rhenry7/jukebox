@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/loadingWidget.dart';
@@ -489,7 +490,7 @@ class CommentWidgetState extends State<CommentWidget> {
                       } else if (snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');
                       }
-                      return const LoadingWidget();
+                      return const DiscoBallLoading();
                     },
                   )
                 ],

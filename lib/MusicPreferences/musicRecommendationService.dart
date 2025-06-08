@@ -1,243 +1,212 @@
 import 'dart:convert';
-import 'package:firebase_ai/firebase_ai.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/tokenManager.dart';
 import 'package:flutter_test_project/api_key.dart';
 import 'package:http/http.dart' as http;
 
 class MusicRecommendationService {
-  static Future<List<String>> getRecommendations(
-      Map<String, dynamic> preferencesJson) async {
-    final recentRecommneded = [];
-    final prompt = '''
-You are a music recommendation engine. 
-Based on the following user profile JSON, suggest a list of 10 songs or albums that the user would love. 
-Avoid genres they dislike. 
-Prioritize genres with high weights.
-Respond with only a list of song titles and artists, no commentary.
+  static const _openAiEndpoint = 'https://api.openai.com/v1/chat/completions';
+  static const _model = 'gpt-3.5-turbo';
+  static const _maxRetries = 3;
+  static const _timeoutDuration = Duration(seconds: 30);
 
-exclude any songs that are in this list of recent recommendations:
-${recentRecommneded.join('\n')}
+  // Cache for recent recommendations to avoid duplicates
+  static final Set<String> _recentRecommendations = <String>{};
+  static const int _maxRecentRecommendations = 50;
 
-
-randomize the order of the recommendations, but ensure that the most relevant songs are at the top of the list.
-randomize the suggestions, but ensure that the most relevant songs are at the top of the list.
-
-User Profile JSON:
-${jsonEncode(preferencesJson)}
-
-format:
-1. SongTitle - ArtistName
-''';
-
-    final model =
-        FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.0-flash');
-    final ammendedPrompt = [Content.text(prompt)];
-
-    final response = await model.generateContent(ammendedPrompt);
-    response.text?.split('\n').forEach((element) {
-      if (element.isNotEmpty) {
-        print(element);
-      }
-    });
-    if (response.text == null) {
-      throw Exception('No response from the AI model');
+  static Future<List<MusicRecommendation>> getRecommendations(
+    Map<String, dynamic> preferencesJson, {
+    int count = 10,
+    List<String>? excludeSongs,
+  }) async {
+    try {
+      final prompt = _buildPrompt(preferencesJson, count, excludeSongs);
+      final response = await _makeApiRequest(prompt);
+      return _parseRecommendations(response);
+    } catch (e) {
+      throw MusicRecommendationException('Failed to get recommendations: $e');
     }
-    recentRecommneded.addAll(
-        response.text?.split('\n').where((s) => s.isNotEmpty).toList() ?? []);
+  }
 
-    print(response.text);
-    return response.text?.split('\n').where((s) => s.isNotEmpty).toList() ?? [];
+  static String _buildPrompt(
+      Map<String, dynamic> preferences, int count, List<String>? excludeSongs) {
+    final excludeList = [
+      ..._recentRecommendations,
+      ...?excludeSongs,
+    ];
+
+    return '''
+You are a music recommendation engine. Based on the user profile, suggest $count songs.
+- Avoid genres they dislike
+- Prioritize high-weighted genres
+- Include some variety and surprises
+- Return ONLY valid JSON, no commentary
+
+${excludeList.isNotEmpty ? 'Exclude these songs:\n${excludeList.join('\n')}\n' : ''}
+
+User Profile: ${jsonEncode(preferences)}
+
+Return JSON array:
+[{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1"]}]''';
+  }
+
+  static Future<String> _makeApiRequest(String prompt) async {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $openAIKey',
+    };
+
+    final body = jsonEncode({
+      'model': _model,
+      'temperature': 0.9,
+      'max_tokens': 1500,
+      // 'top_p': 1.0,
+      // 'frequency_penalty': 0.0,
+      // 'presence_penalty': 0.0,
+      'messages': [
+        {
+          'role': 'system',
+          'content':
+              'You are a music recommendation engine. Respond only with valid JSON arrays.'
+        },
+        {'role': 'user', 'content': prompt}
+      ]
+    });
+
+    for (int attempt = 1; attempt <= _maxRetries; attempt++) {
+      try {
+        final response = await http
+            .post(Uri.parse(_openAiEndpoint), headers: headers, body: body)
+            .timeout(_timeoutDuration);
+        print('Response status: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return data['choices'][0]['message']['content'].trim();
+        } else if (response.statusCode == 429 && attempt < _maxRetries) {
+          await Future.delayed(Duration(seconds: attempt * 2));
+          continue;
+        } else {
+          throw HttpException(
+              'API request failed: ${response.statusCode} ${response.body}');
+        }
+      } catch (e) {
+        if (attempt == _maxRetries) rethrow;
+        await Future.delayed(Duration(seconds: attempt));
+      }
+    }
+
+    throw Exception('Max retries exceeded');
+  }
+
+  static List<MusicRecommendation> _parseRecommendations(String response) {
+    try {
+      // Clean response - remove markdown code blocks if present
+      final cleanResponse =
+          response.replaceAll('```json', '').replaceAll('```', '').trim();
+
+      final List<dynamic> parsed = jsonDecode(cleanResponse);
+      final recommendations = parsed
+          .map((item) => MusicRecommendation.fromJson(item))
+          .where((rec) => rec.isValid)
+          .toList();
+
+      // Update recent recommendations cache
+      _updateRecentRecommendations(recommendations);
+
+      return recommendations;
+    } catch (e) {
+      throw ParseException('Failed to parse recommendations: $e');
+    }
+  }
+
+  static void _updateRecentRecommendations(
+      List<MusicRecommendation> recommendations) {
+    for (final rec in recommendations) {
+      _recentRecommendations.add('${rec.song} - ${rec.artist}');
+    }
+
+    // Keep cache size manageable
+    while (_recentRecommendations.length > _maxRecentRecommendations) {
+      _recentRecommendations.remove(_recentRecommendations.first);
+    }
+  }
+
+  static void clearRecentRecommendations() {
+    _recentRecommendations.clear();
   }
 }
 
-class EnrichedTrack {
-  final String name;
+class MusicRecommendation {
+  final String song;
   final String artist;
+  final String album;
   final String imageUrl;
-  final String albumUrl;
-  final String? albumName;
+  final List<String> genres;
 
-  EnrichedTrack({
-    required this.name,
+  const MusicRecommendation({
+    required this.song,
     required this.artist,
+    required this.album,
     required this.imageUrl,
-    required this.albumUrl,
-    this.albumName,
+    required this.genres,
   });
 
-  factory EnrichedTrack.fromSpotifyJson(Map<String, dynamic> preferencesJson) {
-    final track = preferencesJson['tracks']['items'][0];
-    final album = track['album'];
-
-    return EnrichedTrack(
-      name: track['name'],
-      artist: track['artists'][0]['name'],
-      imageUrl: album['images'].isNotEmpty ? album['images'][0]['url'] : '',
-      albumUrl: track['external_urls']['spotify'],
-      albumName: album['name'],
+  factory MusicRecommendation.fromJson(Map<String, dynamic> json) {
+    return MusicRecommendation(
+      song: json['song']?.toString() ?? '',
+      artist: json['artist']?.toString() ?? '',
+      album: json['album']?.toString() ?? '',
+      imageUrl: json['imageUrl']?.toString() ?? '',
+      genres: (json['genres'] as List<dynamic>?)
+              ?.map((g) => g.toString())
+              .toList() ??
+          [],
     );
   }
 
-  factory EnrichedTrack.fallback(String title, String artist) {
-    return EnrichedTrack(
-      name: title,
-      artist: artist,
-      imageUrl: '',
-      albumUrl: '',
-    );
-  }
+  Map<String, dynamic> toJson() => {
+        'song': song,
+        'artist': artist,
+        'album': album,
+        'imageUrl': imageUrl,
+        'genres': genres,
+      };
+
+  bool get isValid => song.isNotEmpty && artist.isNotEmpty;
+
+  @override
+  String toString() => '$song - $artist';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MusicRecommendation &&
+          song == other.song &&
+          artist == other.artist;
+
+  @override
+  int get hashCode => song.hashCode ^ artist.hashCode;
 }
 
-class SpotifyEnrichmentService {
-  static const String _baseUrl = 'https://api.spotify.com/v1';
+class MusicRecommendationException implements Exception {
+  final String message;
+  const MusicRecommendationException(this.message);
 
-  static Future<String> _getAccessToken() async {
-    final credentials = base64Encode(utf8.encode('$clientId:$clientSecret'));
-
-    final uri = Uri.https('accounts.spotify.com', '/api/token');
-
-    final response = await http.post(
-      uri,
-      headers: {
-        'Authorization': 'Basic $credentials',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: {
-        'grant_type': 'client_credentials',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final token = SpotifyToken.fromJson(data);
-      return token.accessToken;
-    } else {
-      throw Exception('Failed to get access token: ${response.body}');
-    }
-  }
-
-  static Future<EnrichedTrack?> _searchTrack(
-    String query,
-  ) async {
-    print('Searcing for track: $query');
-    try {
-      final encodedQuery = Uri.encodeComponent(query);
-      final url = '$_baseUrl/search?q=$encodedQuery&type=track&limit=1';
-      final accessToken = await _getAccessToken();
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data['tracks']['items'].isNotEmpty) {
-          return EnrichedTrack.fromSpotifyJson(data);
-        }
-      }
-
-      return null;
-    } catch (e) {
-      print('Error searching track: $e');
-      return null;
-    }
-  }
-
-  static Map<String, String> _parseRecommendation(String recommendation) {
-    String title = '';
-    String artist = '';
-
-    if (recommendation.contains(' - ')) {
-      final parts = recommendation.split(' - ');
-      title = parts[0].trim();
-      artist = parts.length > 1
-          ? parts.sublist(1).join(' - ').trim()
-          : 'Unknown Artist';
-    } else if (recommendation.contains(' by ')) {
-      final parts = recommendation.split(' by ');
-      title = parts[0].trim();
-      artist = parts.length > 1 ? parts[1].trim() : 'Unknown Artist';
-    } else {
-      // If no clear separator, assume the whole string is the title
-      title = recommendation.trim();
-      artist = 'Unknown Artist';
-    }
-
-    return {'title': title, 'artist': artist};
-  }
-
-  static Future<List<EnrichedTrack>> enrichRecommendations(
-      List<String> recommendations) async {
-    try {
-      final accessToken = await _getAccessToken();
-      final enrichedTracks = <EnrichedTrack>[];
-
-      for (final recommendation in recommendations) {
-        final parsed = _parseRecommendation(recommendation);
-        final title = parsed['title']!;
-        final artist = parsed['artist']!;
-
-        final searchQuery = '$title $artist';
-
-        final spotifyTrack = await _searchTrack(searchQuery);
-
-        if (spotifyTrack != null) {
-          enrichedTracks.add(spotifyTrack);
-        } else {
-          enrichedTracks.add(EnrichedTrack.fallback(title, artist));
-        }
-
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-
-      return enrichedTracks;
-    } catch (e) {
-      print('Error enriching recommendations: $e');
-
-      // Return fallback tracks if everything fails
-      return recommendations.map((rec) {
-        final parsed = _parseRecommendation(rec);
-        return EnrichedTrack.fallback(parsed['title']!, parsed['artist']!);
-      }).toList();
-    }
-  }
-
-  static Future<EnrichedTrack> enrichSingleRecommendation(
-      String recommendation) async {
-    try {
-      final accessToken = await _getAccessToken();
-      final parsed = _parseRecommendation(recommendation);
-      final title = parsed['title']!;
-      final artist = parsed['artist']!;
-
-      final searchQuery = '$title $artist';
-      final spotifyTrack = await _searchTrack(searchQuery);
-
-      return spotifyTrack ?? EnrichedTrack.fallback(title, artist);
-    } catch (e) {
-      print('Error enriching single recommendation: $e');
-      final parsed = _parseRecommendation(recommendation);
-      return EnrichedTrack.fallback(parsed['title']!, parsed['artist']!);
-    }
-  }
+  @override
+  String toString() => 'MusicRecommendationException: $message';
 }
 
-class UpdatedRecommendationService {
-  static Future<List<EnrichedTrack>> getEnrichedRecommendations(
-      Map<String, dynamic> preferencesJson) async {
-    final rawRecommendations =
-        await MusicRecommendationService.getRecommendations(preferencesJson);
+class HttpException implements Exception {
+  final String message;
+  const HttpException(this.message);
 
-    final enrichedTracks = await SpotifyEnrichmentService.enrichRecommendations(
-        rawRecommendations);
-
-    return enrichedTracks;
-  }
+  @override
+  String toString() => 'HttpException: $message';
 }
 
+class ParseException implements Exception {
+  final String message;
+  const ParseException(this.message);
+
+  @override
+  String toString() => 'ParseException: $message';
+}

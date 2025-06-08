@@ -1,28 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_ai/firebase_ai.dart';
-import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
-import 'package:flutter_test_project/News/News.dart';
-import 'package:flutter_test_project/News/NewsWidget.dart';
 import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/helpers.dart';
 import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/recommendationGenerator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
-import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/helpers.dart';
 
 import 'addReviewWidget.dart';
-import 'albumGrid.dart';
 import 'Home/categoryTapBar.dart';
 import 'reviewSheetContentForm.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_ai/firebase_ai.dart';
-import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

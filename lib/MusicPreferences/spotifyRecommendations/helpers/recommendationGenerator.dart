@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/api_key.dart';
@@ -39,7 +40,7 @@ class Album {
 
 // Album List Widget
 class AlbumList extends StatelessWidget {
-  final List<EnrichedTrack> albums;
+  final List<MusicRecommendation> albums;
 
   const AlbumList({super.key, required this.albums});
 
@@ -61,55 +62,19 @@ class AlbumList extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: album.imageUrl.isNotEmpty
-                    ? Image.network(
-                        album.imageUrl,
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.music_note,
-                              size: 40,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        },
-                      )
-                    : Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.music_note,
-                          size: 40,
-                          color: Colors.grey,
-                        ),
-                      ),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.music_note,
+                    size: 10,
+                    color: Colors.grey,
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               // Expanded content with proper constraints
@@ -119,58 +84,34 @@ class AlbumList extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      album.name,
+                      album.song,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        fontWeight: FontWeight.normal,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
                     Text(
                       album.artist,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.normal,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      album.album,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.normal,
+                      ),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 12),
                     // Button with size constraints
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: album.albumUrl.isNotEmpty
-                            ? () async {
-                                final url = album.albumUrl;
-                                if (await canLaunch(url)) {
-                                  await launch(url);
-                                } else {
-                                  // Show error message instead of throwing
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text('Could not open Spotify link'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            : null, // Disable button if no URL
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFF1DB954), // Spotify green
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        child: const Text(
-                          'Listen on Spotify',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -193,7 +134,7 @@ class RecommendedAlbumScreen extends StatefulWidget {
 }
 
 class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
-  Future<List<EnrichedTrack>>? _albumsFuture;
+  Future<List<MusicRecommendation>>? _albumsFuture;
   bool _isInitialized = false;
 
   @override
@@ -201,8 +142,8 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
     super.initState();
     _fetchUserPreferences().then((preferences) {
       setState(() {
-        _albumsFuture = UpdatedRecommendationService.getEnrichedRecommendations(
-            preferences.toJson());
+        _albumsFuture =
+            MusicRecommendationService.getRecommendations(preferences.toJson());
         _isInitialized = true;
       });
     }).catchError((error) {
@@ -241,23 +182,18 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Recommended Albums')),
+      appBar: AppBar(title: const Text('Recommended Albums')),
       body: !_isInitialized
           ? const Center(child: CircularProgressIndicator())
           : _albumsFuture == null
               ? const Center(child: Text('Failed to load recommendations'))
-              : FutureBuilder<List<EnrichedTrack>>(
+              : FutureBuilder<List<MusicRecommendation>>(
                   future: _albumsFuture,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
-                    } else if (snapshot.hasData) {
+                    if (snapshot.hasData) {
                       return AlbumList(albums: snapshot.data!);
-                    } else {
-                      return const Center(child: Text('No recommendations.'));
                     }
+                    return const DiscoBallLoading();
                   },
                 ),
     );
