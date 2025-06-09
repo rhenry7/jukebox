@@ -211,27 +211,6 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                 Expanded(
                                   child: AlbumList(albums: snapshot.data!),
                                 ),
-                                // Padding(
-                                //   padding: const EdgeInsets.all(16.0),
-                                //   child: SizedBox(
-                                //     width: double.infinity,
-                                //     child: ElevatedButton.icon(
-                                //       onPressed: _refreshRecommendations,
-                                //       icon: const Icon(Icons.refresh),
-                                //       label: const Text(''),
-                                //       style: ElevatedButton.styleFrom(
-                                //         shape: RoundedRectangleBorder(
-                                //           borderRadius: BorderRadius.circular(
-                                //               25), // Creates pill-shaped indicatorRound radius
-                                //         ),
-                                //         padding: const EdgeInsets.symmetric(
-                                //             horizontal: 24, vertical: 12),
-                                //         backgroundColor:
-                                //             Colors.yellow[600], // Button color
-                                //       ),
-                                //     ),
-                                //   ),
-                                // ),
                               ],
                             );
                           }

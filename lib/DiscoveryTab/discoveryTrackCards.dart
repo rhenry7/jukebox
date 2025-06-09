@@ -21,7 +21,6 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
   void initState() {
     super.initState();
     spotifyTracks = fetchExploreTracks();
-    //categories = fetchSpotifyCatgories();
   }
 
   @override

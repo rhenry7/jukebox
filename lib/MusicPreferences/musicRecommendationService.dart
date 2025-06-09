@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/api_key.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,6 +34,17 @@ class MusicRecommendationService {
       ..._recentRecommendations,
       ...?excludeSongs,
     ];
+    final userId = FirebaseAuth.instance.currentUser != null
+        ? FirebaseAuth.instance.currentUser!.uid
+        : "";
+    final reviews = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('reviews')
+        .orderBy('date', descending: true)
+        .snapshots();
+
+    print("Print reviews of user ${reviews}");
 
     return '''
 You are a music recommendation engine. Based on the user profile, suggest $count songs.
