@@ -201,21 +201,28 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                 : _albumsFuture == null
                     ? const Center(
                         child: Text('Failed to load recommendations'))
-                    : FutureBuilder<List<MusicRecommendation>>(
-                        future: _albumsFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            return Column(
-                              children: [
-                                const SizedBox(height: 16),
-                                Expanded(
-                                  child: AlbumList(albums: snapshot.data!),
-                                ),
-                              ],
-                            );
-                          }
-                          return const DiscoBallLoading();
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          _refreshRecommendations();
+                          // Wait for recommendations to reload
+                          await _albumsFuture;
                         },
+                        child: FutureBuilder<List<MusicRecommendation>>(
+                          future: _albumsFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              return Column(
+                                children: [
+                                  const SizedBox(height: 16),
+                                  Expanded(
+                                    child: AlbumList(albums: snapshot.data!),
+                                  ),
+                                ],
+                              );
+                            }
+                            return const DiscoBallLoading();
+                          },
+                        ),
                       ),
           ),
         ],

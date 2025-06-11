@@ -35,7 +35,6 @@ class MusicRecommendationService {
               .toList());
 
       List<dynamic> reviewList = [];
-      // Print each review as JSON or with a custom toString
       for (final review in reviews.take(5)) {
         reviewList.add({
           'song': review.title,
