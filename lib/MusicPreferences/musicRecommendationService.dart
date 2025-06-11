@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_test_project/Types/reviewTypes.dart';
 import 'package:flutter_test_project/api_key.dart';
 import 'package:http/http.dart' as http;
 
@@ -20,7 +21,32 @@ class MusicRecommendationService {
     List<String>? excludeSongs,
   }) async {
     try {
-      final prompt = _buildPrompt(preferencesJson, count, excludeSongs);
+      final userId = FirebaseAuth.instance.currentUser != null
+          ? FirebaseAuth.instance.currentUser!.uid
+          : "";
+      final List<Review> reviews = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('reviews')
+          .orderBy('date', descending: true)
+          .get()
+          .then((snapshot) => snapshot.docs
+              .map((doc) => Review.fromFirestore(doc.data()))
+              .toList());
+
+      List<dynamic> reviewList = [];
+      // Print each review as JSON or with a custom toString
+      for (final review in reviews.take(5)) {
+        reviewList.add({
+          'song': review.title,
+          'artist': review.artist,
+          'review': review.review,
+          'rating': review.score,
+        });
+      }
+
+      final prompt =
+          _buildPrompt(preferencesJson, count, excludeSongs, reviewList);
       final response = await _makeApiRequest(prompt);
       return _parseRecommendations(response);
     } catch (e) {
@@ -28,23 +54,13 @@ class MusicRecommendationService {
     }
   }
 
-  static String _buildPrompt(
-      Map<String, dynamic> preferences, int count, List<String>? excludeSongs) {
+  static String _buildPrompt(Map<String, dynamic> preferences, int count,
+      List<String>? excludeSongs, List<dynamic> reviews) {
     final excludeList = [
       ..._recentRecommendations,
-      ...?excludeSongs,
+      ...excludeSongs ?? [],
     ];
-    final userId = FirebaseAuth.instance.currentUser != null
-        ? FirebaseAuth.instance.currentUser!.uid
-        : "";
-    final reviews = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('reviews')
-        .orderBy('date', descending: true)
-        .snapshots();
-
-    print("Print reviews of user ${reviews}");
+    print('reviews: ${jsonEncode(reviews)}');
 
     return '''
 You are a music recommendation engine. Based on the user profile, suggest $count songs.
@@ -53,7 +69,11 @@ You are a music recommendation engine. Based on the user profile, suggest $count
 - Include some variety and surprises
 - Return ONLY valid JSON, no commentary
 
+```json
 ${excludeList.isNotEmpty ? 'Exclude these songs:\n${excludeList.join('\n')}\n' : ''}
+
+:
+${reviews.isNotEmpty ? 'Consider the following reviews for context:\n${jsonEncode(reviews)}' : ''}
 
 User Profile: ${jsonEncode(preferences)}
 
