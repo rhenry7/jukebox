@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
-import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -393,7 +393,7 @@ class SubCommentLists extends State<SubComments> {
                           print(snapshot);
                           return Text('Error: ${snapshot.error}');
                         }
-                        return const LoadingWidget();
+                        return const DiscoBallLoading();
                       },
                     ),
                   ),

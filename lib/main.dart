@@ -59,11 +59,14 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   late Future<MusicPreferences?> _preferencesFuture;
 
-
   final List<Widget> _pages = [
     const CategoryTapBar(),
     const DiscoveryTapBar(),
-    const AddReview(),
+    const MyReviewSheetContentForm(
+      title: 'track-title',
+      artist: 'artist',
+      albumImageUrl: "",
+    ),
     const AlbumGrid(),
     profileRouter(),
   ];

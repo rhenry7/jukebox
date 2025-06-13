@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AddReview extends StatelessWidget {
   const AddReview({super.key});
-
+// This is a placeholder widget 
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -18,11 +18,7 @@ class AddReview extends StatelessWidget {
                 padding: const EdgeInsets.all(15),
                 color: Colors.blueAccent,
                 child: const Column(
-                  children: [
-                    //Icon(Icons.info_outline),
-                    // Text('FYI'),
-                    Text('HELLOOOOO??!?!?!?!'),
-                  ],
+                  children: [],
                 ),
               );
             },

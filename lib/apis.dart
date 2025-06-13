@@ -469,9 +469,3 @@ Future<List<dynamic>> fetchTrackByName(String trackName) async {
     throw Exception('Failed to load track');
   }
 }
-
-// Future<dynamic> fetchFromSearch() async {
-//   final credentials = SpotifyApiCredentials(clientId, clientSecret);
-//   final getFromSpotify = SpotifyApi(credentials);
-//   final search = getFromSpotify.search(Artist());
-// }

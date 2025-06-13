@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/Profile/ProfileButton.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
-import 'package:flutter_test_project/loadingWidget.dart';
 import 'package:ionicons/ionicons.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -48,7 +48,8 @@ class ProfileView extends State<ProfilePage> {
                             name: "Reviews",
                             icon: Ionicons.musical_notes_outline),
                         const ProfileButton(
-                            name: "Preferences", icon: Ionicons.analytics_outline),
+                            name: "Preferences",
+                            icon: Ionicons.analytics_outline),
                         const ProfileButton(
                             name: "Notifications",
                             icon: Ionicons.notifications_outline),
@@ -58,7 +59,7 @@ class ProfileView extends State<ProfilePage> {
                     ),
                   );
                 } else if (snapshot.error == null) {
-                  return const Center(child: Card(child: LoadingWidget()));
+                  return const Center(child: Card(child: DiscoBallLoading()));
                 } else {
                   return Text('${snapshot.data}');
                 }
