@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_test_project/Types/reviewTypes.dart';
 import 'package:flutter_test_project/api_key.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:spotify/spotify.dart';
@@ -403,6 +405,73 @@ Future<List<Album>> fetchNewDiscoveries() async {
   }
 }
 
+class UserReviewInfo {
+  final String displayName;
+  final String joinDate;
+  final int reviewsCount;
+
+  UserReviewInfo({
+    required this.displayName,
+    required this.joinDate,
+    required this.reviewsCount,
+  });
+
+  factory UserReviewInfo.fromMap(Map<String, dynamic> map) {
+    return UserReviewInfo(
+      displayName: map['displayName'] ?? '',
+      joinDate: map['joinDate'] ?? '',
+      reviewsCount: map['reviewsCount'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'displayName': displayName,
+      'joinDate': joinDate,
+      'reviewsCount': reviewsCount,
+    };
+  }
+}
+
+Future<UserReviewInfo> fetchUserInfo(String userId) async {
+  try {
+    final List<Review> reviews = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('reviews')
+        .orderBy('date', descending: true)
+        .get()
+        .then((snapshot) => snapshot.docs
+            .map((doc) => Review.fromFirestore(doc.data()))
+            .toList());
+
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+    if (reviews.isNotEmpty) {
+      return UserReviewInfo(
+        displayName: userDoc.data()?['displayName'] ?? '',
+        joinDate: userDoc.data()?['joinDate'] ?? '',
+        reviewsCount: reviews.length,
+        // use avatar imaage URL
+      );
+    } else {
+      return UserReviewInfo(
+        displayName: 'Undefined',
+        joinDate: 'Undefined',
+        reviewsCount: 0,
+      );
+    }
+  } catch (e) {
+    print('Error fetching user info: $e');
+    return UserReviewInfo(
+      displayName: 'Undefined',
+      joinDate: 'Undefined',
+      reviewsCount: 0,
+    );
+  }
+}
+
 Future<List<UserComment>> fetchMockUserComments() async {
   final url = Uri.parse(
       "https://66d638b1f5859a704268af2d.mockapi.io/test/v1/usercomments");
@@ -412,7 +481,6 @@ Future<List<UserComment>> fetchMockUserComments() async {
     final List<dynamic> jsonData = json.decode(response.body);
     // Convert the JSON data into a list of UserComment objects
     final res = jsonData.map((json) => UserComment.fromJson(json)).toList();
-
     return jsonData.map((json) => UserComment.fromJson(json)).toList();
   } else {
     throw Exception('Failed to load user comments');

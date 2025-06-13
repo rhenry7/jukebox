@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/MainNavigation.dart';
 import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
@@ -154,7 +155,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         if (FirebaseAuth.instance.currentUser != null) {
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
-                                builder: (context) => const MyHomePage(
+                                builder: (context) => const MainNav(
                                     title:
                                         "JUKEBOXD")), // Replace with your app's main widget
                             (Route<dynamic> route) =>

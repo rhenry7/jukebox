@@ -86,6 +86,7 @@ class CommentWidgetState extends State<CommentWidget> {
                             shrinkWrap: true, // Take only the necessary space
                             itemBuilder: (context, index) {
                               final comment = snapshot.data!.comments[index];
+                              final userId = comment.id;
                               final album = snapshot.data!.albums[index];
                               final albumImages = album.images;
                               final String? largeImageUrl =
@@ -107,6 +108,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                           builder: (context) => SubComments(
                                                 title: album.name ?? "",
                                                 imageUrl: largeImageUrl ?? "",
+                                                userId: comment.id,
                                               )),
                                     );
                                   },
@@ -377,6 +379,7 @@ class CommentWidgetState extends State<CommentWidget> {
                                                                           builder: (BuildContext context) => SubComments(
                                                                                 title: album.name ?? "",
                                                                                 imageUrl: largeImageUrl ?? "",
+                                                                                userId: comment.id ?? "",
                                                                               )));
                                                                 },
                                                               ),

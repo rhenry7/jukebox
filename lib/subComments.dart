@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
+import 'package:flutter_test_project/PopUp.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:popover/popover.dart';
 
 class SubComments extends StatefulWidget {
   final String title;
   final String imageUrl;
+  final String userId;
   // final String ratingValue;
-  const SubComments({super.key, required this.title, required this.imageUrl});
+  const SubComments(
+      {super.key,
+      required this.title,
+      required this.imageUrl,
+      required this.userId});
 
   @override
   State<SubComments> createState() => SubCommentLists();
@@ -18,12 +25,14 @@ class SubComments extends StatefulWidget {
 
 class SubCommentLists extends State<SubComments> {
   late Future<List<UserComment>> comments;
+  late Future<UserReviewInfo> userReviewInfo;
   double? _rating;
 
   @override
   void initState() {
     super.initState();
     comments = fetchMockUserComments();
+    userReviewInfo = fetchUserInfo(widget.userId);
   }
 
   @override
@@ -106,15 +115,33 @@ class SubCommentLists extends State<SubComments> {
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Row(
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                Padding(
-                                  padding:
-                                      EdgeInsets.only(left: 3.0, right: 5.0),
-                                  child: Icon(Ionicons.person_circle_outline),
+                                FutureBuilder<UserReviewInfo>(
+                                  future: userReviewInfo,
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      final userReviewInfo = snapshot.data!;
+                                      return UserDialog(
+                                        userName: userReviewInfo.displayName,
+                                        reviewCount:
+                                            userReviewInfo.reviewsCount,
+                                        accountCreationDate:
+                                            userReviewInfo.joinDate,
+                                      );
+                                    } else if (snapshot.hasError) {
+                                      return const Icon(
+                                          Ionicons.person_circle_outline);
+                                    }
+                                    return const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    );
+                                  },
                                 ),
-                                Text("UserName")
                               ],
                             ),
                             Padding(
@@ -402,6 +429,147 @@ class SubCommentLists extends State<SubComments> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+Widget _buildInfoRow({
+  required IconData icon,
+  required String label,
+  required String value,
+}) {
+  return Row(
+    children: [
+      Icon(
+        icon,
+        size: 20,
+        color: Colors.grey[600],
+      ),
+      const SizedBox(width: 12),
+      Text(
+        '$label: ',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Colors.grey[700],
+        ),
+      ),
+      Expanded(
+        child: Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+          ),
+          textAlign: TextAlign.end,
+        ),
+      ),
+    ],
+  );
+}
+
+class UserDialog extends StatelessWidget {
+  final String userName;
+  final int reviewCount;
+  final String accountCreationDate;
+  final VoidCallback? onClose;
+
+  const UserDialog({
+    Key? key,
+    required this.userName,
+    required this.reviewCount,
+    required this.accountCreationDate,
+    this.onClose,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(color: Colors.white, width: 2),
+                  color: Colors.black,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Profile Icon
+                    const Icon(
+                      Ionicons.person_circle,
+                      size: 60,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(height: 16),
+                    // Title
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
+                    const SizedBox(height: 20),
+                    // User Name
+                    _buildInfoRow(
+                      icon: Ionicons.person,
+                      label: 'Name',
+                      value: 'John Doe', // Replace with actual user name
+                    ),
+                    const SizedBox(height: 12),
+                    // Number of Reviews
+                    _buildInfoRow(
+                      icon: Ionicons.star,
+                      label: 'Reviews',
+                      value: '24', // Replace with actual review count
+                    ),
+                    const SizedBox(height: 12),
+                    // Account Creation Date
+                    _buildInfoRow(
+                      icon: Ionicons.calendar,
+                      label: 'Member Since',
+                      value:
+                          'January 2023', // Replace with actual creation date
+                    ),
+                    const SizedBox(height: 24),
+                    // Close Button
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      child: const Padding(
+        padding: EdgeInsets.only(left: 3.0, right: 5.0),
+        child: Icon(Ionicons.person_circle_outline),
       ),
     );
   }
