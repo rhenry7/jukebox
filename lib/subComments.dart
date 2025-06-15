@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
-import 'package:flutter_test_project/PopUp.dart';
+import 'package:flutter_test_project/Profile/auth/following/follow.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:gap/gap.dart';
@@ -124,7 +125,7 @@ class SubCommentLists extends State<SubComments> {
                                     if (snapshot.hasData) {
                                       final userReviewInfo = snapshot.data!;
                                       return UserDialog(
-                                        userName: userReviewInfo.displayName,
+                                        userName: comment.name,
                                         reviewCount:
                                             userReviewInfo.reviewsCount,
                                         accountCreationDate:
@@ -474,8 +475,9 @@ class UserDialog extends StatelessWidget {
   final int reviewCount;
   final String accountCreationDate;
   final VoidCallback? onClose;
+  String currentUid = FirebaseAuth.instance.currentUser!.uid;
 
-  const UserDialog({
+  UserDialog({
     Key? key,
     required this.userName,
     required this.reviewCount,
@@ -559,6 +561,37 @@ class UserDialog extends StatelessWidget {
                         ),
                       ),
                       child: const Text('Close'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        //Navigator.of(context).pop();
+                        print('Following user: $userName as $currentUid');
+                        followUser(currentUid, userName).then((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Followed successfully!'),
+                            ),
+                          );
+                        }).catchError((error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error following user: $error'),
+                            ),
+                          );
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('Follow'),
                     ),
                   ],
                 ),
