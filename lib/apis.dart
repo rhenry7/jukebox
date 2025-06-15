@@ -344,7 +344,8 @@ Future<List<Album>> fetchPopularAlbums({String query = 'year:2024'}) async {
 }
 
 // Function 2: New releases and fresh discoveries
-Future<List<Album>> fetchNewDiscoveries() async {
+Future<List<Album>> fetchNewDiscoveries(
+    {String genre1 = 'alternative', String genre2 = 'indie'}) async {
   try {
     final credentials = SpotifyApiCredentials(clientId, clientSecret);
     final spotify = SpotifyApi(credentials);
@@ -354,10 +355,10 @@ Future<List<Album>> fetchNewDiscoveries() async {
     final lastYear = currentYear - 1;
 
     List<String> newReleaseQueries = [
-      'year:$currentYear', // This year's releases
-      'year:$lastYear tag:new', // Last year with "new" tag
-      'year:$currentYear genre:alternative',
-      'year:$currentYear genre:indie',
+      // 'year:$currentYear', // This year's releases
+      // 'year:$lastYear tag:new', // Last year with "new" tag
+      'year:$currentYear genre:$genre1',
+      //'year:$currentYear genre:$genre2',
     ];
 
     List<Album> newAlbums = [];

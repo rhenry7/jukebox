@@ -6,8 +6,6 @@ import 'package:flutter_test_project/apis.dart';
 import 'package:gap/gap.dart';
 import 'package:spotify/spotify.dart';
 
-//         child: flutter.Image.asset('lib/assets/images/discoball_loading.png'));
-
 class DiscoBallLoading extends StatelessWidget {
   const DiscoBallLoading({super.key});
   @override
