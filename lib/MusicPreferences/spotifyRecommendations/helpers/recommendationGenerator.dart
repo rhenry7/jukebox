@@ -7,34 +7,11 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/api_key.dart';
+import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
+import 'package:flutter_test_project/models/music_recommendation.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-
-// Album Model
-class Album {
-  final String name;
-  final String artist;
-  final String imageUrl;
-  final String albumUrl;
-
-  Album({
-    required this.name,
-    required this.artist,
-    required this.imageUrl,
-    required this.albumUrl,
-  });
-
-  factory Album.fromTrackJson(Map<String, dynamic> track) {
-    final album = track['album'];
-    return Album(
-      name: album['name'],
-      artist: track['artists'][0]['name'],
-      imageUrl: album['images'][0]['url'],
-      albumUrl: album['external_urls']['spotify'],
-    );
-  }
-}
 
 // Function to sort and get top genres
 

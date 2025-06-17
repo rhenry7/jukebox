@@ -9,7 +9,6 @@ import 'package:flutter_test_project/Profile/auth/authService.dart';
 import 'package:flutter_test_project/Profile/profilePage.dart';
 import 'package:flutter_test_project/comments.dart';
 
-
 Future<Map<String, dynamic>> getCurrentUser() async {
   User? user = FirebaseAuth.instance.currentUser;
 
@@ -98,8 +97,9 @@ Future<void> signUp(String userName, String email, String password) async {
       'userId': userId,
       'displayName': userName,
       'joinDate': FieldValue.serverTimestamp(),
-      'friends': []
-      // Add any other fields you'd like to track
+      // for some reason we dont add them here
+      //'friends': [],
+      //'reviews': []
     });
     print("Sign-up successful! User ID: ${user.uid}");
   } else {

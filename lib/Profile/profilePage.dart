@@ -2,7 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/Profile/ProfileButton.dart';
-import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -14,7 +15,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class ProfileView extends State<ProfilePage> {
-  late Future<List<UserComment>> users;
+  late Future<List<Review>> users;
   @override
   void initState() {
     super.initState();
@@ -29,7 +30,7 @@ class ProfileView extends State<ProfilePage> {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Card(
-          child: FutureBuilder<List<UserComment>>(
+          child: FutureBuilder<List<Review>>(
               future: users,
               builder: ((context, snapshot) {
                 if (snapshot.hasData) {

@@ -4,6 +4,7 @@ import 'package:flutter_test_project/Home/categoryTapBar.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/albumGrid.dart';
+import 'package:flutter_test_project/models/music_preferences.dart';
 import 'package:flutter_test_project/reviewSheetContentForm.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';

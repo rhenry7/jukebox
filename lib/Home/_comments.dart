@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:gap/gap.dart';
 
-import '../Types/reviewTypes.dart';
+import '../models/review.dart';
 
 class UserReviewsCollection extends StatefulWidget {
   const UserReviewsCollection({super.key});
@@ -116,7 +116,7 @@ class FriendsReviewList extends StatelessWidget {
                       style: const TextStyle(color: Colors.white70),
                     ),
                     trailing: Text(
-                      review.userName,
+                      review.displayName,
                       style: const TextStyle(color: Colors.white60),
                     ),
                   ),

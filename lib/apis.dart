@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_test_project/Types/reviewTypes.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/api_key.dart';
-import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:spotify/spotify.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -511,16 +512,17 @@ Future<List<User>> fetchUsers() async {
   }
 }
 
-Future<List<UserComment>> fetchMockUserComments() async {
+
+
+Future<List<Review>> fetchMockUserComments() async {
   final url = Uri.parse(
       "https://66d638b1f5859a704268af2d.mockapi.io/test/v1/usercomments");
   final response = await http.get(url);
   if (response.statusCode == 200) {
     // Parse the JSON data
-    final List<dynamic> jsonData = json.decode(response.body);
-    // Convert the JSON data into a list of UserComment objects
-    final res = jsonData.map((json) => UserComment.fromJson(json)).toList();
-    return jsonData.map((json) => UserComment.fromJson(json)).toList();
+    final List<Map<String, dynamic>> jsonData = json.decode(response.body);
+    // Convert the JSON data into a list of Review objects
+    return jsonData.map((json) => Review.fromJson(json)).toList();
   } else {
     throw Exception('Failed to load user comments');
   }

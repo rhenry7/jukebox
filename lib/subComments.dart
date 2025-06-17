@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/Profile/auth/following/follow.dart';
-import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:flutter_test_project/apis.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
@@ -25,7 +26,7 @@ class SubComments extends StatefulWidget {
 }
 
 class SubCommentLists extends State<SubComments> {
-  late Future<List<UserComment>> comments;
+  late Future<List<Review>> comments;
   late Future<List<User>> userReviewInfo;
   double? _rating;
 
@@ -175,7 +176,7 @@ class SubCommentLists extends State<SubComments> {
               child: Column(
                 children: [
                   Center(
-                    child: FutureBuilder<List<UserComment>>(
+                    child: FutureBuilder<List<Review>>(
                       future: comments,
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
@@ -213,7 +214,8 @@ class SubCommentLists extends State<SubComments> {
                                               child: ListTile(
                                                 leading: const Icon(Ionicons
                                                     .person_circle_outline), // Fallback if no image is available,
-                                                title: Text(comment.name),
+                                                title:
+                                                    Text(comment.displayName),
                                                 //subtitle: Text(comment.), use post time data
                                               ),
                                             ),
@@ -224,7 +226,7 @@ class SubCommentLists extends State<SubComments> {
                                       Padding(
                                         padding: const EdgeInsets.all(8.0),
                                         child: Text(
-                                          comment.comment,
+                                          comment.review,
                                           maxLines: 3,
                                           style: const TextStyle(
                                             color: Colors.white,
@@ -395,7 +397,7 @@ class SubCommentLists extends State<SubComments> {
                                                           },
                                                         ),
                                                         Text(
-                                                            comment.shares
+                                                            comment.reposts
                                                                 .toString(),
                                                             style:
                                                                 const TextStyle(
