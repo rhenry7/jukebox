@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
@@ -26,14 +26,14 @@ class SubComments extends StatefulWidget {
 
 class SubCommentLists extends State<SubComments> {
   late Future<List<UserComment>> comments;
-  late Future<UserReviewInfo> userReviewInfo;
+  late Future<List<User>> userReviewInfo;
   double? _rating;
 
   @override
   void initState() {
     super.initState();
     comments = fetchMockUserComments();
-    userReviewInfo = fetchUserInfo(widget.userId);
+    userReviewInfo = fetchUsers();
   }
 
   @override
@@ -119,17 +119,16 @@ class SubCommentLists extends State<SubComments> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                FutureBuilder<UserReviewInfo>(
+                                FutureBuilder<List<User>>(
                                   future: userReviewInfo,
                                   builder: (context, snapshot) {
                                     if (snapshot.hasData) {
                                       final userReviewInfo = snapshot.data!;
                                       return UserDialog(
-                                        userName: userReviewInfo.displayName,
-                                        reviewCount:
-                                            userReviewInfo.reviewsCount,
+                                        userName: userReviewInfo[0].displayName,
+                                        reviewCount: 1,
                                         accountCreationDate:
-                                            userReviewInfo.joinDate,
+                                            "1st November 2025", // Replace with actual date
                                       );
                                     } else if (snapshot.hasError) {
                                       return const Icon(
@@ -475,7 +474,7 @@ class UserDialog extends StatelessWidget {
   final int reviewCount;
   final String accountCreationDate;
   final VoidCallback? onClose;
-  String currentUid = FirebaseAuth.instance.currentUser!.uid;
+  String currentUid = firebase_auth.FirebaseAuth.instance.currentUser!.uid;
 
   UserDialog({
     Key? key,

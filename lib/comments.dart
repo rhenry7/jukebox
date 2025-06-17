@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/Types/userComments.dart';
+import 'package:flutter_test_project/apis.dart' as myApi;
 import 'package:flutter_test_project/apis.dart';
 import 'package:flutter_test_project/subComments.dart';
 import 'package:gap/gap.dart';
@@ -18,23 +19,26 @@ class CommentWidget extends StatefulWidget {
 }
 
 class CommentWithMusicInfo {
-  final List<UserComment> comments;
+ // final List<UserComment> comments;
+  final List<myApi.User> users;
   final List<Album> albums;
 
   CommentWithMusicInfo({
-    required this.comments,
+   // required this.comments,
+    required this.users,
     required this.albums,
   });
 }
 
 Future<CommentWithMusicInfo> fetchCombinedData() async {
   final results = await Future.wait([
-    fetchMockUserComments(), // Future for comments
+    // fetchMockUserComments(), // MOCK API / Future for comments
+    fetchUsers(),
     fetchPopularAlbums(), // Future for albums
   ]);
 
   return CommentWithMusicInfo(
-    comments: results[0] as List<UserComment>,
+    users: results[0] as List<myApi.User>,
     albums: results[1] as List<Album>,
   );
 }
@@ -85,8 +89,8 @@ class CommentWidgetState extends State<CommentWidget> {
                                 const NeverScrollableScrollPhysics(), // Disable scrolling for ListView
                             shrinkWrap: true, // Take only the necessary space
                             itemBuilder: (context, index) {
-                              final comment = snapshot.data!.comments[index];
-                              final userId = comment.id;
+                              final user = snapshot.data!.users[index];
+                              final userId = user.id;
 
                               final album = snapshot.data!.albums[index];
                               final albumImages = album.images;
