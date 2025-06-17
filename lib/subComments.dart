@@ -125,7 +125,7 @@ class SubCommentLists extends State<SubComments> {
                                     if (snapshot.hasData) {
                                       final userReviewInfo = snapshot.data!;
                                       return UserDialog(
-                                        userName: comment.name,
+                                        userName: userReviewInfo.displayName,
                                         reviewCount:
                                             userReviewInfo.reviewsCount,
                                         accountCreationDate:

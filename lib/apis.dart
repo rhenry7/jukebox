@@ -434,6 +434,33 @@ class UserReviewInfo {
   }
 }
 
+class User {
+  final String id;
+  final String displayName;
+  final String email;
+  final String avatarUrl;
+  // final String joinDate;
+  // final int reviewsCount;
+
+  User({
+    required this.id,
+    required this.displayName,
+    required this.email,
+    required this.avatarUrl,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] ?? '',
+      displayName: json['displayName'] ?? '',
+      email: json['email'] ?? '',
+      avatarUrl: json['avatarUrl'] ?? '',
+      // joinDate: json['joinDate'] ?? '',
+      // reviewsCount: json['reviewsCount'] ?? 0,
+    );
+  }
+}
+
 Future<UserReviewInfo> fetchUserInfo(String userId) async {
   try {
     final List<Review> reviews = await FirebaseFirestore.instance
@@ -470,6 +497,17 @@ Future<UserReviewInfo> fetchUserInfo(String userId) async {
       joinDate: 'Undefined',
       reviewsCount: 0,
     );
+  }
+}
+
+Future<List<User>> fetchUsers() async {
+  try {
+    final snapshot = await FirebaseFirestore.instance.collection('users').get();
+
+    return snapshot.docs.map((doc) => User.fromJson(doc.data())).toList();
+  } catch (e) {
+    print('Error fetching users: $e');
+    return [];
   }
 }
 
