@@ -512,15 +512,13 @@ Future<List<User>> fetchUsers() async {
   }
 }
 
-
-
 Future<List<Review>> fetchMockUserComments() async {
   final url = Uri.parse(
       "https://66d638b1f5859a704268af2d.mockapi.io/test/v1/usercomments");
   final response = await http.get(url);
   if (response.statusCode == 200) {
     // Parse the JSON data
-    final List<Map<String, dynamic>> jsonData = json.decode(response.body);
+    final List<dynamic> jsonData = json.decode(response.body);
     // Convert the JSON data into a list of Review objects
     return jsonData.map((json) => Review.fromJson(json)).toList();
   } else {

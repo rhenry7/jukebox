@@ -32,7 +32,8 @@ class CommentWithMusicInfo {
 
 Future<CommentWithMusicInfo> fetchCombinedData() async {
   final results = await Future.wait([
-    fetchUserReviews(),
+    //fetchUserReviews(),
+    myApi.fetchMockUserComments(),
     fetchPopularAlbums(),
   ]);
 
@@ -176,7 +177,9 @@ class CommentsBody extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              review.displayName ?? '',
+                              (review.displayName.length <= 12
+                                  ? review.displayName
+                                  : '${review.displayName.substring(0, 12)}…'),
                               style: const TextStyle(
                                   fontSize: 14.0,
                                   fontWeight: FontWeight.normal,
