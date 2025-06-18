@@ -51,6 +51,13 @@ class ReviewsList extends State<UserReviewsCollection> {
           return Review.fromFirestore(doc.data() as Map<String, dynamic>);
         }).toList();
 
+// TODO fix 
+        final reviewsWithDocIds = snapshot.data!.docs.map((doc) {
+          final review =
+              Review.fromFirestore(doc.data() as Map<String, dynamic>);
+          final reviewDocId = doc.id; // This is the Firestore document ID
+          return {'review': review, 'reviewDocId': reviewDocId};
+        }).toList();
         return Container(
             decoration: const BoxDecoration(),
             margin: const EdgeInsets.symmetric(),
@@ -59,7 +66,9 @@ class ReviewsList extends State<UserReviewsCollection> {
               children: [
                 const Gap(10),
                 Expanded(
-                  child: FriendsReviewList(reviews: reviews),
+                  child: FriendsReviewList(
+                    reviews: reviews,
+                  ),
                 ),
               ],
             ));
@@ -70,7 +79,10 @@ class ReviewsList extends State<UserReviewsCollection> {
 
 class FriendsReviewList extends StatelessWidget {
   final List<Review> reviews;
-  const FriendsReviewList({super.key, required this.reviews});
+  final String reviewDocId;
+  const FriendsReviewList(
+      {super.key, required this.reviews, required this.reviewDocId});
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -79,92 +91,266 @@ class FriendsReviewList extends StatelessWidget {
         var review = reviews[index];
         return Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Card(
-            elevation: 1,
-            margin: const EdgeInsets.all(0),
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(8)),
-              side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
+          child: Dismissible(
+            key: Key(reviewDocId.toString()), // Assuming Review has an id field
+            direction: DismissDirection.endToStart,
+            confirmDismiss: (direction) async {
+              // Show dialog instead of dismissing
+              _showReviewOptionsDialog(context, review);
+              return false; // Don't actually dismiss the card
+            },
+            background: Container(
+              decoration: const BoxDecoration(
+                color: Color.fromARGB(255, 220, 53, 69),
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Icon(
+                Icons.more_vert,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
-            color: Colors.black,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ListTile(
-                    leading: review.albumImageUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Image.network(
-                              review.albumImageUrl!,
-                              width: 56,
-                              height: 56,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(Icons.music_note, size: 56);
-                              },
-                            ),
-                          )
-                        : const Icon(Icons.music_note, size: 56),
-                    title: Text(
-                      review.title,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    subtitle: Text(
-                      review.artist,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    trailing: Text(
-                      review.displayName,
-                      style: const TextStyle(color: Colors.white60),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Rating and Review Section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Rating Bar
-                      RatingBar(
-                        minRating: 0,
-                        maxRating: 5,
-                        allowHalfRating: true,
-                        initialRating: review.score,
-                        itemSize: 24,
-                        itemPadding:
-                            const EdgeInsets.symmetric(horizontal: 2.0),
-                        ratingWidget: RatingWidget(
-                          full: const Icon(Icons.star, color: Colors.amber),
-                          empty: const Icon(Icons.star, color: Colors.grey),
-                          half:
-                              const Icon(Icons.star_half, color: Colors.amber),
-                        ),
-                        ignoreGestures: true, // Make it read-only
-                        onRatingUpdate: (rating) {
-                          // Do nothing - this is display only
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      // Review Text
-                      Text(
-                        review.review,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.0,
-                          fontStyle: FontStyle.italic,
-                        ),
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ],
+            child: GestureDetector(
+              onLongPress: () => _showReviewOptionsDialog(context, review),
+              child: Card(
+                elevation: 1,
+                margin: const EdgeInsets.all(0),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
+                ),
+                color: Colors.black,
+                child: ReviewCardWidget(review: review), // Pass review data
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  void _showReviewOptionsDialog(BuildContext context, Review review) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Review Options'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Show review info
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Text(
+                  'Review by ${review.displayName ?? "Unknown"}', // Assuming Review has userName
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+
+              // Edit option (if it's user's own review)
+              if (_isUserReview(review))
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('Edit Review'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _editReview(context, review);
+                  },
+                ),
+
+              // // Like/Unlike option
+              // ListTile(
+              //   leading: Icon(
+              //     review.isLiked ? Icons.favorite : Icons.favorite_border,
+              //     color: Colors.red,
+              //   ),
+              //   title: Text(review.isLiked ? 'Unlike Review' : 'Like Review'),
+              //   onTap: () {
+              //     Navigator.pop(context);
+              //     _toggleLikeReview(review);
+              //   },
+              // ),
+
+              // // Save to favorites
+              // ListTile(
+              //   leading: Icon(
+              //     review.isSaved ? Icons.bookmark : Icons.bookmark_border,
+              //     color: Colors.blue,
+              //   ),
+              //   title:
+              //       Text(review.isSaved ? 'Remove from Saved' : 'Save Review'),
+              //   onTap: () {
+              //     Navigator.pop(context);
+              //     _toggleSaveReview(review);
+              //   },
+              // ),
+              // Delete option (if it's user's own review)
+              if (_isUserReview(review))
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Delete Review',
+                      style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteReview(context, review);
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Helper method to check if review belongs to current user
+  bool _isUserReview(Review review) {
+    // Replace with your actual user ID logic
+    // return review.userId == FirebaseAuth.instance.currentUser?.uid;
+    return review.userId == 'current_user_id'; // Placeholder
+  }
+
+  void _editReview(BuildContext context, Review review) {
+    // Navigate to edit review screen or show edit dialog
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Edit review: ${reviewDocId}')),
+    );
+  }
+
+  void _deleteReview(BuildContext context, Review review) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Review'),
+        content: const Text(
+            'Are you sure you want to delete this review? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                // Delete review from Firestore
+                await FirebaseFirestore.instance
+                    .collection('reviews')
+                    .doc(reviewDocId)
+                    .delete();
+
+                // Remove from user's reviews list
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .update({
+                  'reviews': FieldValue.arrayRemove([reviewDocId]),
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Review deleted successfully')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error deleting review: $e')),
+                );
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ReviewCardWidget extends StatelessWidget {
+  final Review review;
+  const ReviewCardWidget({super.key, required this.review});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            leading: review.albumImageUrl != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.network(
+                      review.albumImageUrl!,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.music_note, size: 56);
+                      },
+                    ),
+                  )
+                : const Icon(Icons.music_note, size: 56),
+            title: Text(
+              review.title,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              review.artist,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: Text(
+              review.displayName,
+              style: const TextStyle(color: Colors.white60),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Rating and Review Section
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Rating Bar
+              RatingBar(
+                minRating: 0,
+                maxRating: 5,
+                allowHalfRating: true,
+                initialRating: review.score,
+                itemSize: 24,
+                itemPadding: const EdgeInsets.symmetric(horizontal: 2.0),
+                ratingWidget: RatingWidget(
+                  full: const Icon(Icons.star, color: Colors.amber),
+                  empty: const Icon(Icons.star, color: Colors.grey),
+                  half: const Icon(Icons.star_half, color: Colors.amber),
+                ),
+                ignoreGestures: true, // Make it read-only
+                onRatingUpdate: (rating) {
+                  // Do nothing - this is display only
+                },
+              ),
+              const SizedBox(height: 8),
+              // Review Text
+              Text(
+                review.review,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.0,
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

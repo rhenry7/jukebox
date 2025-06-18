@@ -318,7 +318,6 @@ Future<List<Album>> fetchPopularAlbums({String query = 'year:2015'}) async {
   try {
     final credentials = SpotifyApiCredentials(clientId, clientSecret);
     final spotify = SpotifyApi(credentials);
-
     final searchResults =
         await spotify.search.get(query, types: [SearchType.album]).first(20);
 

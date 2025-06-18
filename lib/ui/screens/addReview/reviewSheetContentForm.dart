@@ -133,11 +133,6 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
     setState(() {
       liked = !liked;
     });
-    if (liked) {
-      updatePreferences(widget.artist, widget.title);
-    } else if (!liked) {
-      updateRemovePreferences(widget.artist, widget.title);
-    }
   }
 
   Future<void> handleSubmit() async {
@@ -168,7 +163,11 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
         liked,
         widget.albumImageUrl,
       );
-
+      if (liked) {
+        updatePreferences(widget.artist, widget.title);
+      } else if (!liked) {
+        updateRemovePreferences(widget.artist, widget.title);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

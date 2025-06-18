@@ -38,7 +38,6 @@ Future<void> submitReview(String review, double score, String artist,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
         'albumImageUrl': albumImageUrl,
       });
-      
     } catch (e) {
       print("could not post review");
       print(e.toString());
@@ -54,5 +53,18 @@ void addUserReview() async {
   DatabaseReference ref = FirebaseDatabase.instance.ref();
   if (auth.currentUser != null) {
     final db = Firebase.app('jukeboxd');
+  }
+}
+
+Future<void> deleteReview(String userId, String reviewDocId) async {
+  try {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('reviews')
+        .doc()
+        .delete();
+  } catch (e) {
+    print("Could not delete review: $e");
   }
 }
