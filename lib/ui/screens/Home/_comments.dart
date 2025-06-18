@@ -3,8 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:gap/gap.dart';
-
 import '../../../models/review.dart';
+
+class ReviewWithDocId {
+  final Review review;
+  final String docId;
+
+  ReviewWithDocId({required this.review, required this.docId});
+}
 
 class UserReviewsCollection extends StatefulWidget {
   const UserReviewsCollection({super.key});
@@ -51,13 +57,17 @@ class ReviewsList extends State<UserReviewsCollection> {
           return Review.fromFirestore(doc.data() as Map<String, dynamic>);
         }).toList();
 
-// TODO fix 
-        final reviewsWithDocIds = snapshot.data!.docs.map((doc) {
+// TODO fix
+        // Create a model to hold both Review and its Firestore document ID
+
+        final List<ReviewWithDocId> reviewsWithDocIds =
+            snapshot.data!.docs.map((doc) {
           final review =
               Review.fromFirestore(doc.data() as Map<String, dynamic>);
-          final reviewDocId = doc.id; // This is the Firestore document ID
-          return {'review': review, 'reviewDocId': reviewDocId};
+          final docId = doc.id;
+          return ReviewWithDocId(review: review, docId: docId);
         }).toList();
+
         return Container(
             decoration: const BoxDecoration(),
             margin: const EdgeInsets.symmetric(),
@@ -67,7 +77,7 @@ class ReviewsList extends State<UserReviewsCollection> {
                 const Gap(10),
                 Expanded(
                   child: FriendsReviewList(
-                    reviews: reviews,
+                    reviews: reviewsWithDocIds,
                   ),
                 ),
               ],
@@ -78,10 +88,8 @@ class ReviewsList extends State<UserReviewsCollection> {
 }
 
 class FriendsReviewList extends StatelessWidget {
-  final List<Review> reviews;
-  final String reviewDocId;
-  const FriendsReviewList(
-      {super.key, required this.reviews, required this.reviewDocId});
+  final List<ReviewWithDocId> reviews;
+  const FriendsReviewList({super.key, required this.reviews});
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +100,8 @@ class FriendsReviewList extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.all(8.0),
           child: Dismissible(
-            key: Key(reviewDocId.toString()), // Assuming Review has an id field
+            key:
+                Key(review.docId.toString()), // Assuming Review has an id field
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
               // Show dialog instead of dismissing
@@ -122,7 +131,8 @@ class FriendsReviewList extends StatelessWidget {
                   side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
                 ),
                 color: Colors.black,
-                child: ReviewCardWidget(review: review), // Pass review data
+                child:
+                    ReviewCardWidget(review: review.review), // Pass review data
               ),
             ),
           ),
@@ -131,12 +141,18 @@ class FriendsReviewList extends StatelessWidget {
     );
   }
 
-  void _showReviewOptionsDialog(BuildContext context, Review review) {
+  void _showReviewOptionsDialog(BuildContext context, ReviewWithDocId review) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Review Options'),
+          title: const Text(
+            'Review Options',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -144,57 +160,36 @@ class FriendsReviewList extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Text(
-                  'Review by ${review.displayName ?? "Unknown"}', // Assuming Review has userName
+                  'Review by ${review.review.displayName ?? "Unknown"}', // Assuming Review has userName
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: Colors.white,
                   ),
                 ),
               ),
-
               // Edit option (if it's user's own review)
-              if (_isUserReview(review))
+              if (_isUserReview(review.review))
                 ListTile(
                   leading: const Icon(Icons.edit),
                   title: const Text('Edit Review'),
+                  textColor: Colors.white,
                   onTap: () {
                     Navigator.pop(context);
                     _editReview(context, review);
                   },
                 ),
-
-              // // Like/Unlike option
-              // ListTile(
-              //   leading: Icon(
-              //     review.isLiked ? Icons.favorite : Icons.favorite_border,
-              //     color: Colors.red,
-              //   ),
-              //   title: Text(review.isLiked ? 'Unlike Review' : 'Like Review'),
-              //   onTap: () {
-              //     Navigator.pop(context);
-              //     _toggleLikeReview(review);
-              //   },
-              // ),
-
-              // // Save to favorites
-              // ListTile(
-              //   leading: Icon(
-              //     review.isSaved ? Icons.bookmark : Icons.bookmark_border,
-              //     color: Colors.blue,
-              //   ),
-              //   title:
-              //       Text(review.isSaved ? 'Remove from Saved' : 'Save Review'),
-              //   onTap: () {
-              //     Navigator.pop(context);
-              //     _toggleSaveReview(review);
-              //   },
-              // ),
               // Delete option (if it's user's own review)
-              if (_isUserReview(review))
+              if (_isUserReview(review.review))
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Delete Review',
-                      style: TextStyle(color: Colors.red)),
+                  title: const Text(
+                    'Delete Review',
+                  ),
+                  textColor: Colors.white,
+                  titleTextStyle: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     _deleteReview(context, review);
@@ -217,23 +212,37 @@ class FriendsReviewList extends StatelessWidget {
   bool _isUserReview(Review review) {
     // Replace with your actual user ID logic
     // return review.userId == FirebaseAuth.instance.currentUser?.uid;
-    return review.userId == 'current_user_id'; // Placeholder
+    final String userId = FirebaseAuth.instance.currentUser != null
+        ? FirebaseAuth.instance.currentUser!.uid
+        : "";
+    return review.userId == userId; // Placeholder
   }
 
-  void _editReview(BuildContext context, Review review) {
+  void _editReview(BuildContext context, ReviewWithDocId review) {
     // Navigate to edit review screen or show edit dialog
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit review: ${reviewDocId}')),
+      SnackBar(content: Text('Edit review: ${review.docId}')),
     );
   }
 
-  void _deleteReview(BuildContext context, Review review) {
+  void _deleteReview(BuildContext context, ReviewWithDocId review) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Review'),
+        title: const Text(
+          'Delete Review',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.white,
+          ),
+        ),
         content: const Text(
-            'Are you sure you want to delete this review? This action cannot be undone.'),
+          'Are you sure you want to delete this review? This action cannot be undone.',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.white,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -246,7 +255,7 @@ class FriendsReviewList extends StatelessWidget {
                 // Delete review from Firestore
                 await FirebaseFirestore.instance
                     .collection('reviews')
-                    .doc(reviewDocId)
+                    .doc(review.docId)
                     .delete();
 
                 // Remove from user's reviews list
@@ -254,7 +263,7 @@ class FriendsReviewList extends StatelessWidget {
                     .collection('users')
                     .doc(FirebaseAuth.instance.currentUser?.uid)
                     .update({
-                  'reviews': FieldValue.arrayRemove([reviewDocId]),
+                  'reviews': FieldValue.arrayRemove([review.docId]),
                 });
 
                 ScaffoldMessenger.of(context).showSnackBar(
