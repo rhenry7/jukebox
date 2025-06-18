@@ -48,6 +48,44 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
     super.dispose();
   }
 
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+
+  Future<void> updatePreferences(String artist, String title) async {
+    if (userId.isEmpty) {
+      print("User not logged in, cannot upload preferences.");
+      return;
+    }
+    final String saved = "arist: ${artist}, song: ${title}";
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('musicPreferences')
+        .doc('profile')
+        .update({
+      'savedTracks': [saved],
+    });
+  }
+
+  Future<void> updateRemovePreferences(String artist, String title) async {
+    if (userId.isEmpty) {
+      print("User not logged in, cannot upload preferences.");
+      return;
+    }
+    final String saved = "arist: ${artist}, song: ${title}";
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('musicPreferences')
+        .doc('profile')
+        .update({
+      'savedTracks': FieldValue.arrayRemove([saved]),
+    });
+  }
+
   Future<void> showSubmissionAuthErrorModal(BuildContext context) {
     return showDialog<void>(
       context: context,
@@ -95,6 +133,11 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
     setState(() {
       liked = !liked;
     });
+    if (liked) {
+      updatePreferences(widget.artist, widget.title);
+    } else if (!liked) {
+      updateRemovePreferences(widget.artist, widget.title);
+    }
   }
 
   Future<void> handleSubmit() async {
@@ -125,51 +168,6 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
         liked,
         widget.albumImageUrl,
       );
-
-      final String userId = FirebaseAuth.instance.currentUser != null
-          ? FirebaseAuth.instance.currentUser!.uid
-          : "";
-      EnhancedUserPreferences? preferences = null;
-
-      Future<EnhancedUserPreferences?> _fetchPreferences() async {
-        if (userId.isEmpty) {
-          print("User not logged in, cannot fetch preferences.");
-          return EnhancedUserPreferences(
-              favoriteGenres: [], favoriteArtists: []);
-        }
-
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('musicPreferences')
-            .doc('profile')
-            .get();
-
-        if (doc.exists) {
-          preferences = EnhancedUserPreferences.fromJson(doc.data()!);
-          return preferences;
-        } else {
-          return EnhancedUserPreferences(
-              favoriteGenres: [], favoriteArtists: []);
-        }
-      }
-
-      Future<void> _uploadPreferences() async {
-        if (userId.isEmpty) {
-          print("User not logged in, cannot upload preferences.");
-          return;
-        }
-
-        final data = preferences?.toJson();
-        data?['lastUpdated'] = DateTime.now().toIso8601String();
-
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('musicPreferences')
-            .doc('profile')
-            .set(data!, SetOptions(merge: true));
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

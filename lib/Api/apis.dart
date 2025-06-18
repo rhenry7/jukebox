@@ -314,7 +314,7 @@ Future<List<Album>> fetchExploreAlbums() async {
   }
 }
 
-Future<List<Album>> fetchPopularAlbums({String query = 'year:2024'}) async {
+Future<List<Album>> fetchPopularAlbums({String query = 'year:2015'}) async {
   try {
     final credentials = SpotifyApiCredentials(clientId, clientSecret);
     final spotify = SpotifyApi(credentials);

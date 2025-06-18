@@ -98,7 +98,7 @@ Return JSON array:
         {
           'role': 'system',
           'content':
-              'You are a music recommendation engine. Respond only with valid JSON arrays.'
+              'You are a music recommendation engine. Respond only with valid JSON arrays. Consider preferences, recent user reviews.'
         },
         {'role': 'user', 'content': prompt}
       ]

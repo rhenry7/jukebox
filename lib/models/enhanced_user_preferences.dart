@@ -76,7 +76,7 @@ class EnhancedUserPreferences {
 
   @override
   String toString() {
-    return 'EnhancedUserPreferences(favoriteGenres: $favoriteGenres, favoriteArtists: $favoriteArtists, dislikedGenres: $dislikedGenres, genreWeights: $genreWeights, recentlyPlayed: $recentlyPlayed, savedTracks: $savedTracks, audioFeatureProfile: $audioFeatureProfile, moodPreferences: $moodPreferences, tempoPreferences: $tempoPreferences, contextualPreferences: $contextualPreferences, lastUpdated: $lastUpdated, totalListeningTime: $totalListeningTime, skipCounts: $skipCounts, repeatCounts: $repeatCounts)';
+    return 'EnhancedUserPreferences(favoriteGenres: $favoriteGenres, favoriteArtists: $favoriteArtists, dislikedGenres: $dislikedGenres, genreWeights: $genreWeights, recentlyPlayed: $recentlyPlayed, savedTracksOrAlbum: $savedTracks, audioFeatureProfile: $audioFeatureProfile, moodPreferences: $moodPreferences, tempoPreferences: $tempoPreferences, contextualPreferences: $contextualPreferences, lastUpdated: $lastUpdated, totalListeningTime: $totalListeningTime, skipCounts: $skipCounts, repeatCounts: $repeatCounts)';
   }
 
   Map<String, dynamic> toJson() {
@@ -86,7 +86,7 @@ class EnhancedUserPreferences {
       'dislikedGenres': dislikedGenres,
       'genreWeights': genreWeights,
       'recentlyPlayed': recentlyPlayed.map((track) => track.toJson()).toList(),
-      'savedTracks': savedTracks,
+      'savedTracksOrAlbum': savedTracks,
       'audioFeatureProfile': audioFeatureProfile,
       'moodPreferences': moodPreferences,
       'tempoPreferences': tempoPreferences,
