@@ -56,8 +56,7 @@ class ReviewsList extends State<UserReviewsCollection> {
         List<Review> reviews = snapshot.data!.docs.map((doc) {
           return Review.fromFirestore(doc.data() as Map<String, dynamic>);
         }).toList();
-
-// TODO fix
+        // TODO fix
         // Create a model to hold both Review and its Firestore document ID
 
         final List<ReviewWithDocId> reviewsWithDocIds =
@@ -253,15 +252,18 @@ class FriendsReviewList extends StatelessWidget {
               Navigator.pop(context);
               try {
                 // Delete review from Firestore
-                await FirebaseFirestore.instance
+                FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(FirebaseAuth.instance.currentUser?.uid)
                     .collection('reviews')
                     .doc(review.docId)
                     .delete();
-
                 // Remove from user's reviews list
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .collection('reviews')
+                    .doc(review.docId)
                     .update({
                   'reviews': FieldValue.arrayRemove([review.docId]),
                 });
