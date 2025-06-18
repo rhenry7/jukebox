@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/comments.dart';
+import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 
 import '_comments.dart';
 

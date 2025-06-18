@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
-import 'package:flutter_test_project/Profile/ProfileButton.dart';
+import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:flutter_test_project/apis.dart';

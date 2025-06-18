@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
-import 'package:flutter_test_project/Profile/auth/following/follow.dart';
+import 'package:flutter_test_project/ui/screens/Profile/auth/following/follow.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:flutter_test_project/apis.dart';

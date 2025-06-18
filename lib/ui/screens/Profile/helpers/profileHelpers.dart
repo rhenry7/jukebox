@@ -4,10 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
-import 'package:flutter_test_project/Profile/ProfileSignIn.dart';
-import 'package:flutter_test_project/Profile/auth/authService.dart';
-import 'package:flutter_test_project/Profile/profilePage.dart';
-import 'package:flutter_test_project/comments.dart';
+import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
+import 'package:flutter_test_project/ui/screens/Profile/auth/authService.dart';
+import 'package:flutter_test_project/ui/screens/Profile/profilePage.dart';
+import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 
 Future<Map<String, dynamic>> getCurrentUser() async {
   User? user = FirebaseAuth.instance.currentUser;
