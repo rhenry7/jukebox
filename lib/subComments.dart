@@ -14,12 +14,19 @@ class SubComments extends StatefulWidget {
   final String title;
   final String imageUrl;
   final String userId;
+  final String displayName;
+  final String reviews;
+  final String joinDate;
   // final String ratingValue;
-  const SubComments(
-      {super.key,
-      required this.title,
-      required this.imageUrl,
-      required this.userId});
+  const SubComments({
+    super.key,
+    required this.title,
+    required this.imageUrl,
+    required this.userId,
+    required this.displayName,
+    required this.joinDate,
+    required this.reviews,
+  });
 
   @override
   State<SubComments> createState() => SubCommentLists();
@@ -27,14 +34,12 @@ class SubComments extends StatefulWidget {
 
 class SubCommentLists extends State<SubComments> {
   late Future<List<Review>> comments;
-  late Future<List<User>> userReviewInfo;
   double? _rating;
 
   @override
   void initState() {
     super.initState();
     comments = fetchMockUserComments();
-    userReviewInfo = fetchUsers();
   }
 
   @override
@@ -120,16 +125,16 @@ class SubCommentLists extends State<SubComments> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                FutureBuilder<List<User>>(
-                                  future: userReviewInfo,
+                                FutureBuilder<List<Review>>(
+                                  future: comments,
                                   builder: (context, snapshot) {
                                     if (snapshot.hasData) {
                                       final userReviewInfo = snapshot.data!;
                                       return UserDialog(
-                                        userName: userReviewInfo[0].displayName,
+                                        displayName: widget.displayName,
                                         reviewCount: 1,
-                                        accountCreationDate:
-                                            "1st November 2025", // Replace with actual date
+                                        accountCreationDate: widget
+                                            .joinDate, // Replace with actual date
                                       );
                                     } else if (snapshot.hasError) {
                                       return const Icon(
@@ -472,7 +477,7 @@ Widget _buildInfoRow({
 }
 
 class UserDialog extends StatelessWidget {
-  final String userName;
+  final String displayName;
   final int reviewCount;
   final String accountCreationDate;
   final VoidCallback? onClose;
@@ -480,7 +485,7 @@ class UserDialog extends StatelessWidget {
 
   UserDialog({
     Key? key,
-    required this.userName,
+    required this.displayName,
     required this.reviewCount,
     required this.accountCreationDate,
     this.onClose,
@@ -516,7 +521,7 @@ class UserDialog extends StatelessWidget {
                     const SizedBox(height: 16),
                     // Title
                     Text(
-                      userName,
+                      displayName,
                       style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -527,14 +532,15 @@ class UserDialog extends StatelessWidget {
                     _buildInfoRow(
                       icon: Ionicons.person,
                       label: 'Name',
-                      value: 'John Doe', // Replace with actual user name
+                      value: displayName, // Replace with actual user name
                     ),
                     const SizedBox(height: 12),
                     // Number of Reviews
                     _buildInfoRow(
                       icon: Ionicons.star,
                       label: 'Reviews',
-                      value: '24', // Replace with actual review count
+                      value: reviewCount
+                          .toString(), // Replace with actual review count
                     ),
                     const SizedBox(height: 12),
                     // Account Creation Date
@@ -566,8 +572,8 @@ class UserDialog extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         //Navigator.of(context).pop();
-                        print('Following user: $userName as $currentUid');
-                        followUser(currentUid, userName).then((_) {
+                        print('Following user: $displayName as $currentUid');
+                        followUser(currentUid, displayName).then((_) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Followed successfully!'),

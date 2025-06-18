@@ -142,6 +142,9 @@ class CommentsBody extends StatelessWidget {
                       title: review.displayName ?? "",
                       imageUrl: largeImageUrl,
                       userId: review.userId ?? "",
+                      displayName: review.displayName,
+                      joinDate: '',
+                      reviews: '',
                     )),
           );
         },
@@ -295,6 +298,9 @@ class CommentsBody extends StatelessWidget {
                                           title: album.name ?? "",
                                           imageUrl: largeImageUrl,
                                           userId: review.userId ?? "",
+                                          displayName: review.displayName,
+                                          joinDate: '',
+                                          reviews: '',
                                         )));
                           },
                         ),
