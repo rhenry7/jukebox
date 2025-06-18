@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter_test_project/api_key.dart';
+import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:http/http.dart' as http;
 
 /// -------- MODEL --------

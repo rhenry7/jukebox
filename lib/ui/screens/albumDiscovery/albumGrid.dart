@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_test_project/GIFs/gifs.dart';
-import 'package:flutter_test_project/ui/screens/reviewSheetContentForm.dart';
+import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:spotify/spotify.dart';
 
-import '../../apis.dart';
+import '../../../Api/apis.dart';
 
 class AlbumGrid extends StatefulWidget {
   const AlbumGrid({super.key});

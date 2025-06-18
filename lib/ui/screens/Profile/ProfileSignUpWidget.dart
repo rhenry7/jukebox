@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/MainNavigation.dart';
+import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';

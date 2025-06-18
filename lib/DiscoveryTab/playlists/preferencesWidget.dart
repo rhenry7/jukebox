@@ -1,7 +1,7 @@
 // Example Flutter widget using the personalized playlist service
 import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/api_key.dart';
+import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/DiscoveryTab/playlists/preferences.dart';
 import 'package:spotify/spotify.dart';
 

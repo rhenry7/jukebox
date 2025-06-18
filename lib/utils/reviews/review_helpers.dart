@@ -38,6 +38,7 @@ Future<void> submitReview(String review, double score, String artist,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
         'albumImageUrl': albumImageUrl,
       });
+      
     } catch (e) {
       print("could not post review");
       print(e.toString());

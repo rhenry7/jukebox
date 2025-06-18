@@ -5,7 +5,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/ui/screens/Profile/auth/following/follow.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_comments.dart';
-import 'package:flutter_test_project/apis.dart';
+import 'package:flutter_test_project/Api/apis.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:popover/popover.dart';

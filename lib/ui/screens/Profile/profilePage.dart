@@ -4,7 +4,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_comments.dart';
-import 'package:flutter_test_project/apis.dart';
+import 'package:flutter_test_project/Api/apis.dart';
 import 'package:ionicons/ionicons.dart';
 
 class ProfilePage extends StatefulWidget {

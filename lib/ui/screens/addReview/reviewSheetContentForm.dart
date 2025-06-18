@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/utils/helpers.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
@@ -123,6 +125,51 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
         liked,
         widget.albumImageUrl,
       );
+
+      final String userId = FirebaseAuth.instance.currentUser != null
+          ? FirebaseAuth.instance.currentUser!.uid
+          : "";
+      EnhancedUserPreferences? preferences = null;
+
+      Future<EnhancedUserPreferences?> _fetchPreferences() async {
+        if (userId.isEmpty) {
+          print("User not logged in, cannot fetch preferences.");
+          return EnhancedUserPreferences(
+              favoriteGenres: [], favoriteArtists: []);
+        }
+
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('musicPreferences')
+            .doc('profile')
+            .get();
+
+        if (doc.exists) {
+          preferences = EnhancedUserPreferences.fromJson(doc.data()!);
+          return preferences;
+        } else {
+          return EnhancedUserPreferences(
+              favoriteGenres: [], favoriteArtists: []);
+        }
+      }
+
+      Future<void> _uploadPreferences() async {
+        if (userId.isEmpty) {
+          print("User not logged in, cannot upload preferences.");
+          return;
+        }
+
+        final data = preferences?.toJson();
+        data?['lastUpdated'] = DateTime.now().toIso8601String();
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('musicPreferences')
+            .doc('profile')
+            .set(data!, SetOptions(merge: true));
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
-import 'package:flutter_test_project/subComments.dart';
+import 'package:flutter_test_project/ui/screens/feed/subComments.dart';
 import 'package:flutter_test_project/utils/helpers.dart';
 import 'package:ionicons/ionicons.dart';
 

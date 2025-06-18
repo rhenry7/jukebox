@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
-import 'package:flutter_test_project/api_key.dart';
+import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 
