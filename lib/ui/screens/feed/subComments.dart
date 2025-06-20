@@ -190,13 +190,16 @@ class SubCommentLists extends State<SubComments> {
                             padding: const EdgeInsets.all(0.0),
                             child: ListView.builder(
                               padding: EdgeInsets.zero,
-
                               itemCount: snapshot.data!.length,
                               physics:
                                   const NeverScrollableScrollPhysics(), // Disable
                               shrinkWrap: true,
                               itemBuilder: (context, index) {
-                                final comment = snapshot.data![index];
+                                /**
+                                 * Because there is only one source for mock data for subcomments, the first subcomment user will show as the same user who made the initial review. To fix this, I am skipping that inital user in the line below. This is not a good solution, and can be approved by having additional mock users or real users.
+                                 */
+                                final comment = snapshot.data![index +
+                                    1]; // TODO: REPLACE WHEN WE HAVE ACTUAL USERS
                                 //print(track);
                                 return Card(
                                   elevation: 0,
