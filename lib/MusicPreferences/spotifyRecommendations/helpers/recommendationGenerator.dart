@@ -1,17 +1,11 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
-import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
-
-import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
+import 'package:ionicons/ionicons.dart';
 
 // Function to sort and get top genres
 
@@ -91,6 +85,18 @@ class AlbumList extends StatelessWidget {
                     // Button with size constraints
                   ],
                 ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                      onPressed: () => {},
+                      icon: const Icon(Ionicons.close_circle_outline,
+                          color: Colors.grey)),
+                  IconButton(
+                      onPressed: () => {},
+                      icon: const Icon(Ionicons.add_circle_outline,
+                          color: Colors.green)),
+                ],
               ),
             ],
           ),
