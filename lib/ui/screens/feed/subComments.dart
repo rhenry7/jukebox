@@ -137,8 +137,7 @@ class SubCommentLists extends State<SubComments> {
                                             .joinDate, // Replace with actual date
                                       );
                                     } else if (snapshot.hasError) {
-                                      return const Icon(
-                                          Ionicons.person_circle_outline);
+                                      return const Text("error found: no user");
                                     }
                                     return const SizedBox(
                                       width: 24,
@@ -150,6 +149,7 @@ class SubCommentLists extends State<SubComments> {
                                 ),
                               ],
                             ),
+                            // RATING BAR
                             Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: RatingBar(
@@ -176,6 +176,7 @@ class SubCommentLists extends State<SubComments> {
                   ],
                 ),
               )),
+          // SUB COMMENTS
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -607,9 +608,17 @@ class UserDialog extends StatelessWidget {
           },
         );
       },
-      child: const Padding(
-        padding: EdgeInsets.only(left: 3.0, right: 5.0),
-        child: Icon(Ionicons.person_circle_outline),
+      child: Row(
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 3.0, right: 5.0),
+            child: Icon(Ionicons.person_circle_outline),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 3.0, right: 5.0),
+            child: Text(displayName),
+          ),
+        ],
       ),
     );
   }

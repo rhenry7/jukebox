@@ -36,7 +36,7 @@ class CommentsBody extends StatelessWidget {
             context,
             MaterialPageRoute(
                 builder: (context) => SubComments(
-                      title: review.displayName ?? "",
+                      title: album.name ?? "",
                       imageUrl: largeImageUrl,
                       userId: review.userId ?? "",
                       displayName: review.displayName,
@@ -192,7 +192,7 @@ class CommentsBody extends StatelessWidget {
                                 MaterialPageRoute(
                                     builder: (BuildContext context) =>
                                         SubComments(
-                                          title: album.name ?? "",
+                                          title: review.title ?? "",
                                           imageUrl: largeImageUrl,
                                           userId: review.userId ?? "",
                                           displayName: review.displayName,
