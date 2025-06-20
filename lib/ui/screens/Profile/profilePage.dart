@@ -59,10 +59,10 @@ class ProfileView extends State<ProfilePage> {
                       ],
                     ),
                   );
-                } else if (snapshot.error == null) {
-                  return const Center(child: Card(child: DiscoBallLoading()));
+                } else if (snapshot.hasError) {
+                  return Image.asset('lib/assets/images/discoball_loading.png');
                 } else {
-                  return Text('${snapshot.data}');
+                  return Text('');
                 }
               })),
         ),
