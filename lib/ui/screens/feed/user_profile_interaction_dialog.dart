@@ -5,6 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ui/screens/Profile/auth/following/follow.dart';
 import 'package:ionicons/ionicons.dart';
 
+/// A dialog widget that displays user profile interactions.
+/// 
+/// This widget is typically used to show options or actions related to a user's profile,
+/// such as following, messaging, or viewing more details. It is designed to be used
+/// within a feed or user list context.
+/// 
+/// {@category UI}
 class UserProfileInteractionDialog extends StatelessWidget {
   final String displayName;
   final int reviewCount;

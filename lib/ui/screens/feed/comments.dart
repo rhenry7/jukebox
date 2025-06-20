@@ -12,7 +12,6 @@ import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart';
-
 import '../../../utils/helpers.dart';
 
 class CommentWidget extends StatefulWidget {

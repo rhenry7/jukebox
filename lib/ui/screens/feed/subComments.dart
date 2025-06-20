@@ -81,13 +81,9 @@ class SubCommentLists extends State<SubComments> {
                         children: [
                           Expanded(
                             child: ListTile(
-                              // leading: Icon(Ionicons
-                              //     .person_circle_outline), // Fallback if no image is available,
                               title: Text(widget.title),
-                              //subtitle: Text(comment.), use post time data
                             ),
                           ),
-                          //Text(comment.comment),
                         ],
                       ),
                     ),
