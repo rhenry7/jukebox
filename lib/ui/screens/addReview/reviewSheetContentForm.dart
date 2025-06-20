@@ -1,10 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
-import 'package:flutter_test_project/utils/helpers.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -46,44 +43,6 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
   void dispose() {
     reviewController.dispose();
     super.dispose();
-  }
-
-  final String userId = FirebaseAuth.instance.currentUser != null
-      ? FirebaseAuth.instance.currentUser!.uid
-      : "";
-
-  Future<void> updatePreferences(String artist, String title) async {
-    if (userId.isEmpty) {
-      print("User not logged in, cannot upload preferences.");
-      return;
-    }
-    final String saved = "arist: ${artist}, song: ${title}";
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('musicPreferences')
-        .doc('profile')
-        .update({
-      'savedTracks': [saved],
-    });
-  }
-
-  Future<void> updateRemovePreferences(String artist, String title) async {
-    if (userId.isEmpty) {
-      print("User not logged in, cannot upload preferences.");
-      return;
-    }
-    final String saved = "arist: ${artist}, song: ${title}";
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('musicPreferences')
-        .doc('profile')
-        .update({
-      'savedTracks': FieldValue.arrayRemove([saved]),
-    });
   }
 
   Future<void> showSubmissionAuthErrorModal(BuildContext context) {
@@ -164,7 +123,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
         widget.albumImageUrl,
       );
       if (liked) {
-        updatePreferences(widget.artist, widget.title);
+        updateSavedTracks(widget.artist, widget.title);
       } else if (!liked) {
         updateRemovePreferences(widget.artist, widget.title);
       }

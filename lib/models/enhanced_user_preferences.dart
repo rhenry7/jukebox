@@ -8,6 +8,7 @@ class EnhancedUserPreferences {
   final Map<String, double> genreWeights; // 0.0 to 1.0 preference strength
   final List<TrackHistory> recentlyPlayed;
   final List<String> savedTracks;
+  final List<String> dislikedTracks;
 
   // New fields for enhanced recommendations
   final Map<String, double>
@@ -29,6 +30,7 @@ class EnhancedUserPreferences {
     this.genreWeights = const {},
     this.recentlyPlayed = const [],
     this.savedTracks = const [],
+    this.dislikedTracks = const [],
     this.audioFeatureProfile = const {},
     this.moodPreferences = const {},
     this.tempoPreferences = const {},
@@ -46,6 +48,7 @@ class EnhancedUserPreferences {
     Map<String, double>? genreWeights,
     List<TrackHistory>? recentlyPlayed,
     List<String>? savedTracks,
+    List<String>? dislikedTracks,
     Map<String, double>? audioFeatureProfile,
     Map<String, double>? moodPreferences,
     Map<String, double>? tempoPreferences,
@@ -62,6 +65,7 @@ class EnhancedUserPreferences {
       genreWeights: genreWeights ?? this.genreWeights,
       recentlyPlayed: recentlyPlayed ?? this.recentlyPlayed,
       savedTracks: savedTracks ?? this.savedTracks,
+      dislikedTracks: dislikedTracks ?? this.dislikedTracks,
       audioFeatureProfile: audioFeatureProfile ?? this.audioFeatureProfile,
       moodPreferences: moodPreferences ?? this.moodPreferences,
       tempoPreferences: tempoPreferences ?? this.tempoPreferences,
@@ -87,6 +91,7 @@ class EnhancedUserPreferences {
       'genreWeights': genreWeights,
       'recentlyPlayed': recentlyPlayed.map((track) => track.toJson()).toList(),
       'savedTracksOrAlbum': savedTracks,
+      'dislikedTracks': dislikedTracks,
       'audioFeatureProfile': audioFeatureProfile,
       'moodPreferences': moodPreferences,
       'tempoPreferences': tempoPreferences,
@@ -109,6 +114,7 @@ class EnhancedUserPreferences {
               .toList() ??
           [],
       savedTracks: List<String>.from(json['savedTracks'] ?? []),
+      dislikedTracks: List<String>.from(json['dislikedTracks'] ?? []),
       audioFeatureProfile:
           Map<String, double>.from(json['audioFeatureProfile'] ?? {}),
       moodPreferences: Map<String, double>.from(json['moodPreferences'] ?? {}),

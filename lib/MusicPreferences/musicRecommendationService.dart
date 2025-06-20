@@ -1,9 +1,10 @@
 import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:http/http.dart' as http;
 
 class MusicRecommendationService {
@@ -65,10 +66,12 @@ class MusicRecommendationService {
     return '''
 You are a music recommendation engine. Based on the user profile, suggest $count songs.
 - Avoid genres they dislike
-- Prioritize high-weighted genres
+- Prioritize recommendations based on genre weights, mood preferences and tempo preferences 
 - Include some variety and surprises
 - Return ONLY valid JSON, no commentary
-
+- Consider the songs/tracks liked, the songs recently recommended to not be repetitive of the same tracks within a short space of time
+- Consider the songs/tracks disliked to not recommend the user songs they have mentioned they dislike or liked
+ 
 ```json
 ${excludeList.isNotEmpty ? 'Exclude these songs:\n${excludeList.join('\n')}\n' : ''}
 
@@ -89,7 +92,7 @@ Return JSON array:
 
     final body = jsonEncode({
       'model': _model,
-      'temperature': 0.9,
+      'temperature': 0.7,
       'max_tokens': 1500,
       // 'top_p': 1.0,
       // 'frequency_penalty': 0.0,
@@ -98,7 +101,7 @@ Return JSON array:
         {
           'role': 'system',
           'content':
-              'You are a music recommendation engine. Respond only with valid JSON arrays. Consider preferences, recent user reviews.'
+              'You are a music recommendation engine. Respond only with valid JSON arrays. Consider preferences, recent user reviews. Only return songs that exist on Spotify. Do not invent song or artist names'
         },
         {'role': 'user', 'content': prompt}
       ]

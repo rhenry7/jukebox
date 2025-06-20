@@ -68,3 +68,63 @@ Future<void> deleteReview(String userId, String reviewDocId) async {
     print("Could not delete review: $e");
   }
 }
+
+Future<void> updateSavedTracks(String artist, String title) async {
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+  if (userId.isEmpty) {
+    print("User not logged in, cannot upload preferences.");
+    return;
+  }
+  final String saved = "arist: ${artist}, song: ${title}";
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('musicPreferences')
+      .doc('profile')
+      .update({
+    'savedTracks': FieldValue.arrayUnion([saved]),
+  });
+}
+
+Future<void> updateDislikedTracks(String artist, String title) async {
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+  if (userId.isEmpty) {
+    print("User not logged in, cannot upload preferences.");
+    return;
+  }
+  final String disliked = "arist: ${artist}, song: ${title}";
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('musicPreferences')
+      .doc('profile')
+      .update({
+    'dislikedTracks': FieldValue.arrayUnion([disliked]),
+  });
+}
+
+Future<void> updateRemovePreferences(String artist, String title) async {
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+  if (userId.isEmpty) {
+    print("User not logged in, cannot upload preferences.");
+    return;
+  }
+  final String saved = "arist: ${artist}, song: ${title}";
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('musicPreferences')
+      .doc('profile')
+      .update({
+    'savedTracks': FieldValue.arrayRemove([saved]),
+  });
+}
