@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:http/http.dart' as http;
@@ -46,9 +47,28 @@ class MusicRecommendationService {
         });
       }
 
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('musicPreferences')
+          .doc('profile')
+          .get();
+
+      // if (doc.exists) {
+      //  final thing = EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
+      // for (var i = 0; i < thing.length; i++) {
+      //   if(thing)
+      // }
+      // }
+
       final prompt =
           _buildPrompt(preferencesJson, count, excludeSongs, reviewList);
       final response = await _makeApiRequest(prompt);
+
+           if (doc.exists) {
+       final thing = EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
+  
+      }
       return _parseRecommendations(response);
     } catch (e) {
       throw MusicRecommendationException('Failed to get recommendations: $e');

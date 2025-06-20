@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
+import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 
 Future<List<Review>> fetchUserReviews() async {
@@ -127,4 +129,46 @@ Future<void> updateRemovePreferences(String artist, String title) async {
       .update({
     'savedTracks': FieldValue.arrayRemove([saved]),
   });
+}
+
+List<MusicRecommendation> removeDuplicatesFaster({
+  required List<MusicRecommendation> albums,
+  required List<MusicRecommendation> savedTracks,
+}) {
+  
+  final savedSet = savedTracks
+      .map((t) =>
+          "${t.artist.toLowerCase().trim()}|${t.song.toLowerCase().trim()}")
+      .toSet();
+
+  return albums.where((album) {
+    final key =
+        "${album.artist.toLowerCase().trim()}|${album.song.toLowerCase().trim()}";
+    return !savedSet.contains(key);
+  }).toList();
+}
+
+
+Future<Object> removeDuplication(
+    List<MusicRecommendation> albums) async {
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+  if (userId.isEmpty) {
+    print("User not logged in, cannot upload preferences.");
+    return albums;
+  }
+
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('musicPreferences')
+      .doc('profile')
+      .get();
+
+  if (doc.exists) {
+    return EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
+  } else {
+    return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
+  }
 }
