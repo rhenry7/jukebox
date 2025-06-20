@@ -70,8 +70,8 @@ You are a music recommendation engine. Based on the user profile, suggest $count
 - Include some variety and surprises
 - Return ONLY valid JSON, no commentary
 - Consider the songs/tracks liked, the songs recently recommended to not be repetitive of the same tracks within a short space of time
-- Consider the songs/tracks disliked to not recommend the user songs they have mentioned they dislike or liked
- 
+- exclude recommendations in the savedTracksOrAlbum array
+
 ```json
 ${excludeList.isNotEmpty ? 'Exclude these songs:\n${excludeList.join('\n')}\n' : ''}
 
