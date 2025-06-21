@@ -6,8 +6,6 @@ import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 
-import '../../models/song_recommended.dart';
-
 Future<List<Review>> fetchUserReviews() async {
   final snapshot = await FirebaseFirestore.instance
       .collectionGroup('reviews')
@@ -154,7 +152,7 @@ List<MusicRecommendation> removeDuplicatesFaster({
 ///  OpenAi recommendation includes: arist: Eagles, song: Hotel California,
 ///  filter recommended list, to remove song already saved, reduce duplication
 
-Future<List<SongRecommended>> removeDuplication(
+Future<List<MusicRecommendation>> removeDuplication(
     List<MusicRecommendation> albums) async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
@@ -172,10 +170,12 @@ Future<List<SongRecommended>> removeDuplication(
       .get();
 
   if (doc.exists) {
-    final docs = EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
-    final removedDuplication = albums.removeWhere((test) => test.song == docs);
-    return removedDuplication;
+    final List<String> savedTracks =
+        EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
+    albums.removeWhere((album) =>
+        savedTracks.contains('artist: ${album.artist}, song: ${album.song}'));
+    return albums;
   } else {
-    return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
+    throw new Error();
   }
 }

@@ -8,8 +8,6 @@ import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 
 // Function to sort and get top genres
-
-// Main Widget
 class RecommendedAlbumScreen extends StatefulWidget {
   const RecommendedAlbumScreen({
     super.key,

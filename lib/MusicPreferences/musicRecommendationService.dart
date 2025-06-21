@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
-import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:http/http.dart' as http;
@@ -65,10 +64,6 @@ class MusicRecommendationService {
           _buildPrompt(preferencesJson, count, excludeSongs, reviewList);
       final response = await _makeApiRequest(prompt);
 
-           if (doc.exists) {
-       final thing = EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
-  
-      }
       return _parseRecommendations(response);
     } catch (e) {
       throw MusicRecommendationException('Failed to get recommendations: $e');
@@ -82,15 +77,14 @@ class MusicRecommendationService {
       ...excludeSongs ?? [],
     ];
     print('reviews: ${jsonEncode(reviews)}');
+    final List<MusicRecommendation> prefs = pre;
 
     return '''
 You are a music recommendation engine. Based on the user profile, suggest $count songs.
-- Avoid genres they dislike
 - Prioritize recommendations based on genre weights, mood preferences and tempo preferences 
-- Include some variety and surprises
 - Return ONLY valid JSON, no commentary
-- Consider the songs/tracks liked, the songs recently recommended to not be repetitive of the same tracks within a short space of time
-- exclude recommendations in the savedTracksOrAlbum array
+- Consider the songs/tracks liked, dont be repetitive
+- exclude songs in the savedTracks 
 
 ```json
 ${excludeList.isNotEmpty ? 'Exclude these songs:\n${excludeList.join('\n')}\n' : ''}
