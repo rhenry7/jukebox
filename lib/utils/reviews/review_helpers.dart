@@ -6,6 +6,8 @@ import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 
+import '../../models/song_recommended.dart';
+
 Future<List<Review>> fetchUserReviews() async {
   final snapshot = await FirebaseFirestore.instance
       .collectionGroup('reviews')
@@ -135,7 +137,6 @@ List<MusicRecommendation> removeDuplicatesFaster({
   required List<MusicRecommendation> albums,
   required List<MusicRecommendation> savedTracks,
 }) {
-  
   final savedSet = savedTracks
       .map((t) =>
           "${t.artist.toLowerCase().trim()}|${t.song.toLowerCase().trim()}")
@@ -148,15 +149,19 @@ List<MusicRecommendation> removeDuplicatesFaster({
   }).toList();
 }
 
+///  upload to firebase list of preferences
+///  preferences included savedTracks, [arist: Eagles, song: Hotel California]
+///  OpenAi recommendation includes: arist: Eagles, song: Hotel California,
+///  filter recommended list, to remove song already saved, reduce duplication
 
-Future<Object> removeDuplication(
+Future<List<SongRecommended>> removeDuplication(
     List<MusicRecommendation> albums) async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
       : "";
   if (userId.isEmpty) {
     print("User not logged in, cannot upload preferences.");
-    return albums;
+    return [];
   }
 
   final doc = await FirebaseFirestore.instance
@@ -167,7 +172,9 @@ Future<Object> removeDuplication(
       .get();
 
   if (doc.exists) {
-    return EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
+    final docs = EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
+    final removedDuplication = albums.removeWhere((test) => test.song == docs);
+    return removedDuplication;
   } else {
     return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
   }
