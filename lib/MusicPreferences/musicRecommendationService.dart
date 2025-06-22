@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:http/http.dart' as http;
 
 class MusicRecommendationService {
@@ -53,18 +55,15 @@ class MusicRecommendationService {
           .doc('profile')
           .get();
 
-      // if (doc.exists) {
-      //  final thing = EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
-      // for (var i = 0; i < thing.length; i++) {
-      //   if(thing)
-      // }
-      // }
-
       final prompt =
           _buildPrompt(preferencesJson, count, excludeSongs, reviewList);
       final response = await _makeApiRequest(prompt);
 
-      return _parseRecommendations(response);
+      final EnhancedUserPreferences preferences =
+          EnhancedUserPreferences.fromJson(doc.data()!);
+      final albums = _parseRecommendations(response);
+
+      return removeDuplication(albums, preferences);
     } catch (e) {
       throw MusicRecommendationException('Failed to get recommendations: $e');
     }
@@ -77,7 +76,6 @@ class MusicRecommendationService {
       ...excludeSongs ?? [],
     ];
     print('reviews: ${jsonEncode(reviews)}');
-    final List<MusicRecommendation> prefs = pre;
 
     return '''
 You are a music recommendation engine. Based on the user profile, suggest $count songs.

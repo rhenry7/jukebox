@@ -152,8 +152,8 @@ List<MusicRecommendation> removeDuplicatesFaster({
 ///  OpenAi recommendation includes: arist: Eagles, song: Hotel California,
 ///  filter recommended list, to remove song already saved, reduce duplication
 
-Future<List<MusicRecommendation>> removeDuplication(
-    List<MusicRecommendation> albums) async {
+List<MusicRecommendation> removeDuplication(
+    List<MusicRecommendation> albums, EnhancedUserPreferences preferences) {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
       : "";
@@ -161,21 +161,8 @@ Future<List<MusicRecommendation>> removeDuplication(
     print("User not logged in, cannot upload preferences.");
     return [];
   }
-
-  final doc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('musicPreferences')
-      .doc('profile')
-      .get();
-
-  if (doc.exists) {
-    final List<String> savedTracks =
-        EnhancedUserPreferences.fromJson(doc.data()!).savedTracks;
-    albums.removeWhere((album) =>
-        savedTracks.contains('artist: ${album.artist}, song: ${album.song}'));
-    return albums;
-  } else {
-    throw new Error();
-  }
+  final List<String> savedTracks = preferences.savedTracks;
+  albums.removeWhere((album) =>
+      savedTracks.contains('artist: ${album.artist}, song: ${album.song}'));
+  return albums;
 }
