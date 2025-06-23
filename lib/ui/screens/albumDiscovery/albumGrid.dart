@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
@@ -19,8 +18,6 @@ class _AlbumGrid extends State<AlbumGrid> {
     final spotifyAlbums = await fetchPopularAlbums();
     final enrichedAlbums =
         await MusicBrainzService().enrichAlbumsWithMusicBrainz(spotifyAlbums);
-
-    // Do something with enrichedAlbums (e.g., display in UI)
     return enrichedAlbums;
   }
 
@@ -47,44 +44,51 @@ class _AlbumGrid extends State<AlbumGrid> {
               itemCount: snapshot.data!.length, // Number of cards to display
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
-                final albumImages = album.coverArt;
                 final foundImage = album.imageURL;
                 final artists = album.artist;
                 return Card(
-                  elevation: 5, // Shadow elevation for the card
+                  elevation: 2, // Shadow elevation for the card
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10), // Rounded corners
                   ),
                   child: InkWell(
-                    onTap: () {
-                      // Action to perform when the card is tapped
-                      showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (BuildContext context) {
-                            initialChildSize:
-                            0.9; // Takes up 90% of the screen
+                      onTap: () {
+                        // Action to perform when the card is tapped
+                        showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (BuildContext context) {
+                              initialChildSize:
+                              0.9; // Takes up 90% of the screen
 
-                            return MyReviewSheetContentForm(
-                              title: album.title ?? "no album found",
-                              albumImageUrl: foundImage ?? "",
-                              artist: artists ?? "unknown",
-                            );
-                          });
-                    },
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                            10), // Ensure image fits within rounded corners
-                        child: foundImage != null
-                            ? flutter.Image.network(
-                                foundImage,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Center(child: Icon(Icons.error));
-                                },
-                              )
-                            : null),
-                  ),
+                              return MyReviewSheetContentForm(
+                                title: album.title ?? "no album found",
+                                albumImageUrl: foundImage ?? "",
+                                artist: artists ?? "unknown",
+                              );
+                            });
+                      },
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                    10), // Ensure image fits within rounded corners
+                                child: foundImage != null
+                                    ? Image.network(
+                                        foundImage,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return const Center(
+                                              child: Icon(Icons.error));
+                                        },
+                                      )
+                                    : null),
+                            Text(album.genres!.join(", ").toString()),
+                          ],
+                        ),
+                      )),
                 );
               },
             );

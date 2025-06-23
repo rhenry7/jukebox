@@ -10,7 +10,6 @@ class MusicBrainzAlbum {
   String? imageURL;
   final DateTime? releaseDate;
   final List<String>? genres;
-  final String? coverArt;
 
   MusicBrainzAlbum({
     required this.id,
@@ -19,7 +18,6 @@ class MusicBrainzAlbum {
     this.imageURL,
     this.releaseDate,
     this.genres = const [],
-    this.coverArt,
   });
 
   @override
