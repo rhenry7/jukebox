@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_test_project/GIFs/gifs.dart';
+import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
-import 'package:spotify/spotify.dart';
 
 import '../../../Api/apis.dart';
 
@@ -14,18 +14,26 @@ class AlbumGrid extends StatefulWidget {
 }
 
 class _AlbumGrid extends State<AlbumGrid> {
-  late Future<List<Album>> imageUrls;
+  late Future<List<MusicBrainzAlbum>> imageUrls;
+  Future<List<MusicBrainzAlbum>> processAlbums() async {
+    final spotifyAlbums = await fetchPopularAlbums();
+    final enrichedAlbums =
+        MusicBrainzService().enrichAlbumsWithMusicBrainz(spotifyAlbums);
+
+    // Do something with enrichedAlbums (e.g., display in UI)
+    return enrichedAlbums;
+  }
 
   @override
   void initState() {
     super.initState();
-    imageUrls = fetchPopularAlbums();
+    imageUrls = processAlbums();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<Album>>(
+      body: FutureBuilder<List<MusicBrainzAlbum>>(
         future: imageUrls,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
@@ -39,13 +47,9 @@ class _AlbumGrid extends State<AlbumGrid> {
               itemCount: snapshot.data!.length, // Number of cards to display
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
-                final albumImages = album.images;
-                final foundImage =
-                    albumImages!.isNotEmpty ? albumImages.first.url : "";
-                final artists = album.artists?.map((n) => n.name).join("");
-                final albumType = album.albumType.toString();
-
-                // print(album.label);
+                final albumImages = album.coverArt;
+                final foundImage = "";
+                final artists = album.artist;
                 return Card(
                   elevation: 5, // Shadow elevation for the card
                   shape: RoundedRectangleBorder(
@@ -62,7 +66,7 @@ class _AlbumGrid extends State<AlbumGrid> {
                             0.9; // Takes up 90% of the screen
 
                             return MyReviewSheetContentForm(
-                              title: album.name ?? "no album found",
+                              title: album.title ?? "no album found",
                               albumImageUrl: foundImage ?? "",
                               artist: artists ?? "unknown",
                             );

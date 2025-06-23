@@ -22,98 +22,101 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
             borderRadius: BorderRadius.all(Radius.circular(8)),
             side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
           ),
-          color: Colors.black,
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.music_note,
-                    size: 10,
-                    color: Colors.grey,
+          color: Colors.white10,
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.music_note,
+                      size: 10,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              // Expanded content with proper constraints
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 16),
+                // Expanded content with proper constraints
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        album.song,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        album.artist,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        album.album,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                      // Button with size constraints
+                    ],
+                  ),
+                ),
+                Row(
                   children: [
-                    Text(
-                      album.song,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      album.artist,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      album.album,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12),
-                    // Button with size constraints
+                    IconButton(
+                        onPressed: () => {
+                              updateDislikedTracks(album.artist, album.song),
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Preferences Updated!'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              ),
+                              // Navigator.pop(context)
+                            },
+                        icon: const Icon(Ionicons.close_circle_outline,
+                            color: Colors.red)),
+                    IconButton(
+                        onPressed: () => {
+                              updateSavedTracks(album.artist, album.song),
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Recommendations Updated!',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              ),
+                              //Navigator.pop(context)
+                            },
+                        icon: const Icon(Ionicons.add_circle_outline,
+                            color: Colors.green)),
                   ],
                 ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                      onPressed: () => {
-                            updateDislikedTracks(album.artist, album.song),
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Preferences Updated!'),
-                                backgroundColor: Colors.red,
-                              ),
-                            ),
-                            // Navigator.pop(context)
-                          },
-                      icon: const Icon(Ionicons.close_circle_outline,
-                          color: Colors.red)),
-                  IconButton(
-                      onPressed: () => {
-                            updateSavedTracks(album.artist, album.song),
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Recommendations Updated!',
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            ),
-                            //Navigator.pop(context)
-                          },
-                      icon: const Icon(Ionicons.add_circle_outline,
-                          color: Colors.green)),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

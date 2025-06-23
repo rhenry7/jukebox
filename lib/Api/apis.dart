@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_test_project/models/review.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
-import 'package:flutter_test_project/models/user_comments.dart';
-import 'package:spotify/spotify.dart';
 import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:spotify/spotify.dart';
 
 Future<List<Track>> fetchSpotifyTracks() async {
   final credentials = SpotifyApiCredentials(clientId, clientSecret);
@@ -311,6 +311,15 @@ Future<List<Album>> fetchExploreAlbums() async {
   } catch (e) {
     print('Error fetching explore albums: $e');
     return [];
+  }
+}
+
+Future<List<MusicBrainzAlbum>> fetchAlbums({String query = 'year:2025'}) async {
+  try {
+    return MusicBrainzService.searchAlbums(year: 1995);
+  } catch (e) {
+    print('Error fetching albums: $e');
+    return throw new Error();
   }
 }
 
