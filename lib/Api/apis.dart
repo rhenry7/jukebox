@@ -323,7 +323,7 @@ Future<List<MusicBrainzAlbum>> fetchAlbums({String query = 'year:2025'}) async {
   }
 }
 
-Future<List<Album>> fetchPopularAlbums({String query = 'year:2025'}) async {
+Future<List<Album>> fetchPopularAlbums({String query = 'year:2018'}) async {
   try {
     final credentials = SpotifyApiCredentials(clientId, clientSecret);
     final spotify = SpotifyApi(credentials);

@@ -7,6 +7,7 @@ class MusicBrainzAlbum {
   final String id;
   final String title;
   final String artist;
+  String? imageURL;
   final DateTime? releaseDate;
   final List<String>? genres;
   final String? coverArt;
@@ -15,10 +16,16 @@ class MusicBrainzAlbum {
     required this.id,
     required this.title,
     required this.artist,
+    this.imageURL,
     this.releaseDate,
     this.genres = const [],
     this.coverArt,
   });
+
+  @override
+  String toString() {
+    return 'MusicBrainzAlbum(title: $title, artist: $artist, releaseDate: $releaseDate, genres: $genres)';
+  }
 }
 
 class MusicBrainzService {
@@ -160,12 +167,16 @@ class MusicBrainzService {
 
     for (final album in spotifyAlbums) {
       final title = album.name;
+      final imageURL = album.images![0].url;
       final artist =
           album.artists!.isNotEmpty ? album.artists!.first.name.toString() : '';
 
       if (title!.isNotEmpty && artist!.isNotEmpty) {
         final mbAlbum =
             await MusicBrainzService.searchByTitleAndArtist(title, artist);
+        mbAlbum?.imageURL = imageURL;
+        print(imageURL);
+        print(mbAlbum);
         if (mbAlbum != null) {
           enriched.add(mbAlbum);
         } else {
@@ -173,7 +184,7 @@ class MusicBrainzService {
         }
       }
     }
-
+    print(enriched.toString());
     return enriched;
   }
 

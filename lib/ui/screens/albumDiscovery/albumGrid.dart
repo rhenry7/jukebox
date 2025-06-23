@@ -18,7 +18,7 @@ class _AlbumGrid extends State<AlbumGrid> {
   Future<List<MusicBrainzAlbum>> processAlbums() async {
     final spotifyAlbums = await fetchPopularAlbums();
     final enrichedAlbums =
-        MusicBrainzService().enrichAlbumsWithMusicBrainz(spotifyAlbums);
+        await MusicBrainzService().enrichAlbumsWithMusicBrainz(spotifyAlbums);
 
     // Do something with enrichedAlbums (e.g., display in UI)
     return enrichedAlbums;
@@ -48,7 +48,7 @@ class _AlbumGrid extends State<AlbumGrid> {
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
                 final albumImages = album.coverArt;
-                final foundImage = "";
+                final foundImage = album.imageURL;
                 final artists = album.artist;
                 return Card(
                   elevation: 5, // Shadow elevation for the card
