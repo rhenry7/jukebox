@@ -34,61 +34,127 @@ class _AlbumGrid extends State<AlbumGrid> {
         future: imageUrls,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
+            double screenWidth = MediaQuery.of(context).size.width;
+            int columns = 2;
+            double tileWidth =
+                (screenWidth - 3 * 10) / columns; // adjust for padding/gutter
+            double desiredTileHeight = 350;
+            double aspectRatio = tileWidth / desiredTileHeight;
             return GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2, // Number of columns in the grid
-                crossAxisSpacing: 5.0, // Horizontal space between cards
-                mainAxisSpacing: 5.0, // Vertical space between cards
+                crossAxisSpacing: 5, // Horizontal space between cards
+                mainAxisSpacing: 5, // Vertical space between cards
+                childAspectRatio: aspectRatio,
               ),
               padding: const EdgeInsets.all(8.0),
               itemCount: snapshot.data!.length, // Number of cards to display
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
+                final genres = album.genres?.join(", ").toString();
                 final foundImage = album.imageURL;
                 final artists = album.artist;
-                return Card(
-                  elevation: 2, // Shadow elevation for the card
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10), // Rounded corners
-                  ),
-                  child: InkWell(
-                      onTap: () {
-                        // Action to perform when the card is tapped
-                        showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (BuildContext context) {
-                              initialChildSize:
-                              0.9; // Takes up 90% of the screen
+                return SizedBox(
+                  child: Card(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(10), // Rounded corners
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                            child: Card(
+                          elevation: 5, // Shadow elevation for the card
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(10), // Rounded corners
+                          ),
+                          child: InkWell(
+                              onTap: () {
+                                // Action to perform when the card is tapped
+                                showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    builder: (BuildContext context) {
+                                      initialChildSize:
+                                      0.9; // Takes up 90% of the screen
 
-                              return MyReviewSheetContentForm(
-                                title: album.title ?? "no album found",
-                                albumImageUrl: foundImage ?? "",
-                                artist: artists ?? "unknown",
-                              );
-                            });
-                      },
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            ClipRRect(
-                                borderRadius: BorderRadius.circular(
-                                    10), // Ensure image fits within rounded corners
-                                child: foundImage != null
-                                    ? Image.network(
-                                        foundImage,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return const Center(
-                                              child: Icon(Icons.error));
-                                        },
-                                      )
-                                    : null),
-                            Text(album.genres!.join(", ").toString()),
-                          ],
-                        ),
-                      )),
+                                      return MyReviewSheetContentForm(
+                                        title: album.title ?? "no album found",
+                                        albumImageUrl: foundImage ?? "",
+                                        artist: artists ?? "unknown",
+                                      );
+                                    });
+                              },
+                              child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                      10), // Ensure image fits within rounded corners
+                                  child: foundImage != null
+                                      ? Image.network(
+                                          foundImage,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return const Center(
+                                                child: Icon(Icons.error));
+                                          },
+                                        )
+                                      : null)),
+                        )),
+                        Expanded(
+                            child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "${album.title}",
+                                textAlign: TextAlign.left,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black),
+                              ),
+                              Text(
+                                "${album.artist}",
+                                textAlign: TextAlign.left,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.normal,
+                                    color: Colors.black),
+                              ),
+                              Text(
+                                "${album.releaseDate}",
+                                textAlign: TextAlign.left,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.normal,
+                                    color: Colors.black),
+                              ),
+                              Text(
+                                "${genres}",
+                                textAlign: TextAlign.left,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.normal,
+                                    color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
                 );
               },
             );
