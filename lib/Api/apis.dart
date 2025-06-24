@@ -323,6 +323,7 @@ Future<List<MusicBrainzAlbum>> fetchAlbums({String query = 'year:2025'}) async {
   }
 }
 
+// example of search by artist:  "remaster%2520track%3ADoxy%2520artist%3AMiles%2520Davis"
 Future<List<Album>> fetchPopularAlbums({String query = 'year:2019'}) async {
   try {
     final credentials = SpotifyApiCredentials(clientId, clientSecret);
