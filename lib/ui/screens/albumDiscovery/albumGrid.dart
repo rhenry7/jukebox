@@ -37,10 +37,10 @@ class _AlbumGrid extends State<AlbumGrid> {
             return GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2, // Number of columns in the grid
-                crossAxisSpacing: 1, // Horizontal space between cards
-                mainAxisSpacing: 1, // Vertical space between cards
+                crossAxisSpacing: 1,
+                mainAxisSpacing: 1,
+                childAspectRatio: 3 / 4, // Width / Height ratio
               ),
-              padding: const EdgeInsets.all(8.0),
               itemCount: snapshot.data!.length, // Number of cards to display
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
@@ -49,20 +49,18 @@ class _AlbumGrid extends State<AlbumGrid> {
                 final artists = album.artist;
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Card(
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(10), // Rounded corners
-                    ),
+                  child: SingleChildScrollView(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Expanded(
-                              child: Card(
-                            elevation: 5, // Shadow elevation for the card
+                        Card(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(10), // Rounded corners
+                          ),
+                          child: Card(
+                            elevation: 1, // Shadow elevation for the card
                             shape: RoundedRectangleBorder(
                               borderRadius:
                                   BorderRadius.circular(10), // Rounded corners
@@ -99,9 +97,31 @@ class _AlbumGrid extends State<AlbumGrid> {
                                             },
                                           )
                                         : null)),
-                          )),
+                          ),
                         ),
-                        Text("text")
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(top: 8.0, left: 10.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    album.title,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  Text(
+                                    album.artist,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
