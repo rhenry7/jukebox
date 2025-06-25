@@ -1,5 +1,4 @@
 
-
 Recommended folder structure: 
 
 lib/

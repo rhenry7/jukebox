@@ -31,6 +31,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
   double ratingScore = 0;
   final Color background = Colors.white10;
   final TextEditingController reviewController = TextEditingController();
+  final TextEditingController searchParams = TextEditingController();
 
   @override
   void initState() {
@@ -169,7 +170,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
               Row(
                 children: [
                   Text(
-                    auth.currentUser?.displayName ?? "Guest",
+                    auth.currentUser?.displayName ?? "NotSignedIn",
                     style: const TextStyle(color: Colors.white),
                   ),
                   const Gap(8),
@@ -182,155 +183,178 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
             ],
           ),
 
-          const Gap(16),
-
-          // Album info section
-          Row(
-            children: [
-              // Album image
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[800],
-                ),
-                child: widget.albumImageUrl.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          widget.albumImageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.music_note, color: Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.music_note, color: Colors.white),
-              ),
-
-              const Gap(16),
-
-              // Title and artist
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          widget.albumImageUrl.isEmpty
+              ? SearchBar(
+                  leading: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(Icons.search_rounded),
+                  ),
+                  hintText: 'search',
+                  //hintStyle: MaterialSTatePrTextStyle(color: Colors.white10),
+                  backgroundColor: WidgetStateProperty.all(Colors.white10),
+                  padding: WidgetStateProperty.all(
+                      EdgeInsets.symmetric(horizontal: 16.0)),
+                )
+              : Column(
                   children: [
-                    Text(
-                      widget.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    const Gap(16),
+                    // Album info section
+                    Row(
+                      children: [
+                        // Album image
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.grey[800],
+                          ),
+                          child: widget.albumImageUrl.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    widget.albumImageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(Icons.music_note,
+                                                color: Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.music_note,
+                                  color: Colors.white),
+                        ),
+
+                        const Gap(16),
+
+                        // Title and artist
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Gap(4),
+                              Text(
+                                widget.artist,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const Gap(4),
-                    Text(
-                      widget.artist,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+
+                    const Gap(24),
+
+                    // Rating and like section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Rating stars
+                        RatingBar(
+                          initialRating: ratingScore,
+                          minRating: 0,
+                          maxRating: 5,
+                          allowHalfRating: true,
+                          itemSize: 32,
+                          itemPadding:
+                              const EdgeInsets.symmetric(horizontal: 4.0),
+                          ratingWidget: RatingWidget(
+                            full: const Icon(Icons.star, color: Colors.amber),
+                            empty: const Icon(Icons.star_border,
+                                color: Colors.grey),
+                            half: const Icon(Icons.star_half,
+                                color: Colors.amber),
+                          ),
+                          onRatingUpdate: (rating) {
+                            setState(() {
+                              ratingScore = rating;
+                            });
+                          },
+                        ),
+
+                        // Like button
+                        IconButton(
+                          onPressed: toggleHeart,
+                          icon: Icon(
+                            liked ? Ionicons.heart : Ionicons.heart_outline,
+                            color: liked ? Colors.red : Colors.grey,
+                            size: 28,
+                          ),
+                        ),
+                      ],
                     ),
+
+                    const Gap(24),
+
+                    // Review text field
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 20.0),
+                      child: SizedBox(
+                        width: 500.0,
+                        height: 300.0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[700]!),
+                          ),
+                          child: TextField(
+                            controller: reviewController,
+                            maxLines: null,
+                            expands: true,
+                            textAlignVertical: TextAlignVertical.top,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'What did you think?',
+                              hintStyle: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Submit button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: handleSubmit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Save Review',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const Gap(16),
                   ],
                 ),
-              ),
-            ],
-          ),
-
-          const Gap(24),
-
-          // Rating and like section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Rating stars
-              RatingBar(
-                initialRating: ratingScore,
-                minRating: 0,
-                maxRating: 5,
-                allowHalfRating: true,
-                itemSize: 32,
-                itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-                ratingWidget: RatingWidget(
-                  full: const Icon(Icons.star, color: Colors.amber),
-                  empty: const Icon(Icons.star_border, color: Colors.grey),
-                  half: const Icon(Icons.star_half, color: Colors.amber),
-                ),
-                onRatingUpdate: (rating) {
-                  setState(() {
-                    ratingScore = rating;
-                  });
-                },
-              ),
-
-              // Like button
-              IconButton(
-                onPressed: toggleHeart,
-                icon: Icon(
-                  liked ? Ionicons.heart : Ionicons.heart_outline,
-                  color: liked ? Colors.red : Colors.grey,
-                  size: 28,
-                ),
-              ),
-            ],
-          ),
-
-          const Gap(24),
-
-          // Review text field
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[900],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[700]!),
-              ),
-              child: TextField(
-                controller: reviewController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'What did you think?',
-                  hintStyle: TextStyle(color: Colors.grey),
-                ),
-              ),
-            ),
-          ),
-
-          const Gap(24),
-
-          // Submit button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: handleSubmit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Save Review',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-          const Gap(16),
         ],
       ),
     );
