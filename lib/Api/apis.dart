@@ -319,7 +319,7 @@ Future<List<MusicBrainzAlbum>> fetchAlbums({String query = 'year:2025'}) async {
     return MusicBrainzService.searchAlbums(year: 1995);
   } catch (e) {
     print('Error fetching albums: $e');
-    return throw new Error();
+    return throw Error();
   }
 }
 

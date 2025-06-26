@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart' as flutter;
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/ui/screens/feed/comment_body.dart';
 import 'package:flutter_test_project/models/review.dart';
-import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:flutter_test_project/Api/apis.dart' as myApi;
 import 'package:flutter_test_project/Api/apis.dart';
-import 'package:flutter_test_project/ui/screens/feed/subComments.dart';
-import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
-import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart';
-import '../../../utils/helpers.dart';
 
 class CommentWidget extends StatefulWidget {
   const CommentWidget({super.key});

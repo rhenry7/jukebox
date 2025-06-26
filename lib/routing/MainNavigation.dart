@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Home/categoryTapBar.dart';
-import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/ui/screens/albumDiscovery/albumGrid.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';

@@ -79,7 +79,7 @@ Future<void> updateSavedTracks(String artist, String title) async {
     print("User not logged in, cannot upload preferences.");
     return;
   }
-  final String saved = "arist: ${artist}, song: ${title}";
+  final String saved = "arist: $artist, song: $title";
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -99,7 +99,7 @@ Future<void> updateDislikedTracks(String artist, String title) async {
     print("User not logged in, cannot upload preferences.");
     return;
   }
-  final String disliked = "arist: ${artist}, song: ${title}";
+  final String disliked = "arist: $artist, song: $title";
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -119,7 +119,7 @@ Future<void> updateRemovePreferences(String artist, String title) async {
     print("User not logged in, cannot upload preferences.");
     return;
   }
-  final String saved = "arist: ${artist}, song: ${title}";
+  final String saved = "arist: $artist, song: $title";
 
   await FirebaseFirestore.instance
       .collection('users')

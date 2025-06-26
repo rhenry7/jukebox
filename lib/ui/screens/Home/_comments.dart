@@ -148,7 +148,7 @@ class FriendsReviewList extends StatelessWidget {
         return AlertDialog(
           title: const Text(
             'Review Options',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               color: Colors.white,
             ),
@@ -231,14 +231,14 @@ class FriendsReviewList extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text(
           'Delete Review',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             color: Colors.white,
           ),
         ),
         content: const Text(
           'Are you sure you want to delete this review? This action cannot be undone.',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             color: Colors.white,
           ),

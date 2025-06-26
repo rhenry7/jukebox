@@ -1,9 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
 import 'package:flutter_test_project/models/review.dart';
-import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:flutter_test_project/Api/apis.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -62,7 +60,7 @@ class ProfileView extends State<ProfilePage> {
                 } else if (snapshot.hasError) {
                   return Image.asset('lib/assets/images/discoball_loading.png');
                 } else {
-                  return Text('');
+                  return const Text('');
                 }
               })),
         ),

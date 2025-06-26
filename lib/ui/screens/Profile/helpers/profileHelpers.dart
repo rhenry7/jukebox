@@ -1,7 +1,6 @@
 // Function that uses switch to return a Widget based on the string input
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';

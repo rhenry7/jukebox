@@ -1,16 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:flutter_test_project/GIFs/gifs.dart';
-import 'package:flutter_test_project/ui/screens/Profile/auth/following/follow.dart';
 import 'package:flutter_test_project/models/review.dart';
-import 'package:flutter_test_project/models/user_comments.dart';
 import 'package:flutter_test_project/Api/apis.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments_responding_to_post.dart';
 import 'package:flutter_test_project/ui/screens/feed/user_profile_interaction_dialog.dart';
 import 'package:gap/gap.dart';
-import 'package:ionicons/ionicons.dart';
-import 'package:popover/popover.dart';
 
 class SubComments extends StatefulWidget {
   final String title;

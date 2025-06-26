@@ -1,15 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
-import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
-import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/helpers/recommendationGenerator.dart';
-import 'package:flutter_test_project/ui/screens/albumDiscovery/albumGrid.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:ionicons/ionicons.dart';
-import 'ui/screens/Home/categoryTapBar.dart';
-import 'ui/screens/addReview/reviewSheetContentForm.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

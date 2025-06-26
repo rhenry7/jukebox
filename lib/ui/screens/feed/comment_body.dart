@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
@@ -179,13 +178,13 @@ class CommentsBody extends StatelessWidget {
                         // LIKES
                         _buildActionButton(
                           icon: Ionicons.heart_outline,
-                          count: review.likes?.toString() ?? '0',
+                          count: review.likes.toString() ?? '0',
                           onPressed: onStateChanged,
                         ),
                         // REPLIES
                         _buildActionButton(
                           icon: Ionicons.chatbubble_outline,
-                          count: review.replies?.toString() ?? '0',
+                          count: review.replies.toString() ?? '0',
                           onPressed: () {
                             Navigator.push(
                                 context,
@@ -204,13 +203,13 @@ class CommentsBody extends StatelessWidget {
                         // REPOSTS
                         _buildActionButton(
                           icon: Ionicons.repeat,
-                          count: review.reposts?.toString() ?? '0',
+                          count: review.reposts.toString() ?? '0',
                           onPressed: onStateChanged,
                         ),
                         // SHARES
                         _buildActionButton(
                           icon: Ionicons.paper_plane_outline,
-                          count: review.likes?.toString() ?? '0',
+                          count: review.likes.toString() ?? '0',
                           onPressed: onStateChanged,
                         ),
                       ],

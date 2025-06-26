@@ -5,7 +5,6 @@ import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.d
 import 'package:gap/gap.dart';
 import 'package:ionicons/ionicons.dart';
 
-import '../../../main.dart';
 
 class ProfileSignUp extends StatefulWidget {
   const ProfileSignUp({super.key});

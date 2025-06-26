@@ -24,6 +24,31 @@ class MusicBrainzAlbum {
   String toString() {
     return 'MusicBrainzAlbum(title: $title, artist: $artist, releaseDate: $releaseDate, genres: $genres)';
   }
+
+  factory MusicBrainzAlbum.fromJson(Map<String, dynamic> json) {
+    return MusicBrainzAlbum(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      artist: json['artist'] as String,
+      imageURL: json['imageURL'] as String?,
+      releaseDate: json['releaseDate'] != null
+          ? DateTime.tryParse(json['releaseDate'])
+          : null,
+      genres:
+          (json['genres'] as List<dynamic>?)?.map((e) => e as String).toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'artist': artist,
+      'imageURL': imageURL,
+      'releaseDate': releaseDate?.toIso8601String(),
+      'genres': genres,
+    };
+  }
 }
 
 class MusicBrainzService {
@@ -153,7 +178,7 @@ class MusicBrainzService {
         print('Parsing error: $e');
       }
     } else {
-      print('MusicBrainz search failed: ${response.statusCode}');
+      //print('MusicBrainz search failed: ${response.statusCode}');
     }
 
     return null;
@@ -169,12 +194,12 @@ class MusicBrainzService {
       final artist =
           album.artists!.isNotEmpty ? album.artists!.first.name.toString() : '';
 
-      if (title!.isNotEmpty && artist!.isNotEmpty) {
+      if (title!.isNotEmpty && artist.isNotEmpty) {
         final mbAlbum =
             await MusicBrainzService.searchByTitleAndArtist(title, artist);
         mbAlbum?.imageURL = imageURL;
-        print(imageURL);
-        print(mbAlbum);
+        // print(imageURL);
+        // print(mbAlbum);
         if (mbAlbum != null) {
           enriched.add(mbAlbum);
         } else {
@@ -182,7 +207,7 @@ class MusicBrainzService {
         }
       }
     }
-    print(enriched.toString());
+    //print(enriched.toString());
     return enriched;
   }
 
