@@ -6,6 +6,7 @@ import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/ui/screens/Profile/auth/authService.dart';
 import 'package:flutter_test_project/ui/screens/Profile/profilePage.dart';
+import 'package:flutter_test_project/ui/screens/Profile/user_profile_summary.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 
 Future<Map<String, dynamic>> getCurrentUser() async {
@@ -54,7 +55,7 @@ Widget profileRoute(String route) {
     default:
       if (auth.currentUser != null) {
         print("user signed in");
-        return const Scaffold(body: Center(child: Text("coming soon")));
+        return const UserProfileSummary();
       } else {
         print("user NOT signed in");
         return const SignInScreen();

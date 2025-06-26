@@ -38,7 +38,6 @@ Future<List<MusicBrainzAlbum>> processAlbums() async {
       final spotifyAlbums = await fetchPopularAlbums();
       final enrichedAlbums =
           await MusicBrainzService().enrichAlbumsWithMusicBrainz(spotifyAlbums);
-
       // Cache the results
       final List<String> albumJsonList =
           enrichedAlbums.map((album) => jsonEncode(album.toJson())).toList();
@@ -53,19 +52,19 @@ Future<List<MusicBrainzAlbum>> processAlbums() async {
 }
 
 class _AlbumGrid extends State<AlbumGrid> {
-  late Future<List<MusicBrainzAlbum>> imageUrls;
+  late Future<List<MusicBrainzAlbum>> albums;
   @override
   void initState() {
     super.initState();
     print("initState called"); // Add this line
-    imageUrls = processAlbums();
+    albums = processAlbums();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder<List<MusicBrainzAlbum>>(
-        future: imageUrls,
+        future: albums,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return GridView.builder(
