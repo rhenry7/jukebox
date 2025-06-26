@@ -306,7 +306,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                       padding: const EdgeInsets.only(bottom: 20.0),
                       child: SizedBox(
                         width: 500.0,
-                        height: 300.0,
+                        height: 400.0,
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -314,16 +314,19 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey[700]!),
                           ),
-                          child: TextField(
-                            controller: reviewController,
-                            maxLines: null,
-                            expands: true,
-                            textAlignVertical: TextAlignVertical.top,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'What did you think?',
-                              hintStyle: TextStyle(color: Colors.grey),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: TextField(
+                              controller: reviewController,
+                              maxLines: null,
+                              expands: true,
+                              textAlignVertical: TextAlignVertical.top,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'What did you think?',
+                                hintStyle: TextStyle(color: Colors.grey),
+                              ),
                             ),
                           ),
                         ),
