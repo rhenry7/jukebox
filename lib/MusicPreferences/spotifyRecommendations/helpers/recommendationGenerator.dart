@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Function to sort and get top genres
 class RecommendedAlbumScreen extends StatefulWidget {
@@ -24,29 +27,6 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
   @override
   void initState() {
     super.initState();
-    _loadRecommendations();
-  }
-
-  void _loadRecommendations() {
-    _fetchUserPreferences().then((preferences) {
-      setState(() {
-        _albumsFuture =
-            MusicRecommendationService.getRecommendations(preferences.toJson());
-        _isInitialized = true;
-      });
-    }).catchError((error) {
-      print("Error fetching user preferences: $error");
-      setState(() {
-        _albumsFuture = Future.value([]);
-        _isInitialized = true;
-      });
-    });
-  }
-
-  void _refreshRecommendations() {
-    setState(() {
-      _isInitialized = false;
-    });
     _loadRecommendations();
   }
 
@@ -74,6 +54,87 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
     }
   }
 
+  Future<List<MusicRecommendation>> processRecommendations() async {
+    try {
+      final preferences = await _fetchUserPreferences();
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? recsJsonList = prefs.getStringList('cached_recs');
+      if (recsJsonList != null && recsJsonList.isNotEmpty) {
+        print("pull from cached");
+        return recsJsonList
+            .map((jsonStr) {
+              try {
+                return MusicRecommendation.fromJson(jsonDecode(jsonStr));
+              } catch (e) {
+                print("Error parsing cached music recommendations: $e");
+                return null;
+              }
+            })
+            .whereType<MusicRecommendation>()
+            .toList();
+      } else {
+        print("Fetching new recommendations");
+        final List<MusicRecommendation> recommendations =
+            await MusicRecommendationService.getRecommendations(
+                preferences.toJson());
+        final newRecsJsonList =
+            recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
+        await prefs.setStringList('cached_recs', newRecsJsonList);
+        return recommendations;
+      }
+    } catch (error) {
+      print("Error fetching user preferences and or recommendations: $error");
+      rethrow;
+    }
+  }
+
+  Future<List<MusicRecommendation>> fetchNewRecommendations() async {
+    try {
+      final preferences = await _fetchUserPreferences();
+      final prefs = await SharedPreferences.getInstance();
+      final List<MusicRecommendation> recommendations =
+          await MusicRecommendationService.getRecommendations(
+              preferences.toJson());
+      final newRecsJsonList =
+          recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
+      await prefs.setStringList('cached_recs', newRecsJsonList);
+      return recommendations;
+    } catch (error) {
+      print("Error in fetching new recommendations: $error");
+      return [];
+    }
+  }
+
+  void _loadRecommendations() async {
+    try {
+      setState(() {
+        _albumsFuture = processRecommendations();
+        _isInitialized = true;
+      });
+    } catch (error) {
+      print("Error fetching user preferences: $error");
+      setState(() {
+        _albumsFuture = Future.value([]);
+        _isInitialized = true;
+      });
+    }
+  }
+
+  void _refreshRecommendations() async {
+    try {
+      setState(() {
+        _albumsFuture = fetchNewRecommendations();
+        _isInitialized = true;
+      });
+    } catch (error) {
+      print("Error fetching user recs: $error");
+      setState(() {
+        _albumsFuture = Future.value([]);
+        _isInitialized = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,9 +148,9 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                         child: Text('Failed to load recommendations'))
                     : RefreshIndicator(
                         onRefresh: () async {
-                          _refreshRecommendations();
-                          // Wait for recommendations to reload
-                          await _albumsFuture;
+                          // _refreshRecommendations();
+                          // // Wait for recommendations to reload
+                          // await _albumsFuture;
                         },
                         child: FutureBuilder<List<MusicRecommendation>>(
                           future: _albumsFuture,
@@ -101,6 +162,13 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                   Expanded(
                                     child: TrackRecommendationFromPreferences(
                                         albums: snapshot.data!),
+                                  ),
+                                  IconButton(
+                                    iconSize: 24,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                    onPressed: () {
+                                      _refreshRecommendations();
+                                    },
                                   ),
                                 ],
                               );
