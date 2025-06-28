@@ -21,12 +21,14 @@ class UserProfileSummary extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // BACK BUTTON
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   BackButton(),
                 ],
               ),
+              // CARD CONTENT
               Padding(
                 padding: EdgeInsets.only(top: 10.0),
                 child: Card(
@@ -40,14 +42,16 @@ class UserProfileSummary extends StatelessWidget {
                             Padding(
                               padding: EdgeInsets.all(10.0),
                               child: Center(
+                                  child: Card(
+                                color: Colors.black26,
                                 child: Icon(
-                                  Ionicons.location_outline,
+                                  Ionicons.person_circle_outline,
                                   color: Colors.pink,
                                   size: 50.0,
                                   semanticLabel:
                                       'Text to announce in accessibility modes',
                                 ),
-                              ),
+                              )),
                             ),
                             Padding(
                                 padding: EdgeInsets.all(8.0),

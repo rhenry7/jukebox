@@ -25,6 +25,7 @@ class MusicBrainzAlbum {
     return 'MusicBrainzAlbum(title: $title, artist: $artist, releaseDate: $releaseDate, genres: $genres)';
   }
 
+// todo: use package to make this portion easier
   factory MusicBrainzAlbum.fromJson(Map<String, dynamic> json) {
     return MusicBrainzAlbum(
       id: json['id'] as String,
