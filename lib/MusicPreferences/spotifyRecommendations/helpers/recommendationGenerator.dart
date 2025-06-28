@@ -163,12 +163,25 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                     child: TrackRecommendationFromPreferences(
                                         albums: snapshot.data!),
                                   ),
-                                  IconButton(
-                                    iconSize: 24,
-                                    icon: const Icon(Icons.refresh_rounded),
-                                    onPressed: () {
-                                      _refreshRecommendations();
-                                    },
+                                  Padding(
+                                    padding: const EdgeInsets.all(15.0),
+                                    child: SizedBox(
+                                        width: 300,
+                                        child: Padding(
+                                          padding:
+                                              const EdgeInsets.only(left: 10.0),
+                                          child: FilledButton.tonalIcon(
+                                              style: ButtonStyle(
+                                                backgroundColor:
+                                                    WidgetStateProperty.all(
+                                                        Colors.white12),
+                                              ),
+                                              onPressed:
+                                                  _refreshRecommendations,
+                                              icon: const Icon(Icons.refresh,
+                                                  color: Colors.white),
+                                              label: Text("")),
+                                        )),
                                   ),
                                 ],
                               );
