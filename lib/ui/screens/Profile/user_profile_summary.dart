@@ -1,7 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:ionicons/ionicons.dart';
 
-class UserProfileSummary extends StatelessWidget {
+class UserProfileSummary extends StatefulWidget {
   const UserProfileSummary({
     super.key,
     this.color = const Color(0xFF2DBD3A),
@@ -11,6 +14,53 @@ class UserProfileSummary extends StatelessWidget {
   final Color color;
   final Widget? child;
 
+  @override
+  State<UserProfileSummary> createState() => _UserProfileSummaryState();
+}
+
+// Future<Review> fetchReviews() async {
+//   final String userId = FirebaseAuth.instance.currentUser != null
+//       ? FirebaseAuth.instance.currentUser!.uid
+//       : "";
+//   if (userId.isEmpty) {
+//     print("User not logged in, cannot fetch reviews.");
+//     return [];
+//   }
+//   final doc = await FirebaseFirestore.instance
+//       .collection('users')
+//       .doc(userId)
+//       .collection('reviews')
+//       .orderBy('date', descending: true)
+//       .snapshots();
+//
+//   late List<Review> reviews = [];
+// }
+
+Future<EnhancedUserPreferences> _fetchUserPreferences() async {
+  final String userId = FirebaseAuth.instance.currentUser != null
+      ? FirebaseAuth.instance.currentUser!.uid
+      : "";
+
+  if (userId.isEmpty) {
+    print("User not logged in, cannot fetch preferences.");
+    return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
+  }
+
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('musicPreferences')
+      .doc('profile')
+      .get();
+
+  if (doc.exists) {
+    return EnhancedUserPreferences.fromJson(doc.data()!);
+  } else {
+    return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
+  }
+}
+
+class _UserProfileSummaryState extends State<UserProfileSummary> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
@@ -36,20 +86,24 @@ class UserProfileSummary extends StatelessWidget {
                     width: 400,
                     height: 200,
                     child: Card(
-                        color: Colors.amber,
+                        color: Colors.white38,
                         child: Row(
                           children: [
                             Padding(
                               padding: EdgeInsets.all(10.0),
                               child: Center(
-                                  child: Card(
-                                color: Colors.black26,
-                                child: Icon(
-                                  Ionicons.person_circle_outline,
-                                  color: Colors.pink,
-                                  size: 50.0,
-                                  semanticLabel:
-                                      'Text to announce in accessibility modes',
+                                  child: SizedBox(
+                                width: 100,
+                                height: 100,
+                                child: Card(
+                                  color: Colors.black26,
+                                  child: Icon(
+                                    Ionicons.musical_notes_outline,
+                                    color: Colors.white,
+                                    size: 50.0,
+                                    semanticLabel:
+                                        'Text to announce in accessibility modes',
+                                  ),
                                 ),
                               )),
                             ),
