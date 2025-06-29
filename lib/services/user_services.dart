@@ -1,5 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_models.dart';
 
@@ -34,7 +34,7 @@ class UserServices {
       } else {
         return UserReviewInfo(
           displayName: 'Undefined',
-          joinDate: 'Undefined',
+          joinDate: null,
           reviewsCount: 0,
           id: '',
         );
@@ -43,7 +43,7 @@ class UserServices {
       print('Error fetching user info: $e');
       return UserReviewInfo(
         displayName: 'Undefined',
-        joinDate: 'Undefined',
+        joinDate: null,
         reviewsCount: 0,
         id: '',
       );
@@ -57,7 +57,7 @@ class UserServices {
         print('No user is currently signed in.');
         return UserReviewInfo(
           displayName: 'Undefined',
-          joinDate: 'Undefined',
+          joinDate: null,
           reviewsCount: 0,
           id: '',
         );
@@ -80,7 +80,7 @@ class UserServices {
 
       return UserReviewInfo(
         displayName: userDoc.data()?['displayName'] ?? '',
-        joinDate: userDoc.data()?['joinDate'] ?? '',
+        joinDate: userDoc.data()?['joinDate'].toDate() ?? null,
         reviewsCount: reviews.length,
         id: user.uid,
         // use avatar image URL if available
@@ -89,7 +89,7 @@ class UserServices {
       print('Error fetching current user info: $e');
       return UserReviewInfo(
         displayName: 'Undefined',
-        joinDate: 'Undefined',
+        joinDate: null,
         reviewsCount: 0,
         id: '',
       );

@@ -1,6 +1,6 @@
 class UserReviewInfo {
   final String displayName;
-  final String joinDate;
+  final DateTime? joinDate;
   final String id;
   final int reviewsCount;
 
@@ -38,4 +38,3 @@ class UserReviewInfo {
     };
   }
 }
-

@@ -1,7 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
+import 'package:flutter_test_project/models/user_models.dart';
+import 'package:flutter_test_project/services/user_services.dart';
 import 'package:ionicons/ionicons.dart';
 
 class UserProfileSummary extends StatefulWidget {
@@ -18,119 +17,185 @@ class UserProfileSummary extends StatefulWidget {
   State<UserProfileSummary> createState() => _UserProfileSummaryState();
 }
 
-// Future<Review> fetchReviews() async {
-//   final String userId = FirebaseAuth.instance.currentUser != null
-//       ? FirebaseAuth.instance.currentUser!.uid
-//       : "";
-//   if (userId.isEmpty) {
-//     print("User not logged in, cannot fetch reviews.");
-//     return [];
-//   }
-//   final doc = await FirebaseFirestore.instance
-//       .collection('users')
-//       .doc(userId)
-//       .collection('reviews')
-//       .orderBy('date', descending: true)
-//       .snapshots();
-//
-//   late List<Review> reviews = [];
-// }
-
-Future<EnhancedUserPreferences> _fetchUserPreferences() async {
-  final String userId = FirebaseAuth.instance.currentUser != null
-      ? FirebaseAuth.instance.currentUser!.uid
-      : "";
-
-  if (userId.isEmpty) {
-    print("User not logged in, cannot fetch preferences.");
-    return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
-  }
-
-  final doc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('musicPreferences')
-      .doc('profile')
-      .get();
-
-  if (doc.exists) {
-    return EnhancedUserPreferences.fromJson(doc.data()!);
-  } else {
-    return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
-  }
-}
-
 class _UserProfileSummaryState extends State<UserProfileSummary> {
+  late final Future<UserReviewInfo> userReviewInfo;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    userReviewInfo = UserServices().fetchCurrentUserInfo();
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
-        child: Padding(
-          padding: EdgeInsets.only(top: 100.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // BACK BUTTON
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  BackButton(),
-                ],
-              ),
-              // CARD CONTENT
-              Padding(
-                padding: EdgeInsets.only(top: 10.0),
-                child: Card(
-                  child: SizedBox(
-                    width: 400,
-                    height: 200,
-                    child: Card(
-                        color: Colors.white38,
-                        child: Row(
+          child: FutureBuilder<UserReviewInfo>(
+              future: userReviewInfo,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final UserReviewInfo? userInfo = snapshot.data;
+                  print(snapshot.data?.displayName);
+                  if (userInfo == null) {
+                    return const Center(child: Text("no data from user info"));
+                  }
+                  return Padding(
+                    padding: EdgeInsets.only(top: 100.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // BACK BUTTON
+                        const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding: EdgeInsets.all(10.0),
-                              child: Center(
-                                  child: SizedBox(
-                                width: 100,
-                                height: 100,
-                                child: Card(
-                                  color: Colors.black26,
-                                  child: Icon(
-                                    Ionicons.musical_notes_outline,
-                                    color: Colors.white,
-                                    size: 50.0,
-                                    semanticLabel:
-                                        'Text to announce in accessibility modes',
-                                  ),
-                                ),
-                              )),
-                            ),
-                            Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 200,
-                                    child: Text(
-                                      'By this way you will see this text break into maximum of three lines in real time. After that it will continue as ellipsis',
-                                      textAlign: TextAlign.left,
-                                      softWrap: true,
-                                      maxLines: 8,
-                                      overflow: TextOverflow
-                                          .ellipsis, // this bound is important !!
-                                    ),
-                                  ),
-                                )),
+                            BackButton(),
                           ],
-                        )),
-                  ),
-                ),
-              )
-            ],
-          ),
-        ),
-      ),
+                        ),
+                        // CARD CONTENT
+                        Padding(
+                            padding: EdgeInsets.only(top: 10.0),
+                            child: Card(
+                              child: SizedBox(
+                                child: SizedBox(
+                                    width: 400,
+                                    height: 200,
+                                    child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Card(
+                                              color: Colors.grey[800],
+                                              child: Row(
+                                                children: [
+                                                  const Padding(
+                                                    padding:
+                                                        EdgeInsets.all(10.0),
+                                                    child: Center(
+                                                        child: SizedBox(
+                                                      width: 100,
+                                                      height: 100,
+                                                      child: Card(
+                                                        color: Colors.black26,
+                                                        child: Icon(
+                                                          Ionicons
+                                                              .person_circle_outline,
+                                                          color: Colors.white,
+                                                          size: 50.0,
+                                                          semanticLabel:
+                                                              'Text to announce in accessibility modes',
+                                                        ),
+                                                      ),
+                                                    )),
+                                                  ),
+                                                  Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Padding(
+                                                          padding:
+                                                              EdgeInsets.all(
+                                                                  8.0),
+                                                          child: Center(
+                                                            child: SizedBox(
+                                                              width: 200,
+                                                              child: Text(
+                                                                userInfo
+                                                                    .displayName,
+                                                                style:
+                                                                    const TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontSize: 28,
+                                                                ),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .left,
+                                                                softWrap: true,
+                                                                maxLines: 8,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis, // this bound is important !!
+                                                              ),
+                                                            ),
+                                                          )),
+                                                      Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  left: 8.0,
+                                                                  right: 8.0),
+                                                          child: Center(
+                                                            child: SizedBox(
+                                                              width: 200,
+                                                              child: Text(
+                                                                "You already have ${userInfo.reviewsCount.toString()} reviews!",
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300]),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .left,
+                                                                softWrap: true,
+                                                                maxLines: 8,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis, // this bound is important !!
+                                                              ),
+                                                            ),
+                                                          )),
+                                                      Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 8.0,
+                                                                  right: 8.0),
+                                                          child: Center(
+                                                            child: SizedBox(
+                                                              width: 200,
+                                                              child: Text(
+                                                                "juxeboxxn since ${userInfo.joinDate?.year.toString()}",
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300]),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .left,
+                                                                softWrap: true,
+                                                                maxLines: 8,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis, // this bound is important !!
+                                                              ),
+                                                            ),
+                                                          ))
+                                                    ],
+                                                  ),
+                                                ],
+                                              )),
+                                        ])),
+                              ),
+                            ))
+                      ],
+                    ),
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else {
+                  return const Center(child: CircularProgressIndicator());
+                }
+              })),
     );
   }
 }
