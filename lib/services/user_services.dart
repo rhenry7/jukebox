@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_models.dart';
+import 'package:flutter_test_project/ui/screens/Home/_comments.dart';
 
 class UserServices {
   // The difference between the two is that one returns a single instance, based on userId, and the
@@ -27,7 +28,7 @@ class UserServices {
         return UserReviewInfo(
           displayName: userDoc.data()?['displayName'] ?? '',
           joinDate: userDoc.data()?['joinDate'] ?? '',
-          reviewsCount: reviews.length,
+          reviews: reviews,
           id: '',
           // use avatar imaage URL
         );
@@ -35,7 +36,7 @@ class UserServices {
         return UserReviewInfo(
           displayName: 'Undefined',
           joinDate: null,
-          reviewsCount: 0,
+          reviews: [],
           id: '',
         );
       }
@@ -44,7 +45,7 @@ class UserServices {
       return UserReviewInfo(
         displayName: 'Undefined',
         joinDate: null,
-        reviewsCount: 0,
+        reviews: [],
         id: '',
       );
     }
@@ -58,20 +59,23 @@ class UserServices {
         return UserReviewInfo(
           displayName: 'Undefined',
           joinDate: null,
-          reviewsCount: 0,
+          reviews: [],
           id: '',
         );
       }
 
-      final List<Review> reviews = await FirebaseFirestore.instance
+      final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('reviews')
           .orderBy('date', descending: true)
-          .get()
-          .then((snapshot) => snapshot.docs
-              .map((doc) => Review.fromFirestore(doc.data()))
-              .toList());
+          .get();
+
+      final List<ReviewWithDocId> reviewsWithDocIds = snapshot.docs.map((doc) {
+        final review = Review.fromFirestore(doc.data());
+        final docId = doc.id;
+        return ReviewWithDocId(review: review, docId: docId);
+      }).toList();
 
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -80,8 +84,8 @@ class UserServices {
 
       return UserReviewInfo(
         displayName: userDoc.data()?['displayName'] ?? '',
-        joinDate: userDoc.data()?['joinDate'].toDate() ?? null,
-        reviewsCount: reviews.length,
+        joinDate: userDoc.data()?['joinDate']?.toDate(),
+        reviews: reviewsWithDocIds.map((r) => r.review).toList(),
         id: user.uid,
         // use avatar image URL if available
       );
@@ -90,7 +94,7 @@ class UserServices {
       return UserReviewInfo(
         displayName: 'Undefined',
         joinDate: null,
-        reviewsCount: 0,
+        reviews: [],
         id: '',
       );
     }
@@ -101,29 +105,6 @@ class UserServices {
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
-          .collection('reviews')
-          .orderBy('date', descending: true)
-          .get();
-
-      return snapshot.docs
-          .map((doc) => Review.fromFirestore(doc.data()))
-          .toList();
-    } catch (e) {
-      print('Error fetching user reviews: $e');
-      return [];
-    }
-  }
-
-  Future<List<Review>> fetchCurrentUserReviews() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        print('No user is currently signed in.');
-        return [];
-      }
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
           .collection('reviews')
           .orderBy('date', descending: true)
           .get();

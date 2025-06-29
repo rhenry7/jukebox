@@ -180,7 +180,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                                   _refreshRecommendations,
                                               icon: const Icon(Icons.refresh,
                                                   color: Colors.white),
-                                              label: Text("")),
+                                              label: const Text("")),
                                         )),
                                   ),
                                 ],

@@ -54,12 +54,7 @@ class ReviewsList extends State<UserReviewsCollection> {
           return const Center(child: Text('No reviews found.'));
         }
 
-        List<Review> reviews = snapshot.data!.docs.map((doc) {
-          return Review.fromFirestore(doc.data() as Map<String, dynamic>);
-        }).toList();
-        // TODO fix
-        // Create a model to hold both Review and its Firestore document ID
-
+   
         final List<ReviewWithDocId> reviewsWithDocIds =
             snapshot.data!.docs.map((doc) {
           final review =

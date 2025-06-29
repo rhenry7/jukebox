@@ -1,14 +1,16 @@
+import 'package:flutter_test_project/models/review.dart';
+
 class UserReviewInfo {
   final String displayName;
   final DateTime? joinDate;
   final String id;
-  final int reviewsCount;
+  final List<Review>? reviews;
 
   UserReviewInfo({
     required this.id,
     required this.displayName,
     required this.joinDate,
-    required this.reviewsCount,
+    required this.reviews,
   });
 
   factory UserReviewInfo.fromMap(Map<String, dynamic> map) {
@@ -16,7 +18,10 @@ class UserReviewInfo {
       id: map['id'] ?? '',
       displayName: map['displayName'] ?? '',
       joinDate: map['joinDate'] ?? '',
-      reviewsCount: map['reviewsCount'] ?? 0,
+      reviews: (map['reviews'] as List<dynamic>?)
+              ?.map((e) => Review.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
@@ -25,7 +30,7 @@ class UserReviewInfo {
       id: json['id'] ?? '',
       displayName: json['displayName'] ?? '',
       joinDate: json['joinDate'] ?? '',
-      reviewsCount: json['reviewsCount'] ?? 0,
+      reviews: json['reviews'],
     );
   }
 
@@ -34,7 +39,7 @@ class UserReviewInfo {
       'id': id,
       'displayName': displayName,
       'joinDate': joinDate,
-      'reviewsCount': reviewsCount,
+      'reviews': reviews,
     };
   }
 }

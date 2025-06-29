@@ -22,7 +22,6 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
 
   @override
   void initState() {
-    // TODO: implement initState
     userReviewInfo = UserServices().fetchCurrentUserInfo();
     super.initState();
   }
@@ -34,14 +33,22 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
           child: FutureBuilder<UserReviewInfo>(
               future: userReviewInfo,
               builder: (context, snapshot) {
-                if (snapshot.hasData) {
+                if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                }
+                if (!snapshot.hasData || snapshot.data == null) {
+                  return const CircularProgressIndicator();
+                } else if (snapshot.hasData) {
                   final UserReviewInfo? userInfo = snapshot.data;
-                  print(snapshot.data?.displayName);
+                  final reviews =
+                      userInfo?.reviews ?? []; // Provide empty list fallback
+                  print(snapshot.data?.reviews);
+
                   if (userInfo == null) {
                     return const Center(child: Text("no data from user info"));
                   }
                   return Padding(
-                    padding: EdgeInsets.only(top: 100.0),
+                    padding: const EdgeInsets.only(top: 100.0),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -55,7 +62,7 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                         ),
                         // CARD CONTENT
                         Padding(
-                            padding: EdgeInsets.only(top: 10.0),
+                            padding: const EdgeInsets.only(top: 10.0),
                             child: Card(
                               child: SizedBox(
                                 child: SizedBox(
@@ -101,7 +108,7 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                                                     children: [
                                                       Padding(
                                                           padding:
-                                                              EdgeInsets.all(
+                                                              const EdgeInsets.all(
                                                                   8.0),
                                                           child: Center(
                                                             child: SizedBox(
@@ -139,7 +146,7 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                                                             child: SizedBox(
                                                               width: 200,
                                                               child: Text(
-                                                                "You already have ${userInfo.reviewsCount.toString()} reviews!",
+                                                                "You already have ${reviews.length.toString()} reviews!",
                                                                 style: TextStyle(
                                                                     color: Colors
                                                                             .grey[
@@ -157,7 +164,7 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                                                           )),
                                                       Padding(
                                                           padding:
-                                                              EdgeInsets.only(
+                                                              const EdgeInsets.only(
                                                                   left: 8.0,
                                                                   right: 8.0),
                                                           child: Center(
