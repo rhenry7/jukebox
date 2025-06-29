@@ -27,7 +27,8 @@ class UserServices {
         return UserReviewInfo(
           displayName: userDoc.data()?['displayName'] ?? '',
           joinDate: userDoc.data()?['joinDate'] ?? '',
-          reviewsCount: reviews.length, id: '',
+          reviewsCount: reviews.length,
+          id: '',
           // use avatar imaage URL
         );
       } else {
@@ -49,11 +50,80 @@ class UserServices {
     }
   }
 
+  Future<UserReviewInfo> fetchCurrentUserInfo() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No user is currently signed in.');
+        return UserReviewInfo(
+          displayName: 'Undefined',
+          joinDate: 'Undefined',
+          reviewsCount: 0,
+          id: '',
+        );
+      }
+
+      final List<Review> reviews = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('reviews')
+          .orderBy('date', descending: true)
+          .get()
+          .then((snapshot) => snapshot.docs
+              .map((doc) => Review.fromFirestore(doc.data()))
+              .toList());
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      return UserReviewInfo(
+        displayName: userDoc.data()?['displayName'] ?? '',
+        joinDate: userDoc.data()?['joinDate'] ?? '',
+        reviewsCount: reviews.length,
+        id: user.uid,
+        // use avatar image URL if available
+      );
+    } catch (e) {
+      print('Error fetching current user info: $e');
+      return UserReviewInfo(
+        displayName: 'Undefined',
+        joinDate: 'Undefined',
+        reviewsCount: 0,
+        id: '',
+      );
+    }
+  }
+
   Future<List<Review>> fetchUserReviews(String userId) async {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
+          .collection('reviews')
+          .orderBy('date', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => Review.fromFirestore(doc.data()))
+          .toList();
+    } catch (e) {
+      print('Error fetching user reviews: $e');
+      return [];
+    }
+  }
+
+  Future<List<Review>> fetchCurrentUserReviews() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No user is currently signed in.');
+        return [];
+      }
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
           .collection('reviews')
           .orderBy('date', descending: true)
           .get();
