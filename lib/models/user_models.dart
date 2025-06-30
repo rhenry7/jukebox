@@ -42,4 +42,5 @@ class UserReviewInfo {
       'reviews': reviews,
     };
   }
-}
+
+  }

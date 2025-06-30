@@ -131,4 +131,13 @@ class UserServices {
       return [];
     }
   }
+
+  double getAverageRating(List<Review> reviews) {
+    if (reviews.isEmpty) return 0.0;
+    double total = 0.0;
+    for (var review in reviews) {
+      total += review.score;
+    }
+    return total / reviews.length;
+  }
 }

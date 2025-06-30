@@ -20,7 +20,7 @@ class MusicRecommendationService {
   static const int _maxRecentRecommendations = 50;
 
   static Future<List<MusicRecommendation>> getRecommendations(
-    Map<String, dynamic> preferencesJson, {
+    EnhancedUserPreferences preferencesJson, {
     int count = 10,
     List<String>? excludeSongs,
   }) async {
@@ -69,7 +69,7 @@ class MusicRecommendationService {
     }
   }
 
-  static String _buildPrompt(Map<String, dynamic> preferences, int count,
+  static String _buildPrompt(EnhancedUserPreferences preferences, int count,
       List<String>? excludeSongs, List<dynamic> reviews) {
     final excludeList = [
       ..._recentRecommendations,
@@ -78,20 +78,11 @@ class MusicRecommendationService {
     print('reviews: ${jsonEncode(reviews)}');
 
     return '''
-You are a music recommendation engine. Based on the user profile, suggest $count songs.
-- Prioritize recommendations based on genre weights, mood preferences and tempo preferences 
-- Return ONLY valid JSON, no commentary
-- Consider the songs/tracks liked, dont be repetitive
-- exclude songs in the savedTracks 
+
+
 
 ```json
-${excludeList.isNotEmpty ? 'Exclude these songs:\n${excludeList.join('\n')}\n' : ''}
-
-:
-${reviews.isNotEmpty ? 'Consider the following reviews for context:\n${jsonEncode(reviews)}' : ''}
-
 User Profile: ${jsonEncode(preferences)}
-
 Return JSON array:
 [{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1"]}]''';
   }

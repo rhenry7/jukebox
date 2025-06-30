@@ -75,8 +75,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       } else {
         print("Fetching new recommendations");
         final List<MusicRecommendation> recommendations =
-            await MusicRecommendationService.getRecommendations(
-                preferences.toJson());
+            await MusicRecommendationService.getRecommendations(preferences);
         final newRecsJsonList =
             recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
         await prefs.setStringList('cached_recs', newRecsJsonList);
@@ -92,9 +91,9 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
     try {
       final preferences = await _fetchUserPreferences();
       final prefs = await SharedPreferences.getInstance();
+
       final List<MusicRecommendation> recommendations =
-          await MusicRecommendationService.getRecommendations(
-              preferences.toJson());
+          await MusicRecommendationService.getRecommendations(preferences);
       final newRecsJsonList =
           recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
       await prefs.setStringList('cached_recs', newRecsJsonList);

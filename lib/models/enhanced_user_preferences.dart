@@ -2,13 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 
 class EnhancedUserPreferences {
-  final List<String> favoriteGenres;
-  final List<String> favoriteArtists;
-  final List<String> dislikedGenres;
+  final List<String> favoriteGenres; // write helper function to add top three
+  final List<String>
+      favoriteArtists; // write helper function to collect top artists based on most liked in saved tracks
+  final List<String> dislikedGenres; // make helper function
   final Map<String, double> genreWeights; // 0.0 to 1.0 preference strength
-  final List<TrackHistory> recentlyPlayed;
-  final List<String> savedTracks;
-  final List<String> dislikedTracks;
+  final List<TrackHistory> recentlyPlayed; // delete later
+  final List<String> savedTracks; // delete later
+  final List<String> dislikedTracks; // delete later
 
   // New fields for enhanced recommendations
   final Map<String, double>
