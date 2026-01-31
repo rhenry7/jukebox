@@ -179,8 +179,37 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 12),
-                      // Button with size constraints
+                      // Genre Tags (pills)
+                      if (widget.album.genres.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6.0,
+                          runSpacing: 6.0,
+                          children: widget.album.genres.take(4).map((genre) {
+                            return Chip(
+                              label: Text(
+                                genre,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              backgroundColor: Colors.white.withOpacity(0.1),
+                              side: BorderSide(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 1,
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ],
                   ),
                 ),

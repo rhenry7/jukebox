@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/services/get_album_service.dart';
+import 'package:flutter_test_project/services/genre_cache_service.dart';
 import 'package:spotify/spotify.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 
@@ -195,15 +197,36 @@ class RecommendationEnhancements {
             if (page.items != null) {
               for (var item in page.items!) {
                 if (item is Track && item.name != null && item.artists != null && item.artists!.isNotEmpty) {
-                  // Get genres from artist
-                  final genres = <String>[];
+                  final artistName = item.artists!.map((a) => a.name ?? '').where((n) => n.isNotEmpty).join(', ');
+                  final firstArtist = item.artists!.first.name ?? '';
+                  
+                  // Hybrid approach: Get genres from cache/API (track-level) + Spotify (artist-level fallback)
+                  List<String> genres = [];
+                  
+                  // 1. Try cache service first (checks Firestore cache, then MusicBrainz API)
                   try {
-                    if (item.artists!.isNotEmpty && item.artists!.first.id != null) {
-                      final artist = await spotify.artists.get(item.artists!.first.id!);
-                      genres.addAll(artist.genres ?? []);
+                    genres = await GenreCacheService.getGenresWithCache(
+                      item.name!,
+                      firstArtist,
+                    );
+                    if (genres.isNotEmpty) {
+                      print('Got ${genres.length} genres (from cache/API) for ${item.name}');
                     }
                   } catch (e) {
-                    // If we can't get artist details, continue without genres
+                    print('Genre cache/API failed for ${item.name}: $e');
+                  }
+                  
+                  // 2. Fallback to Spotify artist genres if cache/API didn't provide genres
+                  if (genres.isEmpty) {
+                    try {
+                      if (item.artists!.isNotEmpty && item.artists!.first.id != null) {
+                        final artist = await spotify.artists.get(item.artists!.first.id!);
+                        genres = artist.genres ?? [];
+                        print('Got ${genres.length} artist genres from Spotify for ${item.name}');
+                      }
+                    } catch (e) {
+                      print('Error getting Spotify artist genres: $e');
+                    }
                   }
 
                   final imageUrl = item.album?.images?.isNotEmpty == true
@@ -212,7 +235,7 @@ class RecommendationEnhancements {
 
                   musicRecs.add(MusicRecommendation(
                     song: item.name!,
-                    artist: item.artists!.map((a) => a.name ?? '').where((n) => n.isNotEmpty).join(', '),
+                    artist: artistName,
                     album: item.album?.name ?? '',
                     imageUrl: imageUrl,
                     genres: genres,

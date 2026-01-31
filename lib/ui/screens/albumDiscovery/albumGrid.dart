@@ -139,7 +139,7 @@ class _AlbumGrid extends State<AlbumGrid> {
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.only(
-                                      top: 8.0, left: 10.0),
+                                      top: 8.0, left: 10.0, right: 10.0),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -148,13 +148,50 @@ class _AlbumGrid extends State<AlbumGrid> {
                                         album.title,
                                         style: const TextStyle(
                                             color: Colors.white,
-                                            fontWeight: FontWeight.bold),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
+                                      const SizedBox(height: 4),
                                       Text(
                                         album.artist,
                                         style:
-                                            TextStyle(color: Colors.grey[500]),
+                                            TextStyle(color: Colors.grey[500], fontSize: 12),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
+                                      // Genre Tags (pills)
+                                      if (album.genres != null && album.genres!.isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 6.0,
+                                          runSpacing: 6.0,
+                                          children: album.genres!.take(3).map((genre) {
+                                            return Chip(
+                                              label: Text(
+                                                genre,
+                                                style: const TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              backgroundColor: Colors.white.withOpacity(0.1),
+                                              side: BorderSide(
+                                                color: Colors.white.withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              visualDensity: VisualDensity.compact,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(25),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),

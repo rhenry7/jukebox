@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 
 class UnsplashService {
   // Get a free API key from unsplash.com/developers
-  static const String _accessKey = unsplashAccessKey;
+  static String get _accessKey => unsplashAccessKey;
   static const String _baseUrl = 'https://api.unsplash.com';
 
   // Cache to avoid repeated API calls for the same search

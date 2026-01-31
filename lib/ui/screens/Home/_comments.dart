@@ -5,6 +5,8 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:gap/gap.dart';
 
 import '../../../models/review.dart';
+import '../../../services/get_album_service.dart';
+import '../../../services/genre_cache_service.dart';
 import '../../widgets/skeleton_loader.dart';
 
 class ReviewWithDocId {
@@ -195,7 +197,7 @@ class FriendsReviewList extends StatelessWidget {
                 ),
                 color: Colors.white10,
                 child:
-                    ReviewCardWidget(review: review.review), // Pass review data
+                    ReviewCardWithGenres(review: review.review), // Pass review data with genre loading
               ),
             ),
           ),
@@ -436,8 +438,141 @@ class ReviewCardWidget extends StatelessWidget {
             maxLines: null,
             overflow: TextOverflow.visible,
           ),
+          // Genre Tags (pills at the bottom)
+          if (review.genres != null && review.genres!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 8.0,
+              children: review.genres!.take(5).map((genre) {
+                return Chip(
+                  label: Text(
+                    genre,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  side: BorderSide(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+// Helper widget to fetch and display genres for reviews
+class ReviewCardWithGenres extends StatefulWidget {
+  final Review review;
+  const ReviewCardWithGenres({super.key, required this.review});
+
+  @override
+  State<ReviewCardWithGenres> createState() => _ReviewCardWithGenresState();
+}
+
+class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
+  List<String>? _genres;
+  bool _isLoadingGenres = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _genres = widget.review.genres;
+    // If no genres, fetch them
+    if (_genres == null || _genres!.isEmpty) {
+      _loadGenres();
+    }
+  }
+
+  Future<void> _loadGenres() async {
+    if (_isLoadingGenres) return;
+    
+    setState(() {
+      _isLoadingGenres = true;
+    });
+
+    try {
+      // Use cache service: checks Firestore cache first, then MusicBrainz API
+      final genres = await GenreCacheService.getGenresWithCache(
+        widget.review.title,
+        widget.review.artist,
+      );
+
+      if (genres.isNotEmpty && mounted) {
+        setState(() {
+          _genres = genres;
+          _isLoadingGenres = false;
+        });
+        return;
+      }
+    } catch (e) {
+      print('Error loading genres: $e');
+    }
+
+    // If MusicBrainz fails, genres remain null/empty
+    if (mounted) {
+      setState(() {
+        _isLoadingGenres = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Use genres from state if available, otherwise use review's genres
+    final genres = _genres ?? widget.review.genres;
+    
+    return ReviewCardWidget(
+      review: widget.review.copyWith(genres: genres),
+    );
+  }
+}
+
+// Extension to add copyWith to Review
+extension ReviewCopyWith on Review {
+  Review copyWith({
+    String? displayName,
+    String? userId,
+    String? artist,
+    String? review,
+    double? score,
+    DateTime? date,
+    String? albumImageUrl,
+    String? userImageUrl,
+    int? likes,
+    int? replies,
+    int? reposts,
+    String? title,
+    List<String>? genres,
+  }) {
+    return Review(
+      displayName: displayName ?? this.displayName,
+      userId: userId ?? this.userId,
+      artist: artist ?? this.artist,
+      review: review ?? this.review,
+      score: score ?? this.score,
+      date: date ?? this.date,
+      albumImageUrl: albumImageUrl ?? this.albumImageUrl,
+      userImageUrl: userImageUrl ?? this.userImageUrl,
+      likes: likes ?? this.likes,
+      replies: replies ?? this.replies,
+      reposts: reposts ?? this.reposts,
+      title: title ?? this.title,
+      genres: genres ?? this.genres,
     );
   }
 }

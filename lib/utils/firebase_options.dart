@@ -48,7 +48,7 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions android = FirebaseOptions(
+  static FirebaseOptions get android => FirebaseOptions(
     apiKey: firebaseOptionsKey,
     appId: firebaseAppId,
     messagingSenderId: '412268788730',
@@ -56,7 +56,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'juxeboxd.appspot.com',
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
+  static FirebaseOptions get ios => FirebaseOptions(
     apiKey: firebaseOptionsKey,
     appId: firebaseAppId,
     messagingSenderId: '412268788730',
@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.flutterTestProject',
   );
 
-  static const FirebaseOptions web = FirebaseOptions(
+  static FirebaseOptions get web => FirebaseOptions(
     apiKey: firebaseOptionsKey,
     appId: '1:412268788730:web:ba888c5cdf66b317fe8243',
     messagingSenderId: '412268788730',

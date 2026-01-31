@@ -8,6 +8,8 @@ import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:flutter_test_project/MusicPreferences/recommendation_enhancements.dart';
+import 'package:flutter_test_project/services/get_album_service.dart';
+import 'package:flutter_test_project/services/genre_cache_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
 
@@ -145,10 +147,14 @@ class MusicRecommendationService {
       // Take requested count
       filteredRecs = filteredRecs.take(count).toList();
       
+      // 5. Enrich recommendations with MusicBrainz genres (hybrid approach)
+      print('Enriching recommendations with MusicBrainz genres...');
+      filteredRecs = await _enrichRecommendationsWithGenres(filteredRecs);
+      
       // Start fetching album images in the background (non-blocking)
       _fetchAlbumImagesInBackground(filteredRecs);
 
-      print('Returning ${filteredRecs.length} final recommendations');
+      print('Returning ${filteredRecs.length} final recommendations with genres');
       return filteredRecs;
     } catch (e) {
       throw MusicRecommendationException('Failed to get recommendations: $e');
@@ -324,6 +330,89 @@ Format:
 
   static void clearRecentRecommendations() {
     _recentRecommendations.clear();
+  }
+
+  /// Enrich recommendations with MusicBrainz genres (hybrid Spotify + MusicBrainz approach)
+  static Future<List<MusicRecommendation>> _enrichRecommendationsWithGenres(
+    List<MusicRecommendation> recommendations,
+  ) async {
+    final enrichedRecs = <MusicRecommendation>[];
+    
+    for (final rec in recommendations) {
+      // If already has genres, keep them but try to enrich
+      List<String> genres = List.from(rec.genres);
+      
+      // Only fetch from cache/API if we don't have genres or have very few
+      if (genres.isEmpty || genres.length < 2) {
+        try {
+          // Use cache service: checks Firestore cache first, then MusicBrainz API
+          final cachedGenres = await GenreCacheService.getGenresWithCache(
+            rec.song,
+            rec.artist.split(',').first.trim(), // Use first artist if multiple
+          );
+          
+          if (cachedGenres.isNotEmpty) {
+            // Combine existing genres with cached genres (avoid duplicates)
+            final cachedGenresSet = cachedGenres.map((g) => g.toLowerCase().trim()).toSet();
+            final existingGenresSet = genres.map((g) => g.toLowerCase().trim()).toSet();
+            
+            // Merge genres
+            genres = cachedGenres.toList();
+            // Add any existing genres that weren't in cached genres
+            for (final existing in rec.genres) {
+              if (!cachedGenresSet.contains(existing.toLowerCase().trim())) {
+                genres.add(existing);
+              }
+            }
+            
+            print('Enriched ${rec.song} with ${genres.length} genres (from cache/API)');
+          }
+        } catch (e) {
+          print('Error enriching ${rec.song} with genres: $e');
+          // Continue with existing genres if enrichment fails
+        }
+      }
+      
+      // If still no genres, try to get from Spotify artist
+      if (genres.isEmpty) {
+        try {
+          final credentials = SpotifyApiCredentials(clientId, clientSecret);
+          final spotify = SpotifyApi(credentials);
+          
+          // Search for artist to get artist-level genres
+          final artistName = rec.artist.split(',').first.trim();
+          final searchResults = await spotify.search
+              .get(artistName, types: [SearchType.artist])
+              .first(1);
+          
+          for (var page in searchResults) {
+            if (page.items != null) {
+              for (var item in page.items!) {
+                if (item is Artist && item.genres != null && item.genres!.isNotEmpty) {
+                  genres = item.genres!.toList();
+                  print('Got ${genres.length} artist genres from Spotify for ${rec.song}');
+                  break;
+                }
+              }
+            }
+            if (genres.isNotEmpty) break;
+          }
+        } catch (e) {
+          print('Error getting Spotify artist genres for ${rec.song}: $e');
+        }
+      }
+      
+      // Create enriched recommendation
+      enrichedRecs.add(MusicRecommendation(
+        song: rec.song,
+        artist: rec.artist,
+        album: rec.album,
+        imageUrl: rec.imageUrl,
+        genres: genres,
+      ));
+    }
+    
+    return enrichedRecs;
   }
 
   /// Fetches album images from Spotify in parallel (non-blocking background task)

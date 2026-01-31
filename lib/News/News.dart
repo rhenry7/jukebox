@@ -28,7 +28,7 @@ class MusicNewsArticle {
 
 /// -------- SERVICE --------
 class NewsApiService {
-  static const String _apiKey = newsAPIKey;
+  static String get _apiKey => newsAPIKey;
   static const String _baseUrl = 'https://newsapi.org/v2/everything';
 
   Future<List<MusicNewsArticle>> fetchArticles(List<String> keywords) async {

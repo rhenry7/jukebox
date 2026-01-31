@@ -47,3 +47,6 @@ app.*.map.json
 
 # Hide key from version control
 api_key.dart
+.env
+.env.local
+.env.*.local

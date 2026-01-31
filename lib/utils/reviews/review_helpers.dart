@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/services/genre_cache_service.dart';
 
 Future<List<Review>> fetchUserReviews() async {
   final snapshot = await FirebaseFirestore.instance
@@ -23,7 +24,18 @@ Future<void> submitReview(String review, double score, String artist,
   if (user != null) {
     print(review.toString());
     String userId = user.uid;
+    
+    // Fetch and cache genres for this track (in background, don't block)
+    GenreCacheService.getGenresWithCache(title, artist).then((genres) {
+      print('Cached genres for review: $genres');
+    }).catchError((e) {
+      print('Error caching genres for review: $e');
+    });
+    
     try {
+      // Try to get genres from cache (non-blocking, but try to include in review)
+      final cachedGenres = await GenreCacheService.getCachedGenres(title, artist);
+      
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -39,6 +51,7 @@ Future<void> submitReview(String review, double score, String artist,
         'liked': liked,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
         'albumImageUrl': albumImageUrl,
+        if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
       });
     } catch (e) {
       print("could not post review");
