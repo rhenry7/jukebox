@@ -193,7 +193,7 @@ class FriendsReviewList extends StatelessWidget {
                   borderRadius: BorderRadius.all(Radius.circular(8)),
                   side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
                 ),
-                color: Colors.black,
+                color: Colors.white10,
                 child:
                     ReviewCardWidget(review: review.review), // Pass review data
               ),
@@ -356,80 +356,85 @@ class ReviewCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Album Cover
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: review.albumImageUrl != null
-                ? Image.network(
-                    review.albumImageUrl!,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(Icons.music_note, size: 80, color: Colors.white70);
-                    },
-                  )
-                : const Icon(Icons.music_note, size: 80, color: Colors.white70),
+          // Top Row: Image, Artist, Song, Rating
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Album Cover
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: review.albumImageUrl != null
+                    ? Image.network(
+                        review.albumImageUrl!,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.music_note, size: 80, color: Colors.white70);
+                        },
+                      )
+                    : const Icon(Icons.music_note, size: 80, color: Colors.white70),
+              ),
+              const SizedBox(width: 16),
+              // Artist, Song, and Rating
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Artist Name
+                    Text(
+                      review.artist,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Song Title
+                    Text(
+                      review.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Rating Bar
+                    RatingBar(
+                      minRating: 0,
+                      maxRating: 5,
+                      allowHalfRating: true,
+                      initialRating: review.score,
+                      itemSize: 20,
+                      itemPadding: const EdgeInsets.only(right: 4.0),
+                      ratingWidget: RatingWidget(
+                        full: const Icon(Icons.star, color: Colors.amber),
+                        empty: const Icon(Icons.star, color: Colors.grey),
+                        half: const Icon(Icons.star_half, color: Colors.amber),
+                      ),
+                      ignoreGestures: true,
+                      onRatingUpdate: (rating) {},
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          // Album Info, Rating, and Review - All left-aligned
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                // Album Title
-                Text(
-                  review.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Artist Name
-                Text(
-                  review.artist,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Rating Bar
-                RatingBar(
-                  minRating: 0,
-                  maxRating: 5,
-                  allowHalfRating: true,
-                  initialRating: review.score,
-                  itemSize: 20,
-                  itemPadding: const EdgeInsets.only(right: 4.0),
-                  ratingWidget: RatingWidget(
-                    full: const Icon(Icons.star, color: Colors.amber),
-                    empty: const Icon(Icons.star, color: Colors.grey),
-                    half: const Icon(Icons.star_half, color: Colors.amber),
-                  ),
-                  ignoreGestures: true,
-                  onRatingUpdate: (rating) {},
-                ),
-                const SizedBox(height: 12),
-                // Review Text
-                Text(
-                  review.review,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14.0,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          // Bottom Row: Review Text (full width)
+          const SizedBox(height: 16),
+          Text(
+            review.review,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14.0,
+              fontStyle: FontStyle.italic,
             ),
+            maxLines: null,
+            overflow: TextOverflow.visible,
           ),
         ],
       ),
