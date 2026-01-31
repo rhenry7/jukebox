@@ -7,6 +7,7 @@ import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
+import 'package:flutter_test_project/MusicPreferences/recommendation_enhancements.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
 
@@ -24,11 +25,17 @@ class MusicRecommendationService {
     EnhancedUserPreferences preferencesJson, {
     int count = 10,
     List<String>? excludeSongs,
+    bool useEnhancedAlgorithm = true, // Enable enhanced discovery algorithm
   }) async {
     try {
       final userId = FirebaseAuth.instance.currentUser != null
           ? FirebaseAuth.instance.currentUser!.uid
           : "";
+      
+      if (userId.isEmpty) {
+        throw MusicRecommendationException('User not logged in');
+      }
+
       final List<Review> reviews = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -56,19 +63,93 @@ class MusicRecommendationService {
           .doc('profile')
           .get();
 
-      final prompt =
-          _buildPrompt(preferencesJson, count, excludeSongs, reviewList);
-      print('prompt: $prompt');
-      final response = await _makeApiRequest(prompt);
+      if (!doc.exists) {
+        throw MusicRecommendationException('User preferences not found');
+      }
 
       final EnhancedUserPreferences preferences =
           EnhancedUserPreferences.fromJson(doc.data()!);
-      final albums = _parseRecommendations(response);
+
+      List<MusicRecommendation> allRecommendations = [];
+
+      // 1. Get AI-based recommendations (improved prompt for discovery)
+      try {
+        final prompt = _buildPrompt(preferences, count, excludeSongs, reviewList);
+        print('Fetching AI recommendations...');
+        final response = await _makeApiRequest(prompt);
+        final aiRecommendations = _parseRecommendations(response);
+        allRecommendations.addAll(aiRecommendations);
+        print('Got ${aiRecommendations.length} AI recommendations');
+      } catch (e) {
+        print('Error getting AI recommendations: $e');
+      }
+
+      // 2. Get collaborative filtering recommendations (if enabled)
+      if (useEnhancedAlgorithm) {
+        try {
+          print('Finding similar users...');
+          final similarUsers = await RecommendationEnhancements.findSimilarUsers(userId);
+          if (similarUsers.isNotEmpty) {
+            print('Found ${similarUsers.length} similar users');
+            final collaborativeRecs = await RecommendationEnhancements
+                .getCollaborativeRecommendations(userId, similarUsers);
+            allRecommendations.addAll(collaborativeRecs);
+            print('Got ${collaborativeRecs.length} collaborative recommendations');
+          }
+        } catch (e) {
+          print('Error getting collaborative recommendations: $e');
+        }
+
+        // 3. Get Spotify API recommendations (if user has saved tracks/artists)
+        try {
+          if (preferences.savedTracks.isNotEmpty || preferences.favoriteArtists.isNotEmpty) {
+            print('Fetching Spotify recommendations...');
+            final spotifyRecs = await RecommendationEnhancements
+                .getSpotifyRecommendations(preferences, count ~/ 2);
+            allRecommendations.addAll(spotifyRecs);
+            print('Got ${spotifyRecs.length} Spotify recommendations');
+          }
+        } catch (e) {
+          print('Error getting Spotify recommendations: $e');
+        }
+      }
+
+      // Remove duplicates and saved tracks
+      var filteredRecs = removeDuplication(allRecommendations, preferences);
+      
+      // Remove excluded songs
+      if (excludeSongs != null && excludeSongs.isNotEmpty) {
+        final excludeSet = excludeSongs.map((s) => s.toLowerCase().trim()).toSet();
+        filteredRecs = filteredRecs.where((rec) {
+          final key = '${rec.artist}|${rec.song}'.toLowerCase();
+          return !excludeSet.contains(key);
+        }).toList();
+      }
+
+      // 4. Apply enhanced algorithm: balance discovery vs safe bets, ensure diversity
+      if (useEnhancedAlgorithm && filteredRecs.length > count) {
+        filteredRecs = RecommendationEnhancements.balanceRecommendations(
+          filteredRecs,
+          preferences,
+          discoveryRatio: 0.7, // 70% discovery, 30% safe
+        );
+        
+        // Ensure diversity in final selection
+        filteredRecs = RecommendationEnhancements.ensureDiversity(
+          filteredRecs,
+          minGenres: 3,
+          minArtists: (count * 0.6).round(),
+        );
+      }
+
+      // Take requested count
+      filteredRecs = filteredRecs.take(count).toList();
       
       // Start fetching album images in the background (non-blocking)
-      _fetchAlbumImagesInBackground(albums);
+      _fetchAlbumImagesInBackground(filteredRecs);
 
-      return removeDuplication(albums, preferences);
+      print('Returning ${filteredRecs.length} final recommendations');
+      return filteredRecs;
     } catch (e) {
       throw MusicRecommendationException('Failed to get recommendations: $e');
     }
@@ -82,30 +163,57 @@ class MusicRecommendationService {
     ];
     print('reviews: ${jsonEncode(reviews)}');
 
+    // Enhanced prompt focused on DISCOVERY
     return '''
+You are a music discovery engine. Your goal is to help users discover NEW music they haven't heard before, while still being relevant to their taste.
 
+USER PREFERENCES:
+- Favorite Genres: ${jsonEncode(preferences.favoriteGenres)}
+- Genre Weights (preference strength): ${jsonEncode(preferences.genreWeights)}
+- Favorite Artists: ${jsonEncode(preferences.favoriteArtists)}
+- Mood Preferences: ${jsonEncode(preferences.moodPreferences)}
+- Tempo Preferences: ${jsonEncode(preferences.tempoPreferences)}
+- Saved Tracks (DO NOT recommend these): ${jsonEncode(preferences.savedTracks)}
+- Disliked Tracks (AVOID similar): ${jsonEncode(preferences.dislikedTracks)}
 
+RECENT USER REVIEWS (to understand taste):
+${jsonEncode(reviews)}
 
-```json
-- give ten songs to recommend to the user based on preferences
-using saved tracks: ${jsonEncode(preferences.savedTracks).split(', ')}
-using moodPreferences: ${jsonEncode(preferences.moodPreferences).split(', ')}
-using dislikedTracks: ${jsonEncode(preferences.dislikedTracks).split(', ')}
-using dislikedTracks: ${jsonEncode(preferences.tempoPreferences).split(', ')}
-using genreWeights, songs that combine elements of genres based on the user's preferences: ${jsonEncode(preferences.genreWeights).split(', ')}
+DISCOVERY REQUIREMENTS:
+1. PRIORITIZE DISCOVERY: Recommend songs the user likely hasn't heard before
+   - Focus on newer releases (2020-2024) when possible
+   - Include artists NOT in their favorite artists list
+   - Explore genres they like but haven't fully explored (lower genre weights)
+   
+2. ENSURE DIVERSITY:
+   - Include at least 3-4 different genres
+   - Don't recommend multiple songs from the same artist
+   - Mix different eras (some new, some classic)
+   - Balance familiar sounds with surprising discoveries
 
-using user reviews: ${jsonEncode(reviews.take(5).join(", "))}
-- Prioritize recommendations based on genre weights, mood preferences and tempo preferences 
-- Include some variety and surprises
-- Return ONLY valid JSON, no commentary
-- Consider the songs/tracks liked, the songs recently recommended to not be repetitive of the same tracks within a short space of time
-- Consider the songs/tracks disliked to not recommend the user songs they have mentioned they dislike or liked
-- exclude recommendations in the savedTracksOrAlbum array
+3. MAINTAIN RELEVANCE:
+   - Songs should align with genre preferences (use genre weights)
+   - Match mood and tempo preferences when possible
+   - Consider patterns from their reviews (what they liked/disliked)
 
-```json
-User Profile: ${jsonEncode(preferences)}
-Return JSON array:
-[{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1"]}]''';
+4. AVOID:
+   - Songs in savedTracks list
+   - Songs in dislikedTracks list
+   - Recently recommended songs: ${excludeList.take(10).join(", ")}
+   - Songs from artists they've already saved (unless it's a new release)
+
+5. DISCOVERY BALANCE:
+   - 60%: New discoveries (artists/genres they haven't explored much)
+   - 30%: Safe bets (similar to what they like but new songs)
+   - 10%: Serendipitous picks (slightly outside their comfort zone but still relevant)
+
+Return EXACTLY ${count} recommendations as a JSON array.
+Only return songs that exist on Spotify - do not invent song or artist names.
+Return ONLY valid JSON, no markdown, no commentary.
+
+Format:
+[{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1","Genre2"]}]
+''';
   }
 
   static Future<String> _makeApiRequest(String prompt) async {
