@@ -13,9 +13,14 @@ class CategoryTapBar extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(56.0),
+          preferredSize: const Size.fromHeight(80.0),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.only(
+              left: 16.0,
+              right: 16.0,
+              top: 8.0,
+              bottom: 24.0,
+            ),
             alignment: Alignment.centerLeft,
             child: TabBar(
               labelColor: Colors.white,
@@ -35,7 +40,7 @@ class CategoryTapBar extends StatelessWidget {
                 ],
               ),
               indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: const Color.fromARGB(104, 78, 72, 72),
+              dividerColor: Colors.transparent,
               labelPadding: const EdgeInsets.symmetric(horizontal: 16.0),
               tabs: const [
                 Tab(

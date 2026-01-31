@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:spotify/spotify.dart' as spotify;
 
 class MyReviewSheetContentForm extends StatefulWidget {
   final String title;
@@ -32,18 +34,100 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
   final Color background = Colors.white10;
   final TextEditingController reviewController = TextEditingController();
   final TextEditingController searchParams = TextEditingController();
+  
+  // Search state
+  List<spotify.Track> _searchResults = [];
+  bool _isSearching = false;
+  String _selectedTrackTitle = '';
+  String _selectedTrackArtist = '';
+  String _selectedTrackImageUrl = '';
 
   @override
   void initState() {
     super.initState();
     DateTime now = DateTime.now();
     currentDate = DateFormat.yMMMMd('en_US').format(now);
+    
+    // Initialize with widget values if provided
+    _selectedTrackTitle = widget.title;
+    _selectedTrackArtist = widget.artist;
+    _selectedTrackImageUrl = widget.albumImageUrl;
+    
+    // Listen to search input changes
+    searchParams.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     reviewController.dispose();
+    searchParams.dispose();
     super.dispose();
+  }
+  
+  void _onSearchChanged() {
+    final query = searchParams.text.trim();
+    if (query.length >= 2) {
+      _performSearch(query);
+    } else {
+      setState(() {
+        _searchResults = [];
+      });
+    }
+  }
+  
+  Future<void> _performSearch(String query) async {
+    if (_isSearching) return;
+    
+    setState(() {
+      _isSearching = true;
+    });
+    
+    try {
+      final credentials = spotify.SpotifyApiCredentials(clientId, clientSecret);
+      final spotifyApi = spotify.SpotifyApi(credentials);
+      
+      final searchResults = await spotifyApi.search
+          .get(query, types: [spotify.SearchType.track])
+          .first(10);
+      
+      List<spotify.Track> tracks = [];
+      for (var page in searchResults) {
+        if (page.items != null) {
+          for (var item in page.items!) {
+            if (item is spotify.Track) {
+              tracks.add(item);
+            }
+          }
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _searchResults = tracks;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      print('Error searching: $e');
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _isSearching = false;
+        });
+      }
+    }
+  }
+  
+  void _selectTrack(spotify.Track track) {
+    setState(() {
+      _selectedTrackTitle = track.name ?? '';
+      _selectedTrackArtist = track.artists?.map((a) => a.name).join(', ') ?? '';
+      _selectedTrackImageUrl = track.album?.images?.isNotEmpty == true
+          ? track.album!.images!.first.url ?? ''
+          : '';
+      _searchResults = [];
+      searchParams.clear();
+    });
   }
 
   Future<void> showSubmissionAuthErrorModal(BuildContext context) {
@@ -118,15 +202,35 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
       await submitReview(
         review,
         ratingScore,
-        widget.artist,
-        widget.title,
+        _selectedTrackArtist.isNotEmpty
+            ? _selectedTrackArtist
+            : widget.artist,
+        _selectedTrackTitle.isNotEmpty
+            ? _selectedTrackTitle
+            : widget.title,
         liked,
-        widget.albumImageUrl,
+        _selectedTrackImageUrl.isNotEmpty
+            ? _selectedTrackImageUrl
+            : widget.albumImageUrl,
       );
       if (liked) {
-        updateSavedTracks(widget.artist, widget.title);
+        updateSavedTracks(
+          _selectedTrackArtist.isNotEmpty
+              ? _selectedTrackArtist
+              : widget.artist,
+          _selectedTrackTitle.isNotEmpty
+              ? _selectedTrackTitle
+              : widget.title,
+        );
       } else if (!liked) {
-        updateRemovePreferences(widget.artist, widget.title);
+        updateRemovePreferences(
+          _selectedTrackArtist.isNotEmpty
+              ? _selectedTrackArtist
+              : widget.artist,
+          _selectedTrackTitle.isNotEmpty
+              ? _selectedTrackTitle
+              : widget.title,
+        );
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -183,17 +287,132 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
             ],
           ),
 
-          widget.albumImageUrl.isEmpty
-              ? SearchBar(
-                  leading: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.search_rounded),
+          _selectedTrackImageUrl.isEmpty
+              ? Expanded(
+                  child: Column(
+                    children: [
+                      SearchBar(
+                        controller: searchParams,
+                        leading: const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Icon(Icons.search_rounded),
+                        ),
+                        hintText: 'Search for a song, artist, or album...',
+                        backgroundColor: WidgetStateProperty.all(Colors.white10),
+                        padding: WidgetStateProperty.all(
+                            const EdgeInsets.symmetric(horizontal: 16.0)),
+                        trailing: _isSearching
+                            ? [
+                                const Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
+                              ]
+                            : searchParams.text.isNotEmpty
+                                ? [
+                                    IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        searchParams.clear();
+                                        setState(() {
+                                          _searchResults = [];
+                                        });
+                                      },
+                                    )
+                                  ]
+                                : null,
+                      ),
+                      const Gap(16),
+                      // Search results
+                      if (_searchResults.isNotEmpty)
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _searchResults.length,
+                            itemBuilder: (context, index) {
+                              final track = _searchResults[index];
+                              final albumImages = track.album?.images;
+                              final imageUrl = albumImages?.isNotEmpty == true
+                                  ? albumImages!.first.url
+                                  : null;
+                              final artistNames = track.artists
+                                      ?.map((a) => a.name)
+                                      .join(', ') ??
+                                  'Unknown Artist';
+                              
+                              return Card(
+                                color: Colors.grey[900],
+                                margin: const EdgeInsets.symmetric(
+                                    vertical: 4, horizontal: 0),
+                                child: ListTile(
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: imageUrl != null
+                                        ? Image.network(
+                                            imageUrl,
+                                            width: 56,
+                                            height: 56,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Container(
+                                                width: 56,
+                                                height: 56,
+                                                color: Colors.grey[800],
+                                                child: const Icon(
+                                                  Icons.music_note,
+                                                  color: Colors.white70,
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        : Container(
+                                            width: 56,
+                                            height: 56,
+                                            color: Colors.grey[800],
+                                            child: const Icon(
+                                              Icons.music_note,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                  ),
+                                  title: Text(
+                                    track.name ?? 'Unknown Track',
+                                    style: const TextStyle(color: Colors.white),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  subtitle: Text(
+                                    artistNames,
+                                    style: const TextStyle(color: Colors.white70),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  onTap: () => _selectTrack(track),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      else if (searchParams.text.isNotEmpty && !_isSearching)
+                        const Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Text(
+                                'No results found',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  hintText: 'search',
-                  //hintStyle: MaterialSTatePrTextStyle(color: Colors.white10),
-                  backgroundColor: WidgetStateProperty.all(Colors.white10),
-                  padding: WidgetStateProperty.all(
-                      const EdgeInsets.symmetric(horizontal: 16.0)),
                 )
               : Column(
                   children: [
@@ -209,11 +428,11 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                             borderRadius: BorderRadius.circular(8),
                             color: Colors.grey[800],
                           ),
-                          child: widget.albumImageUrl.isNotEmpty
+                          child: _selectedTrackImageUrl.isNotEmpty
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.network(
-                                    widget.albumImageUrl,
+                                    _selectedTrackImageUrl,
                                     fit: BoxFit.cover,
                                     errorBuilder:
                                         (context, error, stackTrace) =>
@@ -233,7 +452,9 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.title,
+                                _selectedTrackTitle.isNotEmpty
+                                    ? _selectedTrackTitle
+                                    : widget.title,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -244,7 +465,9 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                               ),
                               const Gap(4),
                               Text(
-                                widget.artist,
+                                _selectedTrackArtist.isNotEmpty
+                                    ? _selectedTrackArtist
+                                    : widget.artist,
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 16,

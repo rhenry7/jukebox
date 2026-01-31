@@ -280,9 +280,14 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
               foregroundColor: Colors.white,
               elevation: 0,
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(56.0),
+                preferredSize: const Size.fromHeight(72.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 8.0,
+                    bottom: 16.0,
+                  ),
                   alignment: Alignment.centerLeft,
                   color: Colors.transparent,
                   child: TabBar(

@@ -93,7 +93,7 @@ class FriendsReviewList extends StatelessWidget {
       itemBuilder: (context, index) {
         var review = reviews[index];
         return Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           child: Dismissible(
             key:
                 Key(review.docId.toString()), // Assuming Review has an id field

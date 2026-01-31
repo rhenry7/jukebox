@@ -15,9 +15,14 @@ class DiscoveryTapBar extends StatelessWidget {
       length: 4, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(56.0),
+          preferredSize: const Size.fromHeight(72.0),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.only(
+              left: 16.0,
+              right: 16.0,
+              top: 8.0,
+              bottom: 16.0,
+            ),
             alignment: Alignment.centerLeft,
             child: TabBar(
               labelColor: Colors.white,
