@@ -61,28 +61,49 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       final List<String>? recsJsonList = prefs.getStringList('cached_recs');
       if (recsJsonList != null && recsJsonList.isNotEmpty) {
         print("pull from cached");
-        return recsJsonList
-            .map((jsonStr) {
-              try {
-                return MusicRecommendation.fromJson(jsonDecode(jsonStr));
-              } catch (e) {
-                print("Error parsing cached music recommendations: $e");
-                return null;
+        final List<MusicRecommendation> cachedRecs = [];
+        for (final jsonStr in recsJsonList) {
+          try {
+            final decoded = jsonDecode(jsonStr);
+            if (decoded is Map<String, dynamic>) {
+              final rec = MusicRecommendation.fromJson(decoded);
+              if (rec.isValid) {
+                cachedRecs.add(rec);
               }
-            })
-            .whereType<MusicRecommendation>()
-            .toList();
-      } else {
-        print("Fetching new recommendations");
-        final List<MusicRecommendation> recommendations =
-            await MusicRecommendationService.getRecommendations(preferences);
-        final newRecsJsonList =
-            recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
-        await prefs.setStringList('cached_recs', newRecsJsonList);
-        return recommendations;
+            }
+          } catch (e) {
+            print("Error parsing cached music recommendation: $e");
+            // Continue to next item
+          }
+        }
+        
+        // If we got valid recommendations from cache, return them
+        if (cachedRecs.isNotEmpty) {
+          return cachedRecs;
+        } else {
+          // Cache is corrupted, clear it and fetch fresh
+          print("Cache corrupted, clearing and fetching fresh");
+          await prefs.remove('cached_recs');
+        }
       }
+      
+      // Fetch new recommendations
+      print("Fetching new recommendations");
+      final List<MusicRecommendation> recommendations =
+          await MusicRecommendationService.getRecommendations(preferences);
+      final newRecsJsonList =
+          recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
+      await prefs.setStringList('cached_recs', newRecsJsonList);
+      return recommendations;
     } catch (error) {
       print("Error fetching user preferences and or recommendations: $error");
+      // Clear cache on error to prevent future issues
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('cached_recs');
+      } catch (e) {
+        print("Error clearing cache: $e");
+      }
       rethrow;
     }
   }
@@ -121,16 +142,29 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
 
   void _refreshRecommendations() async {
     try {
+      // Create a new future for the refresh
+      final newFuture = fetchNewRecommendations();
+      
       setState(() {
-        _albumsFuture = fetchNewRecommendations();
+        _albumsFuture = newFuture;
         _isInitialized = true;
       });
+      
+      // Wait for the future to complete to ensure UI updates
+      await newFuture;
+      
+      // Force a rebuild after the future completes
+      if (mounted) {
+        setState(() {});
+      }
     } catch (error) {
       print("Error fetching user recs: $error");
-      setState(() {
-        _albumsFuture = Future.value([]);
-        _isInitialized = true;
-      });
+      if (mounted) {
+        setState(() {
+          _albumsFuture = Future.value([]);
+          _isInitialized = true;
+        });
+      }
     }
   }
 
@@ -154,6 +188,30 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                         child: FutureBuilder<List<MusicRecommendation>>(
                           future: _albumsFuture,
                           builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const DiscoBallLoading();
+                            }
+                            
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.error_outline, 
+                                        color: Colors.red, size: 48),
+                                    const SizedBox(height: 16),
+                                    Text('Error: ${snapshot.error}',
+                                        style: const TextStyle(color: Colors.white)),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _refreshRecommendations,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            
                             if (snapshot.hasData) {
                               return Column(
                                 children: [
@@ -185,6 +243,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                 ],
                               );
                             }
+                            
                             return const DiscoBallLoading();
                           },
                         ),

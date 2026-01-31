@@ -14,15 +14,29 @@ class MusicRecommendation {
   });
 
   factory MusicRecommendation.fromJson(Map<String, dynamic> json) {
+    // Safely parse genres list
+    List<String> genresList = [];
+    if (json['genres'] != null) {
+      if (json['genres'] is List) {
+        final dynamicList = json['genres'] as List;
+        for (var item in dynamicList) {
+          final genreStr = item.toString();
+          if (genreStr.isNotEmpty) {
+            genresList.add(genreStr);
+          }
+        }
+      } else if (json['genres'] is String) {
+        // Handle case where genres might be a single string
+        genresList = [json['genres'] as String];
+      }
+    }
+
     return MusicRecommendation(
       song: json['song']?.toString() ?? '',
       artist: json['artist']?.toString() ?? '',
       album: json['album']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
-      genres: (json['genres'] as List<dynamic>?)
-              ?.map((g) => g.toString())
-              .toList() ??
-          [],
+      genres: genresList,
     );
   }
 

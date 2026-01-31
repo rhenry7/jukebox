@@ -60,24 +60,16 @@ class _MainNavState extends State<MainNav> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // backgroundColor: const Color.fromARGB(0, 255, 201, 40),
         title: Text(
           "JUKEBOXD",
           style: GoogleFonts.gasoekOne(
             textStyle: const TextStyle(
               color: Colors.red,
-              //letterSpacing: .5,
             ),
           ),
         ),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 28),
-        toolbarHeight: 34.0,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(10.0),
-          child: Padding(
-            padding: EdgeInsets.all(8.0),
-          ),
-        ),
+        toolbarHeight: 56.0,
       ),
       body: _pages[currentPageIndex],
       bottomNavigationBar: NavigationBar(

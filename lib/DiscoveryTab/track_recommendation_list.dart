@@ -1,5 +1,6 @@
 // Album List Widget
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -16,7 +17,68 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
       itemCount: albums.length,
       itemBuilder: (_, index) {
         final album = albums[index];
-        return Card(
+        return _RecommendationCard(album: album);
+      },
+    );
+  }
+}
+
+class _RecommendationCard extends StatefulWidget {
+  final MusicRecommendation album;
+
+  const _RecommendationCard({required this.album});
+
+  @override
+  State<_RecommendationCard> createState() => _RecommendationCardState();
+}
+
+class _RecommendationCardState extends State<_RecommendationCard> {
+  String? _imageUrl;
+  bool _isLoadingImage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageUrl = widget.album.imageUrl;
+    // Fetch image in background if not available
+    if (_imageUrl == null || _imageUrl!.isEmpty) {
+      _loadImage();
+    }
+  }
+
+  Future<void> _loadImage() async {
+    if (_isLoadingImage) return;
+    
+    setState(() {
+      _isLoadingImage = true;
+    });
+
+    try {
+      final imageUrl = await MusicRecommendationService
+          .fetchAlbumImageForRecommendation(widget.album);
+      
+      if (mounted && imageUrl.isNotEmpty) {
+        setState(() {
+          _imageUrl = imageUrl;
+          _isLoadingImage = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingImage = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingImage = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
           elevation: 1,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -30,19 +92,58 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.music_note,
-                      size: 10,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  child: (_imageUrl != null && _imageUrl!.isNotEmpty)
+                      ? Image.network(
+                          _imageUrl!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.music_note,
+                                color: Colors.white70,
+                                size: 30,
+                              ),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.music_note,
+                            color: Colors.white70,
+                            size: 30,
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 16),
                 // Expanded content with proper constraints
@@ -52,7 +153,7 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        album.song,
+                        widget.album.song,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.normal,
@@ -61,7 +162,7 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        album.artist,
+                        widget.album.artist,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.normal,
@@ -70,7 +171,7 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        album.album,
+                        widget.album.album,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.normal,
@@ -87,7 +188,7 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
                   children: [
                     IconButton(
                         onPressed: () => {
-                              updateDislikedTracks(album.artist, album.song),
+                              updateDislikedTracks(widget.album.artist, widget.album.song),
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Preferences Updated!'),
@@ -100,7 +201,7 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
                             color: Colors.red)),
                     IconButton(
                         onPressed: () => {
-                              updateSavedTracks(album.artist, album.song),
+                              updateSavedTracks(widget.album.artist, widget.album.song),
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -119,7 +220,5 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
             ),
           ),
         );
-      },
-    );
   }
 }

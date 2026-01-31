@@ -280,13 +280,15 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
               foregroundColor: Colors.white,
               elevation: 0,
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(48),
+                preferredSize: const Size.fromHeight(56.0),
                 child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  alignment: Alignment.centerLeft,
                   color: Colors.transparent,
                   child: TabBar(
                     isScrollable: true,
                     controller: _tabController,
-                    padding: const EdgeInsets.only(left: 2.0),
+                    tabAlignment: TabAlignment.start,
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white70,
                     indicator: BoxDecoration(
@@ -302,38 +304,48 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
                         ),
                       ],
                     ),
+                    indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 16.0),
                     tabs: const [
                       Tab(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 0.0),
-                          child: Text('Genres',
-                              style: TextStyle(color: Colors.white)),
+                        child: Text(
+                          'Genres',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                       Tab(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 0.0),
-                          child: Text('Moods',
-                              style: TextStyle(color: Colors.white)),
+                        child: Text(
+                          'Moods',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                       Tab(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 0.0),
-                          child: Text('Tempo',
-                              style: TextStyle(color: Colors.white)),
+                        child: Text(
+                          'Tempo',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                       Tab(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 0.0),
-                          child: Text('Context',
-                              style: TextStyle(color: Colors.white)),
+                        child: Text(
+                          'Context',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],

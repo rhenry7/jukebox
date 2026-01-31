@@ -287,74 +287,81 @@ class ReviewCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            leading: review.albumImageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.network(
-                      review.albumImageUrl!,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.music_note, size: 56);
-                      },
-                    ),
+          // Album Cover
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: review.albumImageUrl != null
+                ? Image.network(
+                    review.albumImageUrl!,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.music_note, size: 80, color: Colors.white70);
+                    },
                   )
-                : const Icon(Icons.music_note, size: 56),
-            title: Text(
-              review.title,
-              style: const TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              review.artist,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: Text(
-              review.displayName,
-              style: const TextStyle(color: Colors.white60),
-            ),
+                : const Icon(Icons.music_note, size: 80, color: Colors.white70),
           ),
-          const SizedBox(height: 8),
-          // Rating and Review Section
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Rating Bar
-              RatingBar(
-                minRating: 0,
-                maxRating: 5,
-                allowHalfRating: true,
-                initialRating: review.score,
-                itemSize: 24,
-                itemPadding: const EdgeInsets.symmetric(horizontal: 2.0),
-                ratingWidget: RatingWidget(
-                  full: const Icon(Icons.star, color: Colors.amber),
-                  empty: const Icon(Icons.star, color: Colors.grey),
-                  half: const Icon(Icons.star_half, color: Colors.amber),
+          const SizedBox(width: 16),
+          // Album Info, Rating, and Review - All left-aligned
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                // Album Title
+                Text(
+                  review.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                ignoreGestures: true, // Make it read-only
-                onRatingUpdate: (rating) {
-                  // Do nothing - this is display only
-                },
-              ),
-              const SizedBox(height: 8),
-              // Review Text
-              Text(
-                review.review,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.0,
-                  fontStyle: FontStyle.italic,
+                const SizedBox(height: 4),
+                // Artist Name
+                Text(
+                  review.artist,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
                 ),
-                maxLines: 5,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                const SizedBox(height: 12),
+                // Rating Bar
+                RatingBar(
+                  minRating: 0,
+                  maxRating: 5,
+                  allowHalfRating: true,
+                  initialRating: review.score,
+                  itemSize: 20,
+                  itemPadding: const EdgeInsets.only(right: 4.0),
+                  ratingWidget: RatingWidget(
+                    full: const Icon(Icons.star, color: Colors.amber),
+                    empty: const Icon(Icons.star, color: Colors.grey),
+                    half: const Icon(Icons.star_half, color: Colors.amber),
+                  ),
+                  ignoreGestures: true,
+                  onRatingUpdate: (rating) {},
+                ),
+                const SizedBox(height: 12),
+                // Review Text
+                Text(
+                  review.review,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.0,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),

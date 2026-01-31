@@ -105,30 +105,87 @@ class EnhancedUserPreferences {
   }
 
   static EnhancedUserPreferences fromJson(Map<String, dynamic> json) {
+    // Helper function to safely convert List<dynamic> to List<String>
+    List<String> safeStringList(dynamic value) {
+      if (value == null) return [];
+      if (value is List) {
+        return value.map((e) => e.toString()).toList();
+      }
+      return [];
+    }
+
+    // Helper function to safely convert Map<String, dynamic> to Map<String, double>
+    Map<String, double> safeDoubleMap(dynamic value) {
+      if (value == null) return {};
+      if (value is Map) {
+        final result = <String, double>{};
+        value.forEach((key, val) {
+          if (val is num) {
+            result[key.toString()] = val.toDouble();
+          }
+        });
+        return result;
+      }
+      return {};
+    }
+
+    // Helper function to safely convert Map<String, dynamic> to Map<String, int>
+    Map<String, int> safeIntMap(dynamic value) {
+      if (value == null) return {};
+      if (value is Map) {
+        final result = <String, int>{};
+        value.forEach((key, val) {
+          if (val is num) {
+            result[key.toString()] = val.toInt();
+          }
+        });
+        return result;
+      }
+      return {};
+    }
+
+    // Helper function to safely convert Map<String, List<dynamic>> to Map<String, List<String>>
+    Map<String, List<String>> safeStringListMap(dynamic value) {
+      if (value == null) return {};
+      if (value is Map) {
+        final result = <String, List<String>>{};
+        value.forEach((key, val) {
+          result[key.toString()] = safeStringList(val);
+        });
+        return result;
+      }
+      return {};
+    }
+
     return EnhancedUserPreferences(
-      favoriteGenres: List<String>.from(json['favoriteGenres'] ?? []),
-      favoriteArtists: List<String>.from(json['favoriteArtists'] ?? []),
-      dislikedGenres: List<String>.from(json['dislikedGenres'] ?? []),
-      genreWeights: Map<String, double>.from(json['genreWeights'] ?? {}),
+      favoriteGenres: safeStringList(json['favoriteGenres']),
+      favoriteArtists: safeStringList(json['favoriteArtists']),
+      dislikedGenres: safeStringList(json['dislikedGenres']),
+      genreWeights: safeDoubleMap(json['genreWeights']),
       recentlyPlayed: (json['recentlyPlayed'] as List<dynamic>?)
               ?.map((track) => TrackHistory.fromJson(track))
               .toList() ??
           [],
-      savedTracks: List<String>.from(json['savedTracks'] ?? []),
-      dislikedTracks: List<String>.from(json['dislikedTracks'] ?? []),
-      audioFeatureProfile:
-          Map<String, double>.from(json['audioFeatureProfile'] ?? {}),
-      moodPreferences: Map<String, double>.from(json['moodPreferences'] ?? {}),
-      tempoPreferences:
-          Map<String, double>.from(json['tempoPreferences'] ?? {}),
-      contextualPreferences:
-          Map<String, List<String>>.from(json['contextualPreferences'] ?? {}),
+      savedTracks: safeStringList(json['savedTracks']),
+      dislikedTracks: safeStringList(json['dislikedTracks']),
+      audioFeatureProfile: safeDoubleMap(json['audioFeatureProfile']),
+      moodPreferences: safeDoubleMap(json['moodPreferences']),
+      tempoPreferences: safeDoubleMap(json['tempoPreferences']),
+      contextualPreferences: safeStringListMap(json['contextualPreferences']),
       lastUpdated: json['lastUpdated'] is Timestamp
           ? (json['lastUpdated'] as Timestamp).toDate()
-          : DateTime.parse(json['lastUpdated'] as String),
-      totalListeningTime: json['totalListeningTime'] ?? 0,
-      skipCounts: Map<String, int>.from(json['skipCounts'] ?? {}),
-      repeatCounts: Map<String, int>.from(json['repeatCounts'] ?? {}),
+          : json['lastUpdated'] != null
+              ? (json['lastUpdated'] is String
+                  ? DateTime.parse(json['lastUpdated'] as String)
+                  : DateTime.now())
+              : DateTime.now(),
+      totalListeningTime: json['totalListeningTime'] is int
+          ? json['totalListeningTime'] as int
+          : json['totalListeningTime'] is num
+              ? (json['totalListeningTime'] as num).toInt()
+              : 0,
+      skipCounts: safeIntMap(json['skipCounts']),
+      repeatCounts: safeIntMap(json['repeatCounts']),
     );
   }
 }

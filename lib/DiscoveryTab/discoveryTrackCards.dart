@@ -40,8 +40,10 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
                     itemBuilder: (context, index) {
                       final track = snapshot.data![index];
                       final albumImages = track.album!.images;
-                      final smallImageUrl =
-                          albumImages!.isNotEmpty ? albumImages.last.url : null;
+                      // Use first image (largest) instead of last (smallest)
+                      final imageUrl = albumImages!.isNotEmpty 
+                          ? albumImages.first.url 
+                          : null;
                       final trackDescription = track.album!.releaseDate;
                       //print(track);
                       return Card(
@@ -60,10 +62,61 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
                                 children: <Widget>[
                                   Expanded(
                                     child: ListTile(
-                                      leading: smallImageUrl != null
-                                          ? flutter.Image.network(smallImageUrl)
-                                          : const Icon(Icons
-                                              .music_note), // Fallback if no image is available,
+                                      leading: imageUrl != null
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(4),
+                                              child: flutter.Image.network(
+                                                imageUrl,
+                                                width: 56,
+                                                height: 56,
+                                                fit: flutter.BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    width: 56,
+                                                    height: 56,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey[800],
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.music_note,
+                                                      color: Colors.white70,
+                                                      size: 28,
+                                                    ),
+                                                  );
+                                                },
+                                                loadingBuilder: (context, child, loadingProgress) {
+                                                  if (loadingProgress == null) return child;
+                                                  return Container(
+                                                    width: 56,
+                                                    height: 56,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey[800],
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: const Center(
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                          : Container(
+                                              width: 56,
+                                              height: 56,
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[800],
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: const Icon(
+                                                Icons.music_note,
+                                                color: Colors.white70,
+                                                size: 28,
+                                              ),
+                                            ),
                                       title: Text(track.name as String),
                                       subtitle: Text(track.artists!
                                           .map((artist) => artist.name)
