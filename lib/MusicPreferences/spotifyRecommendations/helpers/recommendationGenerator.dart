@@ -8,6 +8,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
+import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Function to sort and get top genres
@@ -188,9 +189,14 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                         child: FutureBuilder<List<MusicRecommendation>>(
                           future: _albumsFuture,
                           builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const DiscoBallLoading();
-                            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return ListView.builder(
+                itemCount: 5,
+                itemBuilder: (context, index) {
+                  return RecommendationCardSkeleton();
+                },
+              );
+            }
                             
                             if (snapshot.hasError) {
                               return Center(
@@ -200,8 +206,17 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                     const Icon(Icons.error_outline, 
                                         color: Colors.red, size: 48),
                                     const SizedBox(height: 16),
-                                    Text('Error: ${snapshot.error}',
-                                        style: const TextStyle(color: Colors.white)),
+                                    const Text(
+                                      'Error loading recommendations',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 18),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '${snapshot.error}',
+                                      style: const TextStyle(color: Colors.white70),
+                                      textAlign: TextAlign.center,
+                                    ),
                                     const SizedBox(height: 16),
                                     ElevatedButton(
                                       onPressed: _refreshRecommendations,
@@ -213,6 +228,39 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                             }
                             
                             if (snapshot.hasData) {
+                              if (snapshot.data!.isEmpty) {
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.music_off, 
+                                          size: 64, color: Colors.grey),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'No recommendations yet',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 20),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'Update your music preferences to get personalized recommendations!',
+                                        style: TextStyle(color: Colors.white70),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      ElevatedButton.icon(
+                                        onPressed: _refreshRecommendations,
+                                        icon: const Icon(Icons.refresh),
+                                        label: const Text('Refresh'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red[600],
+                                          foregroundColor: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
                               return Column(
                                 children: [
                                   const SizedBox(height: 16),

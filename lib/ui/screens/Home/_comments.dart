@@ -5,6 +5,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:gap/gap.dart';
 
 import '../../../models/review.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class ReviewWithDocId {
   final Review review;
@@ -45,16 +46,74 @@ class ReviewsList extends State<UserReviewsCollection> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return ListView.builder(
+            itemCount: 3,
+            itemBuilder: (context, index) {
+              return ReviewCardSkeleton();
+            },
+          );
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading reviews',
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: const TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => setState(() {}),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No reviews found.'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.music_note, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text(
+                  'No reviews yet',
+                  style: TextStyle(color: Colors.white, fontSize: 20),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Start reviewing music to see it here!',
+                  style: TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Navigate to add review
+                    Navigator.pushNamed(context, '/add-review');
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Write Your First Review'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[600],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
-   
         final List<ReviewWithDocId> reviewsWithDocIds =
             snapshot.data!.docs.map((doc) {
           final review =
@@ -63,7 +122,14 @@ class ReviewsList extends State<UserReviewsCollection> {
           return ReviewWithDocId(review: review, docId: docId);
         }).toList();
 
-        return Container(
+        return RefreshIndicator(
+          onRefresh: () async {
+            // Force refresh by rebuilding
+            setState(() {});
+            await Future.delayed(const Duration(milliseconds: 500));
+          },
+          color: Colors.red[600],
+          child: Container(
             decoration: const BoxDecoration(),
             margin: const EdgeInsets.symmetric(),
             padding: const EdgeInsets.symmetric(),
@@ -76,7 +142,9 @@ class ReviewsList extends State<UserReviewsCollection> {
                   ),
                 ),
               ],
-            ));
+            ),
+          ),
+        );
       },
     );
   }

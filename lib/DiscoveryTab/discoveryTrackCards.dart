@@ -24,20 +24,55 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          Center(
-            child: FutureBuilder<List<Track>>(
-              future: spotifyTracks,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return ListView.builder(
-                    itemCount: snapshot.data!.length,
-                    physics: const NeverScrollableScrollPhysics(), // Disable
-                    shrinkWrap: true,
-                    itemBuilder: (context, index) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {
+          spotifyTracks = fetchExploreTracks();
+        });
+        await spotifyTracks;
+      },
+      color: Colors.red[600],
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Center(
+              child: FutureBuilder<List<Track>>(
+                future: spotifyTracks,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    if (snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.explore_outlined, 
+                                  size: 64, color: Colors.grey),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'No tracks to explore',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 20),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Pull down to refresh and discover new music!',
+                                style: TextStyle(color: Colors.white70),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      itemCount: snapshot.data!.length,
+                      physics: const NeverScrollableScrollPhysics(), // Disable
+                      shrinkWrap: true,
+                      itemBuilder: (context, index) {
                       final track = snapshot.data![index];
                       final albumImages = track.album!.images;
                       // Use first image (largest) instead of last (smallest)
@@ -170,16 +205,52 @@ class ListOfTracks extends State<DiscoveryTrackCards> {
                       );
                     },
                   );
-                } else if (snapshot.hasError) {
-                  print(snapshot);
-                  return Text('Error: ${snapshot.error}');
-                }
-                return const DiscoBallLoading();
-              },
+                  } else if (snapshot.hasError) {
+                    print(snapshot);
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, 
+                                size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Error loading tracks',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 18),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${snapshot.error}',
+                              style: const TextStyle(color: Colors.white70),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  spotifyTracks = fetchExploreTracks();
+                                });
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return const Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: DiscoBallLoading(),
+                  );
+                },
+              ),
             ),
-          ),
-          //const Gap(10),
-        ],
+            //const Gap(10),
+          ],
+        ),
       ),
     );
   }

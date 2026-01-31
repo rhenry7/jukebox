@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -41,6 +42,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
   String _selectedTrackTitle = '';
   String _selectedTrackArtist = '';
   String _selectedTrackImageUrl = '';
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -59,18 +61,26 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     reviewController.dispose();
     searchParams.dispose();
     super.dispose();
   }
   
   void _onSearchChanged() {
+    // Cancel previous debounce timer
+    _searchDebounce?.cancel();
+    
     final query = searchParams.text.trim();
     if (query.length >= 2) {
-      _performSearch(query);
+      // Debounce search by 500ms
+      _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+        _performSearch(query);
+      });
     } else {
       setState(() {
         _searchResults = [];
+        _isSearching = false;
       });
     }
   }
