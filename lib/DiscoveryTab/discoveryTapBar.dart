@@ -49,7 +49,7 @@ class DiscoveryTapBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.rocket_outlined, size: 18),
+                      Icon(Icons.rocket_launch_rounded, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'Recommended',
