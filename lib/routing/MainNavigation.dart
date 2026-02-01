@@ -13,10 +13,10 @@ class MainNav extends StatefulWidget {
   final String title;
 
   @override
-  State<MainNav> createState() => _MainNavState();
+  State<MainNav> createState() => MainNavState();
 }
 
-class _MainNavState extends State<MainNav> {
+class MainNavState extends State<MainNav> {
   int currentPageIndex = 0;
   final TextEditingController _controller = TextEditingController();
   late Future<MusicPreferences?> _preferencesFuture;
@@ -54,6 +54,11 @@ class _MainNavState extends State<MainNav> {
         currentPageIndex = index;
       });
     }
+  }
+
+  // Public method to change tab from child widgets
+  void navigateToTab(int index) {
+    _onItemTapped(index);
   }
 
   @override

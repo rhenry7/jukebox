@@ -9,6 +9,8 @@ import '../../../services/get_album_service.dart';
 import '../../../services/genre_cache_service.dart';
 import '../../../utils/helpers.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../Profile/ProfileSignIn.dart';
+import '../../../routing/MainNavigation.dart';
 
 class ReviewWithDocId {
   final Review review;
@@ -37,7 +39,65 @@ class ReviewsList extends State<UserReviewsCollection> {
   @override
   Widget build(BuildContext context) {
     if (userId.isEmpty) {
-      return const Center(child: Text('User not logged in.'));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.person_off,
+                size: 80,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Sign In Required',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'This app only works when you\'re signed in. Please sign in to view your reviews and discover new music!',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SignInScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.login),
+                label: const Text(
+                  'Sign In!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[600],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return StreamBuilder<QuerySnapshot>(
@@ -102,11 +162,14 @@ class ReviewsList extends State<UserReviewsCollection> {
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Navigate to add review
-                    Navigator.pushNamed(context, '/add-review');
+                    // Navigate to discovery tab (index 1)
+                    final mainNavState = context.findAncestorStateOfType<MainNavState>();
+                    if (mainNavState != null) {
+                      mainNavState.navigateToTab(1);
+                    }
                   },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Write Your First Review'),
+                  icon: const Icon(Icons.explore),
+                  label: const Text('Discover new music to review'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red[600],
                     foregroundColor: Colors.white,

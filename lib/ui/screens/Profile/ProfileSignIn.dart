@@ -140,7 +140,6 @@ class _SignInScreenState extends State<SignInScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign In")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
