@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 
 import '_comments.dart';
+import 'community_reviews.dart';
 
 class CategoryTapBar extends StatelessWidget {
   const CategoryTapBar({super.key});
@@ -84,7 +85,7 @@ class CategoryTapBar extends StatelessWidget {
         body: const TabBarView(
           children: [
             UserReviewsCollection(),
-            CommentWidget(),
+            CommunityReviewsCollection(),
           ],
         ),
       ),

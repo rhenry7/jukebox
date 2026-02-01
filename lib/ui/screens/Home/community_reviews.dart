@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,24 +6,118 @@ import 'package:gap/gap.dart';
 
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
-import '../../../providers/reviews_provider.dart' show ReviewWithDocId, userReviewsProvider;
-import '../../../services/get_album_service.dart';
+import '../../../providers/community_reviews_provider.dart';
+import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../../../services/genre_cache_service.dart';
 import '../../../utils/helpers.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
+import '_comments.dart' show ReviewCardWithGenres;
 
-// ReviewWithDocId moved to providers/reviews_provider.dart
-
-class UserReviewsCollection extends ConsumerWidget {
-  const UserReviewsCollection({super.key});
+/// Community reviews widget - shows all users' reviews with lazy loading
+class CommunityReviewsCollection extends ConsumerStatefulWidget {
+  const CommunityReviewsCollection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Use Riverpod providers instead of direct Firebase calls
+  ConsumerState<CommunityReviewsCollection> createState() => _CommunityReviewsCollectionState();
+}
+
+class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCollection> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+  int _previousItemCount = 0;
+  double _previousScrollPosition = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to scroll events for lazy loading
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Load more when user scrolls near the bottom (80% of the way)
+    if (!_isLoadingMore && 
+        _scrollController.hasClients &&
+        _scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent * 0.8) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore) return;
+    
+    // Save current scroll position and item count before loading
+    if (_scrollController.hasClients) {
+      _previousScrollPosition = _scrollController.position.pixels;
+      // Get current item count from the provider
+      final currentLimit = ref.read(communityReviewsLimitProvider);
+      final currentReviewsAsync = ref.read(communityReviewsProvider(currentLimit));
+      _previousItemCount = currentReviewsAsync.value?.length ?? 0;
+    }
+    
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Increase the limit to load more reviews
+    ref.read(loadMoreCommunityReviewsProvider)();
+    
+    // Wait a bit for the data to load
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    if (mounted) {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  void _restoreScrollPosition(int newItemCount) {
+    // Only restore if we actually loaded more items (lazy loading scenario)
+    if (newItemCount > _previousItemCount && _scrollController.hasClients) {
+      final wasNearBottom = _previousScrollPosition >= 
+          (_scrollController.position.maxScrollExtent * 0.9);
+      
+      // Use post-frame callback to restore position after rebuild completes
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients && mounted) {
+          // Wait one more frame to ensure list is fully built
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients && mounted) {
+              if (wasNearBottom) {
+                // If user was near bottom, scroll to new bottom to show new items
+                _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 100),
+                  curve: Curves.easeOut,
+                );
+              } else {
+                // Otherwise, restore the exact previous position
+                _scrollController.jumpTo(_previousScrollPosition);
+              }
+            }
+          });
+        }
+      });
+    }
+    _previousItemCount = newItemCount;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userId = ref.watch(currentUserIdProvider);
-    final reviewsAsync = ref.watch(userReviewsProvider);
+    final limit = ref.watch(communityReviewsLimitProvider);
+    final reviewsAsync = ref.watch(communityReviewsProvider(limit));
     
     // Check if user is authenticated
     if (userId == null) {
@@ -50,7 +143,7 @@ class UserReviewsCollection extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'This app only works when you\'re signed in. Please sign in to view your reviews and discover new music!',
+                'This app only works when you\'re signed in. Please sign in to view community reviews and discover new music!',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
@@ -89,13 +182,11 @@ class UserReviewsCollection extends ConsumerWidget {
       );
     }
 
-    // Use Riverpod's AsyncValue pattern
     return reviewsAsync.when(
       data: (reviews) {
-        // Debug logging
-        print('✅ Reviews loaded: ${reviews.length} reviews');
-        if (reviews.isEmpty) {
-          print('⚠️ No reviews found for user: $userId');
+        // Restore scroll position after new items are loaded (only if we're loading more)
+        if (_isLoadingMore || reviews.length > _previousItemCount) {
+          _restoreScrollPosition(reviews.length);
         }
         
         if (reviews.isEmpty) {
@@ -106,12 +197,12 @@ class UserReviewsCollection extends ConsumerWidget {
                 const Icon(Icons.music_note, size: 64, color: Colors.grey),
                 const SizedBox(height: 16),
                 const Text(
-                  'No reviews yet',
+                  'No community reviews yet',
                   style: TextStyle(color: Colors.white, fontSize: 20),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Start reviewing music to see it here!',
+                  'Be the first to share your music reviews!',
                   style: TextStyle(color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),
@@ -136,13 +227,11 @@ class UserReviewsCollection extends ConsumerWidget {
           );
         }
 
-        // Reviews already come with docIds from the provider
-        final List<ReviewWithDocId> reviewsWithDocIds = reviews;
-
         return RefreshIndicator(
           onRefresh: () async {
-            // Invalidate provider to refresh data
-            ref.invalidate(userReviewsProvider);
+            // Reset limit and refresh
+            ref.read(communityReviewsLimitProvider.notifier).state = 20;
+            ref.invalidate(communityReviewsProvider(limit));
             await Future.delayed(const Duration(milliseconds: 500));
           },
           color: Colors.red[600],
@@ -154,8 +243,12 @@ class UserReviewsCollection extends ConsumerWidget {
               children: [
                 const Gap(10),
                 Expanded(
-                  child: FriendsReviewList(
-                    reviews: reviewsWithDocIds,
+                  child: CommunityReviewList(
+                    key: ValueKey('community_reviews_${reviews.length}'), // Key to help maintain state
+                    reviews: reviews,
+                    scrollController: _scrollController,
+                    isLoadingMore: _isLoadingMore,
+                    onLoadMore: _loadMore,
                   ),
                 ),
               ],
@@ -170,7 +263,7 @@ class UserReviewsCollection extends ConsumerWidget {
         },
       ),
       error: (error, stackTrace) {
-        print('❌ Error loading reviews: $error');
+        print('❌ Error loading community reviews: $error');
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -178,7 +271,7 @@ class UserReviewsCollection extends ConsumerWidget {
               const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 16),
               const Text(
-                'Error loading reviews',
+                'Error loading community reviews',
                 style: TextStyle(color: Colors.white, fontSize: 18),
               ),
               const SizedBox(height: 8),
@@ -187,15 +280,11 @@ class UserReviewsCollection extends ConsumerWidget {
                 style: const TextStyle(color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'If you see an index error, check Firebase Console → Firestore → Indexes',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.invalidate(userReviewsProvider),
+                onPressed: () {
+                  ref.invalidate(communityReviewsProvider(limit));
+                },
                 child: const Text('Retry'),
               ),
             ],
@@ -206,21 +295,46 @@ class UserReviewsCollection extends ConsumerWidget {
   }
 }
 
-class FriendsReviewList extends ConsumerWidget {
+/// List widget for community reviews - same UI as FriendsReviewList
+class CommunityReviewList extends ConsumerWidget {
   final List<ReviewWithDocId> reviews;
-  const FriendsReviewList({super.key, required this.reviews});
+  final ScrollController scrollController;
+  final bool isLoadingMore;
+  final VoidCallback onLoadMore;
+
+  const CommunityReviewList({
+    super.key,
+    required this.reviews,
+    required this.scrollController,
+    required this.isLoadingMore,
+    required this.onLoadMore,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView.builder(
-      itemCount: reviews.length,
+      key: const PageStorageKey('community_reviews_list'), // Preserve scroll position
+      controller: scrollController,
+      itemCount: reviews.length + (isLoadingMore ? 1 : 0),
+      cacheExtent: 500, // Cache more items to prevent scroll jumps
       itemBuilder: (context, index) {
+        // Show loading indicator at the bottom when loading more
+        if (index == reviews.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Colors.red,
+              ),
+            ),
+          );
+        }
+
         var review = reviews[index];
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           child: Dismissible(
-            key:
-                Key(review.docId.toString()), // Assuming Review has an id field
+            key: Key(review.docId.toString()),
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
               // Show dialog instead of dismissing
@@ -250,8 +364,7 @@ class FriendsReviewList extends ConsumerWidget {
                   side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
                 ),
                 color: Colors.white10,
-                child:
-                    ReviewCardWithGenres(review: review.review), // Pass review data with genre loading
+                child: ReviewCardWithGenres(review: review.review),
               ),
             ),
           ),
@@ -279,7 +392,7 @@ class FriendsReviewList extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Text(
-                  'Review by ${review.review.displayName ?? "Unknown"}', // Assuming Review has userName
+                  'Review by ${review.review.displayName ?? "Unknown"}',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.white,
@@ -376,6 +489,7 @@ class FriendsReviewList extends ConsumerWidget {
               Navigator.pop(context);
               try {
                 // Delete review from Firestore
+                // Need to get the full path: users/{userId}/reviews/{reviewId}
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(userId)
@@ -383,8 +497,9 @@ class FriendsReviewList extends ConsumerWidget {
                     .doc(review.docId)
                     .delete();
                 
-                // Invalidate provider to refresh UI automatically
-                ref.invalidate(userReviewsProvider);
+                // Invalidate providers to refresh UI
+                final currentLimit = ref.read(communityReviewsLimitProvider);
+                ref.invalidate(communityReviewsProvider(currentLimit));
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Review deleted successfully')),
@@ -399,268 +514,6 @@ class FriendsReviewList extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class ReviewCardWidget extends StatelessWidget {
-  final Review review;
-  const ReviewCardWidget({super.key, required this.review});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Image, Artist, Song, Rating
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Album Cover
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: review.albumImageUrl != null
-                    ? Image.network(
-                        review.albumImageUrl!,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.music_note, size: 80, color: Colors.white70);
-                        },
-                      )
-                    : const Icon(Icons.music_note, size: 80, color: Colors.white70),
-              ),
-              const SizedBox(width: 16),
-              // Artist, Song, and Rating
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Artist Name
-                    Text(
-                      review.artist,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Song Title
-                    Text(
-                      review.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Rating Bar and Timestamp in a Row
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Rating Bar
-                        RatingBar(
-                          minRating: 0,
-                          maxRating: 5,
-                          allowHalfRating: true,
-                          initialRating: review.score,
-                          itemSize: 20,
-                          itemPadding: const EdgeInsets.only(right: 4.0),
-                          ratingWidget: RatingWidget(
-                            full: const Icon(Icons.star, color: Colors.amber),
-                            empty: const Icon(Icons.star, color: Colors.grey),
-                            half: const Icon(Icons.star_half, color: Colors.amber),
-                          ),
-                          ignoreGestures: true,
-                          onRatingUpdate: (rating) {},
-                        ),
-                        // Small gap before timestamp
-                        if (review.date != null) const SizedBox(width: 5),
-                        // Timestamp (relative time)
-                        if (review.date != null)
-                          Text(
-                            formatRelativeTime(review.date),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 7,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          // Bottom Row: Review Text (full width) - only show if review text exists
-          if (review.review.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              review.review,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14.0,
-                fontStyle: FontStyle.italic,
-              ),
-              maxLines: null,
-              overflow: TextOverflow.visible,
-            ),
-          ],
-          // Username row - left aligned, italic, small font
-          if (review.displayName.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  review.displayName,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          // Genre Tags (pills at the bottom)
-          if (review.genres != null && review.genres!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
-              children: review.genres!.take(5).map((genre) {
-                return Chip(
-                  label: Text(
-                    genre,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  backgroundColor: Colors.white.withOpacity(0.1),
-                  side: BorderSide(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// Helper widget to fetch and display genres for reviews
-class ReviewCardWithGenres extends StatefulWidget {
-  final Review review;
-  const ReviewCardWithGenres({super.key, required this.review});
-
-  @override
-  State<ReviewCardWithGenres> createState() => _ReviewCardWithGenresState();
-}
-
-class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
-  List<String>? _genres;
-  bool _isLoadingGenres = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _genres = widget.review.genres;
-    // If no genres, fetch them
-    if (_genres == null || _genres!.isEmpty) {
-      _loadGenres();
-    }
-  }
-
-  Future<void> _loadGenres() async {
-    if (_isLoadingGenres) return;
-    
-    setState(() {
-      _isLoadingGenres = true;
-    });
-
-    try {
-      // Use cache service: checks Firestore cache first, then MusicBrainz API
-      final genres = await GenreCacheService.getGenresWithCache(
-        widget.review.title,
-        widget.review.artist,
-      );
-
-      if (genres.isNotEmpty && mounted) {
-        setState(() {
-          _genres = genres;
-          _isLoadingGenres = false;
-        });
-        return;
-      }
-    } catch (e) {
-      print('Error loading genres: $e');
-    }
-
-    // If MusicBrainz fails, genres remain null/empty
-    if (mounted) {
-      setState(() {
-        _isLoadingGenres = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Use genres from state if available, otherwise use review's genres
-    final genres = _genres ?? widget.review.genres;
-    
-    return ReviewCardWidget(
-      review: widget.review.copyWith(genres: genres),
-    );
-  }
-}
-
-// Extension to add copyWith to Review
-extension ReviewCopyWith on Review {
-  Review copyWith({
-    String? displayName,
-    String? userId,
-    String? artist,
-    String? review,
-    double? score,
-    DateTime? date,
-    String? albumImageUrl,
-    String? userImageUrl,
-    int? likes,
-    int? replies,
-    int? reposts,
-    String? title,
-    List<String>? genres,
-  }) {
-    return Review(
-      displayName: displayName ?? this.displayName,
-      userId: userId ?? this.userId,
-      artist: artist ?? this.artist,
-      review: review ?? this.review,
-      score: score ?? this.score,
-      date: date ?? this.date,
-      albumImageUrl: albumImageUrl ?? this.albumImageUrl,
-      userImageUrl: userImageUrl ?? this.userImageUrl,
-      likes: likes ?? this.likes,
-      replies: replies ?? this.replies,
-      reposts: reposts ?? this.reposts,
-      title: title ?? this.title,
-      genres: genres ?? this.genres,
     );
   }
 }
