@@ -7,6 +7,7 @@ import 'package:gap/gap.dart';
 import '../../../models/review.dart';
 import '../../../services/get_album_service.dart';
 import '../../../services/genre_cache_service.dart';
+import '../../../utils/helpers.dart';
 import '../../widgets/skeleton_loader.dart';
 
 class ReviewWithDocId {
@@ -404,22 +405,40 @@ class ReviewCardWidget extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    // Rating Bar
-                    RatingBar(
-                      minRating: 0,
-                      maxRating: 5,
-                      allowHalfRating: true,
-                      initialRating: review.score,
-                      itemSize: 20,
-                      itemPadding: const EdgeInsets.only(right: 4.0),
-                      ratingWidget: RatingWidget(
-                        full: const Icon(Icons.star, color: Colors.amber),
-                        empty: const Icon(Icons.star, color: Colors.grey),
-                        half: const Icon(Icons.star_half, color: Colors.amber),
-                      ),
-                      ignoreGestures: true,
-                      onRatingUpdate: (rating) {},
+                    const SizedBox(height: 4),
+                    // Rating Bar and Timestamp in a Row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Rating Bar
+                        RatingBar(
+                          minRating: 0,
+                          maxRating: 5,
+                          allowHalfRating: true,
+                          initialRating: review.score,
+                          itemSize: 20,
+                          itemPadding: const EdgeInsets.only(right: 4.0),
+                          ratingWidget: RatingWidget(
+                            full: const Icon(Icons.star, color: Colors.amber),
+                            empty: const Icon(Icons.star, color: Colors.grey),
+                            half: const Icon(Icons.star_half, color: Colors.amber),
+                          ),
+                          ignoreGestures: true,
+                          onRatingUpdate: (rating) {},
+                        ),
+                        // Small gap before timestamp
+                        if (review.date != null) const SizedBox(width: 5),
+                        // Timestamp (relative time)
+                        if (review.date != null)
+                          Text(
+                            formatRelativeTime(review.date),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 7,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),

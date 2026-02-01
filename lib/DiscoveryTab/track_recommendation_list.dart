@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
+import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:ionicons/ionicons.dart';
 
 import '../models/music_recommendation.dart';
@@ -229,18 +230,20 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                         icon: const Icon(Ionicons.close_circle_outline,
                             color: Colors.red)),
                     IconButton(
-                        onPressed: () => {
-                              updateSavedTracks(widget.album.artist, widget.album.song),
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Recommendations Updated!',
-                                  ),
-                                  backgroundColor: Colors.green,
-                                ),
-                              ),
-                              //Navigator.pop(context)
+                        onPressed: () {
+                          // Open review sheet with pre-populated data
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (BuildContext context) {
+                              return MyReviewSheetContentForm(
+                                title: widget.album.song,
+                                artist: widget.album.artist,
+                                albumImageUrl: _imageUrl ?? widget.album.imageUrl,
+                              );
                             },
+                          );
+                        },
                         icon: const Icon(Ionicons.add_circle_outline,
                             color: Colors.green)),
                   ],

@@ -50,7 +50,7 @@ class AuthService {
     try {
       print(email);
       // Attempt to sign in with Firebase
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      await _auth.signInWithEmailAndPassword(
           email: email, password: password);
       print("successfully signed in!");
       return true; // Sign-in successful
