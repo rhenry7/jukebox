@@ -2,8 +2,53 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Allow users to read their own user document
+      allow read: if isOwner(userId);
+      // Allow users to create/update their own user document
+      allow write: if isOwner(userId);
+      
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        // Allow users to read all reviews (for console viewing and collection group queries)
+        allow read: if isAuthenticated();
+        // Allow users to write their own reviews
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update, delete: if isOwner(userId) && resource.data.userId == userId;
+      }
+      
+      // Music preferences subcollection
+      match /musicPreferences/{prefId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Review analysis cache subcollection
+      match /reviewAnalysis/{cacheId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Track genres collection (top-level, shared cache)
+    match /trackGenres/{trackId} {
+      // Allow authenticated users to read/write genre cache
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Collection group queries for reviews (allows reading reviews across all users)
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
     }
   }
 }

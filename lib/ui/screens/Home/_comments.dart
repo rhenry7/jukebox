@@ -108,6 +108,18 @@ class ReviewsList extends State<UserReviewsCollection> {
           .orderBy('date', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
+        // Debug logging
+        if (snapshot.hasError) {
+          print('❌ Error loading reviews: ${snapshot.error}');
+          print('Error details: ${snapshot.error.toString()}');
+        }
+        if (snapshot.hasData) {
+          print('✅ Reviews query successful. Found ${snapshot.data!.docs.length} reviews');
+          if (snapshot.data!.docs.isEmpty) {
+            print('⚠️ No reviews found for user: $userId');
+          }
+        }
+        
         if (snapshot.connectionState == ConnectionState.waiting) {
           return ListView.builder(
             itemCount: 3,
@@ -131,6 +143,12 @@ class ReviewsList extends State<UserReviewsCollection> {
                 Text(
                   '${snapshot.error}',
                   style: const TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'If you see an index error, check Firebase Console → Firestore → Indexes',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),

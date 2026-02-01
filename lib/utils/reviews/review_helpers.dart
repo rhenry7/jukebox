@@ -37,7 +37,7 @@ Future<void> submitReview(String review, double score, String artist,
       // Try to get genres from cache (non-blocking, but try to include in review)
       final cachedGenres = await GenreCacheService.getCachedGenres(title, artist);
       
-      await FirebaseFirestore.instance
+      final docRef = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('reviews')
@@ -55,6 +55,9 @@ Future<void> submitReview(String review, double score, String artist,
         if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
       });
       
+      print('✅ Review saved successfully! Document ID: ${docRef.id}');
+      print('📁 Path: users/$userId/reviews/${docRef.id}');
+      
       // Auto-update preferences and invalidate cache (run in background)
       Future(() async {
         try {
@@ -68,8 +71,10 @@ Future<void> submitReview(String review, double score, String artist,
         }
       });
     } catch (e) {
-      print("could not post review");
-      print(e.toString());
+      print("❌ Could not post review");
+      print("Error: ${e.toString()}");
+      print("Error type: ${e.runtimeType}");
+      // Don't rethrow - let UI handle the error state
     }
   } else {
     print('could not place review, user not signed in');
