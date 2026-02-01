@@ -16,6 +16,8 @@ class _SignInScreenState extends State<SignInScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
   bool _isLoading = false;
 
   @override
@@ -23,13 +25,23 @@ class _SignInScreenState extends State<SignInScreen> {
     super.initState();
     // Check if user is already signed in
     _checkAuthState();
+    
+    // Add listeners to focus nodes to update UI when focus changes
+    _emailFocusNode.addListener(() {
+      setState(() {}); // Rebuild when focus changes
+    });
+    _passwordFocusNode.addListener(() {
+      setState(() {}); // Rebuild when focus changes
+    });
   }
 
   @override
   void dispose() {
-    // Clean up controllers
+    // Clean up controllers and focus nodes
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -129,23 +141,99 @@ class _SignInScreenState extends State<SignInScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("Sign In")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: "Email"),
-              keyboardType: TextInputType.emailAddress,
-              enabled: !_isLoading,
+            // Walking music man image
+            Center(
+              child: Image.asset(
+                'lib/assets/images/walking_music_man.png',
+                height: 350,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const SizedBox(height: 150);
+                },
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Email field with focus-aware styling
+            Container(
+              decoration: BoxDecoration(
+                color: _emailFocusNode.hasFocus 
+                    ? Colors.grey[900]?.withOpacity(0.3) 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: TextField(
+                controller: _emailController,
+                focusNode: _emailFocusNode,
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  labelStyle: TextStyle(
+                    color: _emailFocusNode.hasFocus 
+                        ? Colors.red[600] 
+                        : Colors.grey,
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: _emailFocusNode.hasFocus 
+                          ? Colors.red[600]! 
+                          : Colors.grey,
+                      width: _emailFocusNode.hasFocus ? 2 : 1,
+                    ),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.red[600]!,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                enabled: !_isLoading,
+              ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: "Password"),
-              obscureText: true,
-              enabled: !_isLoading,
+            // Password field with focus-aware styling
+            Container(
+              decoration: BoxDecoration(
+                color: _passwordFocusNode.hasFocus 
+                    ? Colors.grey[900]?.withOpacity(0.3) 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: TextField(
+                controller: _passwordController,
+                focusNode: _passwordFocusNode,
+                decoration: InputDecoration(
+                  labelText: "Password",
+                  labelStyle: TextStyle(
+                    color: _passwordFocusNode.hasFocus 
+                        ? Colors.red[600] 
+                        : Colors.grey,
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: _passwordFocusNode.hasFocus 
+                          ? Colors.red[600]! 
+                          : Colors.grey,
+                      width: _passwordFocusNode.hasFocus ? 2 : 1,
+                    ),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.red[600]!,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                obscureText: true,
+                enabled: !_isLoading,
+              ),
             ),
             const SizedBox(height: 20),
             Row(

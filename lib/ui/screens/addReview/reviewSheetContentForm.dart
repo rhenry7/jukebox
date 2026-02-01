@@ -35,7 +35,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
   final Color background = Colors.white10;
   final TextEditingController reviewController = TextEditingController();
   final TextEditingController searchParams = TextEditingController();
-  
+
   // Search state
   List<spotify.Track> _searchResults = [];
   bool _isSearching = false;
@@ -49,12 +49,12 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
     super.initState();
     DateTime now = DateTime.now();
     currentDate = DateFormat.yMMMMd('en_US').format(now);
-    
+
     // Initialize with widget values if provided
     _selectedTrackTitle = widget.title;
     _selectedTrackArtist = widget.artist;
     _selectedTrackImageUrl = widget.albumImageUrl;
-    
+
     // Listen to search input changes
     searchParams.addListener(_onSearchChanged);
   }
@@ -66,11 +66,11 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
     searchParams.dispose();
     super.dispose();
   }
-  
+
   void _onSearchChanged() {
     // Cancel previous debounce timer
     _searchDebounce?.cancel();
-    
+
     final query = searchParams.text.trim();
     if (query.length >= 2) {
       // Debounce search by 500ms
@@ -84,22 +84,21 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
       });
     }
   }
-  
+
   Future<void> _performSearch(String query) async {
     if (_isSearching) return;
-    
+
     setState(() {
       _isSearching = true;
     });
-    
+
     try {
       final credentials = spotify.SpotifyApiCredentials(clientId, clientSecret);
       final spotifyApi = spotify.SpotifyApi(credentials);
-      
+
       final searchResults = await spotifyApi.search
-          .get(query, types: [spotify.SearchType.track])
-          .first(10);
-      
+          .get(query, types: [spotify.SearchType.track]).first(10);
+
       List<spotify.Track> tracks = [];
       for (var page in searchResults) {
         if (page.items != null) {
@@ -110,7 +109,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
           }
         }
       }
-      
+
       if (mounted) {
         setState(() {
           _searchResults = tracks;
@@ -127,7 +126,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
       }
     }
   }
-  
+
   void _selectTrack(spotify.Track track) {
     setState(() {
       _selectedTrackTitle = track.name ?? '';
@@ -212,12 +211,8 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
       await submitReview(
         review,
         ratingScore,
-        _selectedTrackArtist.isNotEmpty
-            ? _selectedTrackArtist
-            : widget.artist,
-        _selectedTrackTitle.isNotEmpty
-            ? _selectedTrackTitle
-            : widget.title,
+        _selectedTrackArtist.isNotEmpty ? _selectedTrackArtist : widget.artist,
+        _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
         liked,
         _selectedTrackImageUrl.isNotEmpty
             ? _selectedTrackImageUrl
@@ -228,18 +223,14 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
           _selectedTrackArtist.isNotEmpty
               ? _selectedTrackArtist
               : widget.artist,
-          _selectedTrackTitle.isNotEmpty
-              ? _selectedTrackTitle
-              : widget.title,
+          _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
         );
       } else if (!liked) {
         updateRemovePreferences(
           _selectedTrackArtist.isNotEmpty
               ? _selectedTrackArtist
               : widget.artist,
-          _selectedTrackTitle.isNotEmpty
-              ? _selectedTrackTitle
-              : widget.title,
+          _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
         );
       }
       if (mounted) {
@@ -308,7 +299,8 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                           child: Icon(Icons.search_rounded),
                         ),
                         hintText: 'Search for a song, artist, or album...',
-                        backgroundColor: WidgetStateProperty.all(Colors.white10),
+                        backgroundColor:
+                            WidgetStateProperty.all(Colors.white10),
                         padding: WidgetStateProperty.all(
                             const EdgeInsets.symmetric(horizontal: 16.0)),
                         trailing: _isSearching
@@ -355,7 +347,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                                       ?.map((a) => a.name)
                                       .join(', ') ??
                                   'Unknown Artist';
-                              
+
                               return Card(
                                 color: Colors.grey[900],
                                 margin: const EdgeInsets.symmetric(
@@ -369,7 +361,8 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                                             width: 56,
                                             height: 56,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
                                               return Container(
                                                 width: 56,
                                                 height: 56,
@@ -399,7 +392,8 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                                   ),
                                   subtitle: Text(
                                     artistNames,
-                                    style: const TextStyle(color: Colors.white70),
+                                    style:
+                                        const TextStyle(color: Colors.white70),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -539,7 +533,7 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
                       padding: const EdgeInsets.only(bottom: 20.0),
                       child: SizedBox(
                         width: 500.0,
-                        height: 400.0,
+                        height: 200.0,
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
