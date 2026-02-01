@@ -23,12 +23,20 @@ class MusicRecommendationService {
   // Cache for recent recommendations to avoid duplicates
   static final Set<String> _recentRecommendations = <String>{};
   static const int _maxRecentRecommendations = 50;
+  
+  // Cache for validation results to avoid re-validating the same tracks
+  static final Map<String, bool> _validationCache = <String, bool>{};
+  static const int _maxValidationCacheSize = 200;
 
   static Future<List<MusicRecommendation>> getRecommendations(
     EnhancedUserPreferences preferencesJson, {
     int count = 10,
     List<String>? excludeSongs,
     bool useEnhancedAlgorithm = true, // Enable enhanced discovery algorithm
+    bool skipValidation = false, // OPTIMIZATION: Skip validation for faster results (use with caution)
+    String validationMode = 'spotify-only', // 'spotify-only' (fast, no MusicBrainz), 'hybrid' (MusicBrainz+Spotify), 'none' (skip)
+    int validateTopN = 0, // OPTIMIZATION: Only validate top N (0 = validate all)
+    bool skipMetadataEnrichment = false, // OPTIMIZATION: Skip Spotify metadata (images, etc.) for speed
   }) async {
     try {
       final userId = FirebaseAuth.instance.currentUser != null
@@ -100,8 +108,39 @@ class MusicRecommendationService {
         print('Fetching AI recommendations with review analysis...');
         final response = await _makeApiRequest(prompt);
         final aiRecommendations = _parseRecommendations(response);
-        allRecommendations.addAll(aiRecommendations);
-        print('Got ${aiRecommendations.length} AI recommendations');
+        
+        // OPTIMIZATION: Only validate AI recommendations (Spotify recs are already validated)
+        if (skipValidation || validationMode == 'none') {
+          // Skip validation for faster results
+          print('Skipping validation for faster results (${aiRecommendations.length} AI recommendations)');
+          allRecommendations.addAll(aiRecommendations);
+        } else {
+          // Determine which recommendations to validate
+          final recsToValidate = validateTopN > 0 && validateTopN < aiRecommendations.length
+              ? aiRecommendations.take(validateTopN).toList()
+              : aiRecommendations;
+          
+          final recsToSkip = validateTopN > 0 && validateTopN < aiRecommendations.length
+              ? aiRecommendations.skip(validateTopN).toList()
+              : <MusicRecommendation>[];
+          
+          if (recsToValidate.isNotEmpty) {
+            print('Validating ${recsToValidate.length} AI recommendations (mode: $validationMode)...');
+            final validatedRecommendations = await _validateRecommendationsOptimized(
+              recsToValidate,
+              validationMode: validationMode,
+              skipMetadataEnrichment: skipMetadataEnrichment,
+            );
+            allRecommendations.addAll(validatedRecommendations);
+            print('Got ${validatedRecommendations.length} validated AI recommendations (${recsToValidate.length - validatedRecommendations.length} filtered out)');
+          }
+          
+          // Add unvalidated recommendations if validating only top N
+          if (recsToSkip.isNotEmpty) {
+            print('Skipping validation for ${recsToSkip.length} lower-priority recommendations');
+            allRecommendations.addAll(recsToSkip);
+          }
+        }
       } catch (e) {
         print('Error getting AI recommendations: $e');
       }
@@ -300,9 +339,13 @@ DISCOVERY REQUIREMENTS:
    - 30%: Safe bets (similar to what they like but new songs)
    - 10%: Serendipitous picks (slightly outside their comfort zone but still relevant)
 
-Return EXACTLY ${count} recommendations as a JSON array.
-Only return songs that exist on Spotify - do not invent song or artist names.
-Return ONLY valid JSON, no markdown, no commentary.
+CRITICAL REQUIREMENTS:
+- Return EXACTLY ${count} recommendations as a JSON array
+- ONLY recommend songs that you KNOW exist on Spotify
+- DO NOT invent, guess, or create song titles, artist names, or album names
+- If you cannot find ${count} real songs that match the criteria, return fewer (but still valid JSON)
+- All recommendations will be validated against Spotify - fake songs will be rejected
+- Return ONLY valid JSON, no markdown, no commentary, no explanations
 
 Format:
 [{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1","Genre2"]}]
@@ -375,7 +418,7 @@ Format:
         {
           'role': 'system',
           'content':
-              'You are a music recommendation engine. Respond only with valid JSON arrays. Consider preferences, recent user reviews. Only return songs that exist on Spotify. Do not invent song or artist names'
+              'You are a music recommendation engine. CRITICAL: Only recommend songs that you KNOW exist on Spotify. Do NOT invent, guess, or create song titles, artist names, or album names. All recommendations will be validated against Spotify\'s API - any fake or non-existent songs will be automatically rejected. If you cannot find enough real songs, return fewer valid recommendations rather than inventing fake ones. Respond only with valid JSON arrays.'
         },
         {'role': 'user', 'content': prompt}
       ]
@@ -466,6 +509,329 @@ Format:
 
   static void clearRecentRecommendations() {
     _recentRecommendations.clear();
+  }
+
+  /// Optimized validation with caching - faster for repeated requests
+  static Future<List<MusicRecommendation>> _validateRecommendationsOptimized(
+    List<MusicRecommendation> recommendations, {
+    String validationMode = 'hybrid', // 'hybrid' or 'spotify-only'
+    bool skipMetadataEnrichment = false,
+  }) async {
+    if (recommendations.isEmpty) return [];
+
+    try {
+      final credentials = SpotifyApiCredentials(clientId, clientSecret);
+      final spotify = SpotifyApi(credentials);
+
+      // Check cache first and separate cached vs uncached recommendations
+      final uncachedRecs = <MusicRecommendation>[];
+      final cachedResults = <MusicRecommendation?>[];
+      
+      for (final rec in recommendations) {
+        final cacheKey = '${rec.song.toLowerCase().trim()}|${rec.artist.toLowerCase().trim()}';
+        if (_validationCache.containsKey(cacheKey)) {
+          // Use cached result
+          if (_validationCache[cacheKey] == true) {
+            cachedResults.add(rec);
+          } else {
+            cachedResults.add(null); // Invalid, filtered out
+          }
+        } else {
+          uncachedRecs.add(rec);
+          cachedResults.add(null); // Placeholder, will be filled by validation
+        }
+      }
+      
+      print('Validation cache hit: ${recommendations.length - uncachedRecs.length}/${recommendations.length}');
+      
+      // Only validate uncached recommendations
+      if (uncachedRecs.isNotEmpty) {
+        // Validate uncached recommendations (with rate limiting for MusicBrainz if needed)
+        final validationResults = validationMode == 'spotify-only'
+            ? await _validateBatchSpotifyOnly(uncachedRecs, spotify, skipMetadataEnrichment)
+            : await _validateBatchWithRateLimit(uncachedRecs, spotify, skipMetadataEnrichment);
+        
+        // Update cache and results
+        int uncachedIndex = 0;
+        for (int i = 0; i < recommendations.length; i++) {
+          if (cachedResults[i] == null && uncachedIndex < uncachedRecs.length) {
+            final rec = uncachedRecs[uncachedIndex];
+            final cacheKey = '${rec.song.toLowerCase().trim()}|${rec.artist.toLowerCase().trim()}';
+            final validated = validationResults[uncachedIndex];
+            
+            // Cache the result
+            _validationCache[cacheKey] = validated != null;
+            _updateValidationCacheSize();
+            
+            cachedResults[i] = validated;
+            uncachedIndex++;
+          }
+        }
+      }
+
+      // Filter to only include validated recommendations
+      final validatedRecs = <MusicRecommendation>[];
+      for (int i = 0; i < recommendations.length; i++) {
+        if (cachedResults[i] != null) {
+          validatedRecs.add(cachedResults[i]!);
+        }
+      }
+
+      return validatedRecs;
+    } catch (e) {
+      print('Error validating recommendations: $e');
+      return [];
+    }
+  }
+  
+  /// Validates a batch of recommendations with rate limiting for MusicBrainz
+  static Future<List<MusicRecommendation?>> _validateBatchWithRateLimit(
+    List<MusicRecommendation> recommendations,
+    SpotifyApi spotify,
+    bool skipMetadataEnrichment,
+  ) async {
+    final results = <MusicRecommendation?>[];
+    
+    // Process in smaller batches to respect MusicBrainz rate limits (1 req/sec)
+    for (int i = 0; i < recommendations.length; i++) {
+      final rec = recommendations[i];
+      final result = await _validateSingleRecommendation(spotify, rec, skipMetadataEnrichment: skipMetadataEnrichment);
+      results.add(result);
+      
+      // Small delay between MusicBrainz requests (rate limit: 1 req/sec)
+      if (i < recommendations.length - 1) {
+        await Future.delayed(const Duration(milliseconds: 1100));
+      }
+    }
+    
+    return results;
+  }
+  
+  /// Fast validation using Spotify only (no MusicBrainz rate limiting)
+  static Future<List<MusicRecommendation?>> _validateBatchSpotifyOnly(
+    List<MusicRecommendation> recommendations,
+    SpotifyApi spotify,
+    bool skipMetadataEnrichment,
+  ) async {
+    // Validate all in parallel (Spotify has no rate limit for search)
+    return await Future.wait(
+      recommendations.map((rec) => _validateSingleRecommendationSpotifyOnly(spotify, rec, skipMetadataEnrichment)),
+    );
+  }
+  
+  /// Fast Spotify-only validation (no MusicBrainz check)
+  static Future<MusicRecommendation?> _validateSingleRecommendationSpotifyOnly(
+    SpotifyApi spotify,
+    MusicRecommendation recommendation,
+    bool skipMetadataEnrichment,
+  ) async {
+    try {
+      // Only check Spotify (much faster, no rate limits)
+      final trackQuery = 'track:"${recommendation.song}" artist:"${recommendation.artist.split(',').first.trim()}"';
+      final trackSearchResults = await spotify.search
+          .get(trackQuery, types: [SearchType.track])
+          .first(1);
+
+      for (var page in trackSearchResults) {
+        if (page.items != null) {
+          for (var item in page.items!) {
+            if (item is Track) {
+              // Found on Spotify!
+              if (skipMetadataEnrichment) {
+                // Just return the original (validated existence)
+                return recommendation;
+              }
+              
+              // Extract metadata
+              final artistName = item.artists?.isNotEmpty == true
+                  ? item.artists!.map((a) => a.name).join(', ')
+                  : recommendation.artist;
+              
+              final albumName = item.album?.name ?? recommendation.album;
+              
+              final imageUrl = item.album?.images?.isNotEmpty == true
+                  ? (item.album!.images!.first.url ?? recommendation.imageUrl)
+                  : recommendation.imageUrl;
+
+              return MusicRecommendation(
+                song: item.name ?? recommendation.song,
+                artist: artistName,
+                album: albumName,
+                imageUrl: imageUrl,
+                genres: recommendation.genres,
+              );
+            }
+          }
+        }
+      }
+      
+      // Not found on Spotify - reject (might be hallucination)
+      print('⚠️  Track not found on Spotify: "${recommendation.song}" by "${recommendation.artist}"');
+      return null;
+    } catch (e) {
+      print('Error validating with Spotify: $e');
+      return null;
+    }
+  }
+  
+  /// Maintains validation cache size
+  static void _updateValidationCacheSize() {
+    if (_validationCache.length > _maxValidationCacheSize) {
+      // Remove oldest entries (simple FIFO - remove first 20%)
+      final keysToRemove = _validationCache.keys.take(_maxValidationCacheSize ~/ 5).toList();
+      for (final key in keysToRemove) {
+        _validationCache.remove(key);
+      }
+    }
+  }
+
+  /// Validates AI recommendations using a hybrid approach:
+  /// 1. First checks MusicBrainz (broader coverage, free, no rate limits)
+  /// 2. Then checks Spotify (to get metadata like images, ensures track is playable)
+  /// Returns only recommendations that exist in MusicBrainz (Spotify is optional for metadata)
+  static Future<List<MusicRecommendation>> _validateRecommendationsAgainstSpotify(
+    List<MusicRecommendation> recommendations,
+  ) async {
+    // Use optimized version
+    return _validateRecommendationsOptimized(recommendations);
+  }
+
+  /// Validates a single recommendation against MusicBrainz first, then Spotify
+  /// Returns the validated recommendation with corrected data if found, null if not found
+  static Future<MusicRecommendation?> _validateSingleRecommendation(
+    SpotifyApi spotify,
+    MusicRecommendation recommendation, {
+    bool skipMetadataEnrichment = false,
+  }) async {
+    try {
+      // Step 1: Check MusicBrainz first (broader coverage, free, no rate limits)
+      print('Checking MusicBrainz for "${recommendation.song}" by "${recommendation.artist}"...');
+      final existsInMusicBrainz = await MusicBrainzService.validateTrackExists(
+        recommendation.song,
+        recommendation.artist,
+      );
+      
+      if (!existsInMusicBrainz) {
+        // Track doesn't exist in MusicBrainz - likely a hallucination
+        print('⚠️  AI hallucination detected: "${recommendation.song}" by "${recommendation.artist}" not found in MusicBrainz');
+        return null;
+      }
+      
+      // Step 2: Track exists in MusicBrainz, now try Spotify to get metadata (images, etc.)
+      print('Track found in MusicBrainz, checking Spotify for metadata...');
+      try {
+        // Try searching for the track on Spotify (most accurate)
+        final trackQuery = 'track:"${recommendation.song}" artist:"${recommendation.artist.split(',').first.trim()}"';
+        final trackSearchResults = await spotify.search
+            .get(trackQuery, types: [SearchType.track])
+            .first(1);
+
+        for (var page in trackSearchResults) {
+          if (page.items != null) {
+            for (var item in page.items!) {
+              if (item is Track) {
+                // Found on Spotify! Return with full metadata
+                final artistName = item.artists?.isNotEmpty == true
+                    ? item.artists!.map((a) => a.name).join(', ')
+                    : recommendation.artist;
+                
+                final albumName = item.album?.name ?? recommendation.album;
+                
+                final imageUrl = item.album?.images?.isNotEmpty == true
+                    ? (item.album!.images!.first.url ?? recommendation.imageUrl)
+                    : recommendation.imageUrl;
+
+                print('✓ Track found on Spotify with metadata: "${recommendation.song}" by "${recommendation.artist}"');
+                
+                if (skipMetadataEnrichment) {
+                  // Just return original (validated existence, skip metadata)
+                  return recommendation;
+                }
+                
+                return MusicRecommendation(
+                  song: item.name ?? recommendation.song,
+                  artist: artistName,
+                  album: albumName,
+                  imageUrl: imageUrl,
+                  genres: recommendation.genres, // Keep existing genres, will be enriched later
+                );
+              }
+            }
+          }
+        }
+
+        // If exact search didn't find it, try a more lenient search (without quotes for fuzzy matching)
+        final lenientQuery = '${recommendation.song} ${recommendation.artist.split(',').first.trim()}';
+        final lenientSearchResults = await spotify.search
+            .get(lenientQuery, types: [SearchType.track])
+            .first(1);
+
+        for (var page in lenientSearchResults) {
+          if (page.items != null) {
+            for (var item in page.items!) {
+              if (item is Track) {
+                // Fuzzy match: check if track name and artist are similar
+                final trackNameLower = (item.name ?? '').toLowerCase();
+                final recNameLower = recommendation.song.toLowerCase();
+                final trackArtistLower = item.artists?.isNotEmpty == true
+                    ? (item.artists!.first.name?.toLowerCase() ?? '')
+                    : '';
+                final recArtistLower = recommendation.artist.split(',').first.trim().toLowerCase();
+                
+                // Check if names are similar (contains or is contained)
+                final nameMatch = trackNameLower.contains(recNameLower) || 
+                                 recNameLower.contains(trackNameLower) ||
+                                 trackNameLower == recNameLower;
+                final artistMatch = trackArtistLower.contains(recArtistLower) ||
+                                   recArtistLower.contains(trackArtistLower) ||
+                                   trackArtistLower == recArtistLower;
+                
+                if (nameMatch && artistMatch) {
+                  // Found a matching track on Spotify with fuzzy matching
+                  final artistName = item.artists?.isNotEmpty == true
+                      ? item.artists!.map((a) => a.name).join(', ')
+                      : recommendation.artist;
+                  
+                  final albumName = item.album?.name ?? recommendation.album;
+                  
+                  final imageUrl = item.album?.images?.isNotEmpty == true
+                      ? (item.album!.images!.first.url ?? recommendation.imageUrl)
+                      : recommendation.imageUrl;
+
+                  print('✓ Track found on Spotify (fuzzy match) with metadata: "${recommendation.song}" by "${recommendation.artist}"');
+                  
+                  if (skipMetadataEnrichment) {
+                    // Just return original (validated existence, skip metadata)
+                    return recommendation;
+                  }
+                  
+                  return MusicRecommendation(
+                    song: item.name ?? recommendation.song,
+                    artist: artistName,
+                    album: albumName,
+                    imageUrl: imageUrl,
+                    genres: recommendation.genres,
+                  );
+                }
+              }
+            }
+          }
+        }
+        
+        // Track exists in MusicBrainz but not on Spotify - still valid, return as-is
+        print('✓ Track exists in MusicBrainz but not on Spotify (may not be playable): "${recommendation.song}" by "${recommendation.artist}"');
+        return recommendation; // Return as-is since we can't get Spotify metadata
+      } catch (e) {
+        print('Error checking Spotify (but track exists in MusicBrainz): $e');
+        // Track exists in MusicBrainz, so it's valid even if Spotify check fails
+        print('✓ Track validated in MusicBrainz (Spotify check failed): "${recommendation.song}" by "${recommendation.artist}"');
+        return recommendation;
+      }
+    } catch (e) {
+      print('Error validating "${recommendation.song}" by "${recommendation.artist}": $e');
+      // If validation fails for this specific track, exclude it to be safe
+      return null;
+    }
   }
 
   /// Enrich recommendations with MusicBrainz genres (hybrid Spotify + MusicBrainz approach)

@@ -8,7 +8,6 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
-import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Function to sort and get top genres
@@ -90,8 +89,19 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       
       // Fetch new recommendations
       print("Fetching new recommendations");
+      // OPTIMIZATION: Using spotify-only mode (default) - skips MusicBrainz for speed
+      // MusicBrainz validation is skipped by default (saves ~1 second per recommendation)
+      // Options:
+      // - validationMode: 'spotify-only' (default, fastest) or 'hybrid' (includes MusicBrainz)
+      // - validateTopN: Only validate top N recommendations (0 = all)
+      // - skipMetadataEnrichment: Skip images/metadata for faster validation
       final List<MusicRecommendation> recommendations =
-          await MusicRecommendationService.getRecommendations(preferences);
+          await MusicRecommendationService.getRecommendations(
+        preferences,
+        // validationMode defaults to 'spotify-only' (skips MusicBrainz)
+        validateTopN: 10, // Only validate top 10 (rest shown without validation)
+        skipMetadataEnrichment: false, // Keep metadata for better UX
+      );
       final newRecsJsonList =
           recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
       await prefs.setStringList('cached_recs', newRecsJsonList);
@@ -114,8 +124,12 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       final preferences = await _fetchUserPreferences();
       final prefs = await SharedPreferences.getInstance();
 
+      // OPTIMIZATION: Using spotify-only mode (default) - skips MusicBrainz for speed
       final List<MusicRecommendation> recommendations =
-          await MusicRecommendationService.getRecommendations(preferences);
+          await MusicRecommendationService.getRecommendations(
+        preferences,
+        // validationMode defaults to 'spotify-only' (skips MusicBrainz)
+      );
       final newRecsJsonList =
           recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
       await prefs.setStringList('cached_recs', newRecsJsonList);
@@ -190,12 +204,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                           future: _albumsFuture,
                           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return ListView.builder(
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return RecommendationCardSkeleton();
-                },
-              );
+              return const DiscoBallLoading();
             }
                             
                             if (snapshot.hasError) {

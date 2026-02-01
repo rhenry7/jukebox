@@ -61,7 +61,7 @@ class _MainNavState extends State<MainNav> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "JUKEBOXD",
+          "JUXEBOXD",
           style: GoogleFonts.gasoekOne(
             textStyle: const TextStyle(
               color: Colors.red,

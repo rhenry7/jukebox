@@ -185,6 +185,70 @@ class MusicBrainzService {
     return null;
   }
 
+  /// Search for a track (recording) by track name and artist
+  /// Returns true if the track exists in MusicBrainz database
+  static Future<bool> validateTrackExists(String trackName, String artist) async {
+    await _rateLimit();
+
+    // Clean artist name (take first artist if multiple)
+    final cleanArtist = artist.split(',').first.trim();
+    
+    // Search for recording (track) with both track name and artist
+    final query = 'recording:"$trackName" AND artist:"$cleanArtist"';
+
+    final url = Uri.parse('$_baseUrl/recording').replace(queryParameters: {
+      'query': query,
+      'fmt': 'json',
+      'limit': '5', // Get a few results to check for matches
+      'inc': 'artist-credits',
+    });
+
+    try {
+      final response = await http.get(url, headers: {
+        'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final recordings = data['recordings'] as List?;
+        
+        if (recordings != null && recordings.isNotEmpty) {
+          // Check if any recording matches (fuzzy match for artist name)
+          for (var recording in recordings) {
+            final recTitle = (recording['title'] as String? ?? '').toLowerCase();
+            final artistCredits = recording['artist-credit'] as List?;
+            
+            if (artistCredits != null && artistCredits.isNotEmpty) {
+              for (var credit in artistCredits) {
+                final artistName = (credit['name'] as String? ?? '').toLowerCase();
+                final trackNameLower = trackName.toLowerCase();
+                final cleanArtistLower = cleanArtist.toLowerCase();
+                
+                // Check if track name matches (contains or exact)
+                final titleMatch = recTitle.contains(trackNameLower) || 
+                                  trackNameLower.contains(recTitle) ||
+                                  recTitle == trackNameLower;
+                
+                // Check if artist matches (contains or exact)
+                final artistMatch = artistName.contains(cleanArtistLower) ||
+                                   cleanArtistLower.contains(artistName) ||
+                                   artistName == cleanArtistLower;
+                
+                if (titleMatch && artistMatch) {
+                  return true; // Found a match!
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error validating track in MusicBrainz: $e');
+    }
+
+    return false; // Track not found
+  }
+
   Future<List<MusicBrainzAlbum>> enrichAlbumsWithMusicBrainz(
       List<Album> spotifyAlbums) async {
     List<MusicBrainzAlbum> enriched = [];
