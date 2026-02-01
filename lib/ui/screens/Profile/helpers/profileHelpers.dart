@@ -72,6 +72,9 @@ void signOut() async {
   }
 }
 
+// Note: This function is used in MainNavigation, which is not yet a ConsumerWidget
+// For now, we'll keep the direct Firebase call, but this should be migrated to use providers
+// TODO: Migrate MainNavigation to ConsumerWidget and use currentUserProvider
 Widget profileRouter() {
   final FirebaseAuth auth = FirebaseAuth.instance;
   print(auth.currentUser);

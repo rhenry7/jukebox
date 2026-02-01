@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
@@ -10,7 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
-class MyReviewSheetContentForm extends StatefulWidget {
+class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String title;
   final String artist; // Fixed capitalization
   final String albumImageUrl;
@@ -23,11 +25,11 @@ class MyReviewSheetContentForm extends StatefulWidget {
   });
 
   @override
-  State<MyReviewSheetContentForm> createState() =>
+  ConsumerState<MyReviewSheetContentForm> createState() =>
       _MyReviewSheetContentFormState();
 }
 
-class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
+class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentForm> {
   final FirebaseAuth auth = FirebaseAuth.instance;
   late String currentDate;
   bool liked = false;
@@ -218,6 +220,9 @@ class _MyReviewSheetContentFormState extends State<MyReviewSheetContentForm> {
             ? _selectedTrackImageUrl
             : widget.albumImageUrl,
       );
+      
+      // Invalidate reviews provider to refresh all screens automatically
+      ref.invalidate(userReviewsProvider);
       if (liked) {
         updateSavedTracks(
           _selectedTrackArtist.isNotEmpty

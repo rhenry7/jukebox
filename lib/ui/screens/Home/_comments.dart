@@ -2,9 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../models/review.dart';
+import '../../../providers/auth_provider.dart' show currentUserIdProvider;
+import '../../../providers/reviews_provider.dart' show ReviewWithDocId, userReviewsProvider;
 import '../../../services/get_album_service.dart';
 import '../../../services/genre_cache_service.dart';
 import '../../../utils/helpers.dart';
@@ -12,33 +15,19 @@ import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
 
-class ReviewWithDocId {
-  final Review review;
-  final String docId;
+// ReviewWithDocId moved to providers/reviews_provider.dart
 
-  ReviewWithDocId({required this.review, required this.docId});
-}
-
-class UserReviewsCollection extends StatefulWidget {
+class UserReviewsCollection extends ConsumerWidget {
   const UserReviewsCollection({super.key});
 
   @override
-  State<UserReviewsCollection> createState() => ReviewsList();
-}
-
-class ReviewsList extends State<UserReviewsCollection> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  final String userId = FirebaseAuth.instance.currentUser != null
-      ? FirebaseAuth.instance.currentUser!.uid
-      : "";
-
-  @override
-  Widget build(BuildContext context) {
-    if (userId.isEmpty) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Use Riverpod providers instead of direct Firebase calls
+    final userId = ref.watch(currentUserIdProvider);
+    final reviewsAsync = ref.watch(userReviewsProvider);
+    
+    // Check if user is authenticated
+    if (userId == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -100,67 +89,16 @@ class ReviewsList extends State<UserReviewsCollection> {
       );
     }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('reviews')
-          .orderBy('date', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
+    // Use Riverpod's AsyncValue pattern
+    return reviewsAsync.when(
+      data: (reviews) {
         // Debug logging
-        if (snapshot.hasError) {
-          print('❌ Error loading reviews: ${snapshot.error}');
-          print('Error details: ${snapshot.error.toString()}');
-        }
-        if (snapshot.hasData) {
-          print('✅ Reviews query successful. Found ${snapshot.data!.docs.length} reviews');
-          if (snapshot.data!.docs.isEmpty) {
-            print('⚠️ No reviews found for user: $userId');
-          }
+        print('✅ Reviews loaded: ${reviews.length} reviews');
+        if (reviews.isEmpty) {
+          print('⚠️ No reviews found for user: $userId');
         }
         
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return ListView.builder(
-            itemCount: 3,
-            itemBuilder: (context, index) {
-              return ReviewCardSkeleton();
-            },
-          );
-        }
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading reviews',
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${snapshot.error}',
-                  style: const TextStyle(color: Colors.white70),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'If you see an index error, check Firebase Console → Firestore → Indexes',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => setState(() {}),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          );
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        if (reviews.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -198,18 +136,13 @@ class ReviewsList extends State<UserReviewsCollection> {
           );
         }
 
-        final List<ReviewWithDocId> reviewsWithDocIds =
-            snapshot.data!.docs.map((doc) {
-          final review =
-              Review.fromFirestore(doc.data() as Map<String, dynamic>);
-          final docId = doc.id;
-          return ReviewWithDocId(review: review, docId: docId);
-        }).toList();
+        // Reviews already come with docIds from the provider
+        final List<ReviewWithDocId> reviewsWithDocIds = reviews;
 
         return RefreshIndicator(
           onRefresh: () async {
-            // Force refresh by rebuilding
-            setState(() {});
+            // Invalidate provider to refresh data
+            ref.invalidate(userReviewsProvider);
             await Future.delayed(const Duration(milliseconds: 500));
           },
           color: Colors.red[600],
@@ -230,16 +163,55 @@ class ReviewsList extends State<UserReviewsCollection> {
           ),
         );
       },
+      loading: () => ListView.builder(
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return ReviewCardSkeleton();
+        },
+      ),
+      error: (error, stackTrace) {
+        print('❌ Error loading reviews: $error');
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Error loading reviews',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error.toString(),
+                style: const TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'If you see an index error, check Firebase Console → Firestore → Indexes',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(userReviewsProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-class FriendsReviewList extends StatelessWidget {
+class FriendsReviewList extends ConsumerWidget {
   final List<ReviewWithDocId> reviews;
   const FriendsReviewList({super.key, required this.reviews});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView.builder(
       itemCount: reviews.length,
       itemBuilder: (context, index) {
@@ -252,7 +224,7 @@ class FriendsReviewList extends StatelessWidget {
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
               // Show dialog instead of dismissing
-              _showReviewOptionsDialog(context, review);
+              _showReviewOptionsDialog(context, review, ref);
               return false; // Don't actually dismiss the card
             },
             background: Container(
@@ -269,7 +241,7 @@ class FriendsReviewList extends StatelessWidget {
               ),
             ),
             child: GestureDetector(
-              onLongPress: () => _showReviewOptionsDialog(context, review),
+              onLongPress: () => _showReviewOptionsDialog(context, review, ref),
               child: Card(
                 elevation: 1,
                 margin: const EdgeInsets.all(0),
@@ -288,7 +260,7 @@ class FriendsReviewList extends StatelessWidget {
     );
   }
 
-  void _showReviewOptionsDialog(BuildContext context, ReviewWithDocId review) {
+  void _showReviewOptionsDialog(BuildContext context, ReviewWithDocId review, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -315,7 +287,7 @@ class FriendsReviewList extends StatelessWidget {
                 ),
               ),
               // Edit option (if it's user's own review)
-              if (_isUserReview(review.review))
+              if (_isUserReview(review.review, ref))
                 ListTile(
                   leading: const Icon(Icons.edit),
                   title: const Text('Edit Review'),
@@ -326,7 +298,7 @@ class FriendsReviewList extends StatelessWidget {
                   },
                 ),
               // Delete option (if it's user's own review)
-              if (_isUserReview(review.review))
+              if (_isUserReview(review.review, ref))
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
                   title: const Text(
@@ -339,7 +311,7 @@ class FriendsReviewList extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    _deleteReview(context, review);
+                    _deleteReview(context, review, ref);
                   },
                 ),
             ],
@@ -356,13 +328,9 @@ class FriendsReviewList extends StatelessWidget {
   }
 
   // Helper method to check if review belongs to current user
-  bool _isUserReview(Review review) {
-    // Replace with your actual user ID logic
-    // return review.userId == FirebaseAuth.instance.currentUser?.uid;
-    final String userId = FirebaseAuth.instance.currentUser != null
-        ? FirebaseAuth.instance.currentUser!.uid
-        : "";
-    return review.userId == userId; // Placeholder
+  bool _isUserReview(Review review, WidgetRef ref) {
+    final userId = ref.read(currentUserIdProvider);
+    return review.userId == userId;
   }
 
   void _editReview(BuildContext context, ReviewWithDocId review) {
@@ -372,7 +340,15 @@ class FriendsReviewList extends StatelessWidget {
     );
   }
 
-  void _deleteReview(BuildContext context, ReviewWithDocId review) {
+  void _deleteReview(BuildContext context, ReviewWithDocId review, WidgetRef ref) {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be signed in to delete reviews')),
+      );
+      return;
+    }
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -400,21 +376,15 @@ class FriendsReviewList extends StatelessWidget {
               Navigator.pop(context);
               try {
                 // Delete review from Firestore
-                FirebaseFirestore.instance
+                await FirebaseFirestore.instance
                     .collection('users')
-                    .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .doc(userId)
                     .collection('reviews')
                     .doc(review.docId)
                     .delete();
-                // Remove from user's reviews list
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(FirebaseAuth.instance.currentUser?.uid)
-                    .collection('reviews')
-                    .doc(review.docId)
-                    .update({
-                  'reviews': FieldValue.arrayRemove([review.docId]),
-                });
+                
+                // Invalidate provider to refresh UI automatically
+                ref.invalidate(userReviewsProvider);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Review deleted successfully')),
@@ -526,18 +496,20 @@ class ReviewCardWidget extends StatelessWidget {
               ),
             ],
           ),
-          // Bottom Row: Review Text (full width)
-          const SizedBox(height: 16),
-          Text(
-            review.review,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14.0,
-              fontStyle: FontStyle.italic,
+          // Bottom Row: Review Text (full width) - only show if review text exists
+          if (review.review.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              review.review,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14.0,
+                fontStyle: FontStyle.italic,
+              ),
+              maxLines: null,
+              overflow: TextOverflow.visible,
             ),
-            maxLines: null,
-            overflow: TextOverflow.visible,
-          ),
+          ],
           // Genre Tags (pills at the bottom)
           if (review.genres != null && review.genres!.isNotEmpty) ...[
             const SizedBox(height: 12),

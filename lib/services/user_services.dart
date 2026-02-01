@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_models.dart';
-import 'package:flutter_test_project/ui/screens/Home/_comments.dart';
+import 'package:flutter_test_project/providers/reviews_provider.dart';
 
 class UserServices {
   // The difference between the two is that one returns a single instance, based on userId, and the

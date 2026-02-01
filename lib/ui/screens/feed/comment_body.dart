@@ -127,47 +127,48 @@ class CommentsBody extends StatelessWidget {
                     ),
                   ),
 
-                  // COMMENT AND IMAGE
-                  Padding(
-                    padding: const EdgeInsets.only(
-                        left: 12.0, top: 14.0, right: 10.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: <Widget>[
-                        // IMAGE
-                        Padding(
-                          padding: const EdgeInsets.only(right: 10.0),
-                          child: Image.network(
-                            smallImageUrl,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.error);
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) {
-                                return child;
-                              } else {
-                                return const Center(
-                                    child: CircularProgressIndicator());
-                              }
-                            },
-                          ),
-                        ),
-                        Flexible(
-                          child: Text(
-                            review.review ?? '',
-                            maxLines: 5,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12.0,
-                              fontStyle: FontStyle.italic,
-                              overflow: TextOverflow.ellipsis,
+                  // COMMENT AND IMAGE - only show if review text exists
+                  if ((review.review ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          left: 12.0, top: 14.0, right: 10.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: <Widget>[
+                          // IMAGE
+                          Padding(
+                            padding: const EdgeInsets.only(right: 10.0),
+                            child: Image.network(
+                              smallImageUrl,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.error);
+                              },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) {
+                                  return child;
+                                } else {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
+                              },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8.0),
-                      ],
+                          Flexible(
+                            child: Text(
+                              review.review ?? '',
+                              maxLines: 5,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.0,
+                                fontStyle: FontStyle.italic,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8.0),
+                        ],
+                      ),
                     ),
-                  ),
 
                   // Bottom Row (Icons)
                   Padding(

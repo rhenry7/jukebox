@@ -243,7 +243,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSignIn,
                     style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(Colors.red),
+                      backgroundColor: WidgetStateProperty.all(Colors.white),
                     ),
                     child: _isLoading
                         ? const SizedBox(

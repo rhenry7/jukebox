@@ -1,6 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/utils/firebase_options.dart';
 
@@ -19,14 +23,55 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const MyApp());
+  // Firebase Auth automatically uses localStorage on web to persist auth state
+  // No need to explicitly set persistence - it's handled automatically
+  if (kIsWeb) {
+    debugPrint('🌐 Web platform detected - auth state will persist in localStorage');
+  }
+
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
-  // This widget is the root of your application.
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch auth state - automatically handles initialization
+    final authState = ref.watch(authStateProvider);
+    
+    // Show loading screen while checking auth state
+    if (authState.isLoading) {
+      return MaterialApp(
+        title: 'Jukeboxd',
+        themeMode: ThemeMode.dark,
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Colors.black,
+        ),
+        home: const Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
+    
+    // Log auth state for debugging
+    final user = authState.value;
+    if (user != null) {
+      debugPrint('✅ User restored from cache: ${user.email}');
+    } else {
+      debugPrint('ℹ️ No cached user found');
+    }
+
     return MaterialApp(
       title: 'Jukeboxd',
       themeMode: ThemeMode.dark,
