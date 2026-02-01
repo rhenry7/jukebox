@@ -10,6 +10,7 @@ import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:flutter_test_project/MusicPreferences/recommendation_enhancements.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:flutter_test_project/services/genre_cache_service.dart';
+import 'package:flutter_test_project/services/review_analysis_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
 
@@ -38,11 +39,24 @@ class MusicRecommendationService {
         throw MusicRecommendationException('User not logged in');
       }
 
+      // NEW: Analyze all user reviews for deep personalization (with caching)
+      UserReviewProfile? reviewProfile;
+      try {
+        print('Analyzing user reviews for personalized recommendations...');
+        // Use cached version if available (faster)
+        reviewProfile = await ReviewAnalysisService.analyzeUserReviews(userId, forceRefresh: false);
+        print('Review analysis complete: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} avg rating');
+      } catch (e) {
+        print('Error analyzing reviews (will use basic method): $e');
+      }
+
+      // Get recent reviews for AI prompt (still include some recent context)
       final List<Review> reviews = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('reviews')
           .orderBy('date', descending: true)
+          .limit(10)
           .get()
           .then((snapshot) => snapshot.docs
               .map((doc) => Review.fromFirestore(doc.data()))
@@ -74,10 +88,16 @@ class MusicRecommendationService {
 
       List<MusicRecommendation> allRecommendations = [];
 
-      // 1. Get AI-based recommendations (improved prompt for discovery)
+      // 1. Get AI-based recommendations (improved prompt with review analysis)
       try {
-        final prompt = _buildPrompt(preferences, count, excludeSongs, reviewList);
-        print('Fetching AI recommendations...');
+        final prompt = _buildEnhancedPrompt(
+          preferences, 
+          count, 
+          excludeSongs, 
+          reviewList,
+          reviewProfile,  // Pass review analysis
+        );
+        print('Fetching AI recommendations with review analysis...');
         final response = await _makeApiRequest(prompt);
         final aiRecommendations = _parseRecommendations(response);
         allRecommendations.addAll(aiRecommendations);
@@ -128,12 +148,40 @@ class MusicRecommendationService {
         }).toList();
       }
 
-      // 4. Apply enhanced algorithm: balance discovery vs safe bets, ensure diversity
+      // 4. Score recommendations based on review analysis (if available)
+      if (reviewProfile != null && filteredRecs.isNotEmpty) {
+        final scoredRecs = filteredRecs.map((rec) {
+          final score = _scoreRecommendationFromReviews(rec, reviewProfile!);
+          return {'rec': rec, 'score': score};
+        }).toList();
+        
+        // Sort by review-based score
+        scoredRecs.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
+        
+        // Take top scored recommendations
+        filteredRecs = scoredRecs
+            .take((count * 1.5).round())  // Take more for diversity filtering
+            .map((e) => e['rec'] as MusicRecommendation)
+            .toList();
+      }
+
+      // 5. Apply enhanced algorithm: balance discovery vs safe bets, ensure diversity
       if (useEnhancedAlgorithm && filteredRecs.length > count) {
+        // Adjust discovery ratio based on rating pattern
+        double discoveryRatio = 0.7; // Default
+        if (reviewProfile != null) {
+          // If user rates highly, they're more open to discovery
+          if (reviewProfile.ratingPattern.averageRating >= 4.0) {
+            discoveryRatio = 0.8; // More discovery
+          } else if (reviewProfile.ratingPattern.averageRating <= 2.5) {
+            discoveryRatio = 0.5; // More safe bets
+          }
+        }
+        
         filteredRecs = RecommendationEnhancements.balanceRecommendations(
           filteredRecs,
           preferences,
-          discoveryRatio: 0.7, // 70% discovery, 30% safe
+          discoveryRatio: discoveryRatio,
         );
         
         // Ensure diversity in final selection
@@ -161,15 +209,53 @@ class MusicRecommendationService {
     }
   }
 
-  static String _buildPrompt(EnhancedUserPreferences preferences, int count,
-      List<String>? excludeSongs, List<dynamic> reviews) {
+  /// Build enhanced prompt with review analysis
+  static String _buildEnhancedPrompt(
+    EnhancedUserPreferences preferences,
+    int count,
+    List<String>? excludeSongs,
+    List<dynamic> reviews,
+    UserReviewProfile? reviewProfile,
+  ) {
     final excludeList = [
       ..._recentRecommendations,
       ...excludeSongs ?? [],
     ];
-    print('reviews: ${jsonEncode(reviews)}');
+    
+    // Build review analysis insights
+    String reviewAnalysisSection = '';
+    if (reviewProfile != null) {
+      final ratingInsight = reviewProfile.ratingPattern.averageRating >= 4.0
+          ? "User tends to rate highly - recommend more experimental/discovery music"
+          : reviewProfile.ratingPattern.averageRating <= 2.5
+              ? "User is critical - recommend safer, highly-regarded albums"
+              : "User has balanced ratings - mix of safe and discovery";
+      
+      final topGenres = reviewProfile.genrePreferences.entries.toList()
+        ..sort((a, b) => b.value.preferenceStrength.compareTo(a.value.preferenceStrength));
+      
+      final topArtists = reviewProfile.artistPreferences.entries.toList()
+        ..sort((a, b) => b.value.preferenceScore.compareTo(a.value.preferenceScore));
+      
+      reviewAnalysisSection = '''
 
-    // Enhanced prompt focused on DISCOVERY
+DEEP REVIEW ANALYSIS (from ${reviewProfile.ratingPattern.ratingDistribution.values.fold<int>(0, (sum, count) => sum + count)} total reviews):
+- Rating Pattern: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} average rating
+  ${ratingInsight}
+- Top Genres from Reviews: ${topGenres.take(5).map((e) => '${e.key} (strength: ${e.value.preferenceStrength.toStringAsFixed(2)})').join(', ')}
+- Top Artists from Reviews: ${topArtists.take(5).map((e) => '${e.key} (score: ${e.value.preferenceScore.toStringAsFixed(2)})').join(', ')}
+- Recent Trends: ${reviewProfile.temporalPatterns.recentTrends.isNotEmpty ? reviewProfile.temporalPatterns.recentTrends.join(', ') : 'None'}
+- Review Sentiment: ${reviewProfile.reviewSentiment.sentimentScore > 0.6 ? 'Generally positive' : reviewProfile.reviewSentiment.sentimentScore < 0.4 ? 'Generally negative' : 'Mixed'}
+- Highly Rated Artists: ${reviewProfile.ratingPattern.highlyRatedArtists.take(5).join(', ')}
+
+RECOMMENDATION STRATEGY:
+1. PRIORITIZE genres with high preference strength from reviews: ${topGenres.take(3).map((e) => e.key).join(', ')}
+2. EXPLORE artists similar to top-rated artists: ${topArtists.take(3).map((e) => e.key).join(', ')}
+3. CONSIDER recent trends: ${reviewProfile.temporalPatterns.recentTrends.isNotEmpty ? reviewProfile.temporalPatterns.recentTrends.join(', ') : 'No strong trends'}
+4. BALANCE: ${ratingInsight}
+''';
+    }
+
     return '''
 You are a music discovery engine. Your goal is to help users discover NEW music they haven't heard before, while still being relevant to their taste.
 
@@ -184,6 +270,7 @@ USER PREFERENCES:
 
 RECENT USER REVIEWS (to understand taste):
 ${jsonEncode(reviews)}
+$reviewAnalysisSection
 
 DISCOVERY REQUIREMENTS:
 1. PRIORITIZE DISCOVERY: Recommend songs the user likely hasn't heard before
@@ -220,6 +307,55 @@ Return ONLY valid JSON, no markdown, no commentary.
 Format:
 [{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1","Genre2"]}]
 ''';
+  }
+
+  /// Legacy method for backward compatibility
+  static String _buildPrompt(EnhancedUserPreferences preferences, int count,
+      List<String>? excludeSongs, List<dynamic> reviews) {
+    return _buildEnhancedPrompt(preferences, count, excludeSongs, reviews, null);
+  }
+  
+  /// Score recommendation based on review analysis
+  static double _scoreRecommendationFromReviews(
+    MusicRecommendation recommendation,
+    UserReviewProfile reviewProfile,
+  ) {
+    double score = 0.5; // Base score
+    
+    // Genre match from reviews (weighted by preference strength)
+    for (var genre in recommendation.genres) {
+      final genrePref = reviewProfile.genrePreferences[genre];
+      if (genrePref != null) {
+        score += genrePref.preferenceStrength * 0.3;
+      }
+    }
+    
+    // Artist similarity (if similar to highly-rated artists)
+    final artist = recommendation.artist.toLowerCase();
+    for (var topArtist in reviewProfile.ratingPattern.highlyRatedArtists) {
+      final topArtistLower = topArtist.toLowerCase();
+      if (artist.contains(topArtistLower) || topArtistLower.contains(artist)) {
+        score += 0.2;
+        break;
+      }
+    }
+    
+    // Check if artist is in user's top artist preferences
+    final artistPref = reviewProfile.artistPreferences[recommendation.artist];
+    if (artistPref != null && artistPref.preferenceScore > 0.7) {
+      score += 0.15;
+    }
+    
+    // Recent trends match
+    if (reviewProfile.temporalPatterns.recentTrends.isNotEmpty) {
+      final hasTrendGenre = recommendation.genres.any((genre) => 
+        reviewProfile.temporalPatterns.recentTrends.contains(genre));
+      if (hasTrendGenre) {
+        score += 0.1;
+      }
+    }
+    
+    return score.clamp(0.0, 1.0);
   }
 
   static Future<String> _makeApiRequest(String prompt) async {

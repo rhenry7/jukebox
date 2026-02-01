@@ -42,7 +42,7 @@ class DiscoveryTapBar extends StatelessWidget {
                 ],
               ),
               indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: const Color.fromARGB(104, 78, 72, 72),
+              dividerColor: Colors.transparent,
               labelPadding: const EdgeInsets.symmetric(horizontal: 16.0),
               tabs: const [
                 Tab(

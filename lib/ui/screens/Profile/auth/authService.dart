@@ -43,14 +43,17 @@ class AuthService {
     }
   }
 
-  Future<void> signIn(String email, String password) async {
+  /// Sign in with email and password
+  /// Returns true if successful, false if failed
+  /// Throws exception with error message if failed
+  Future<bool> signIn(String email, String password) async {
     try {
       print(email);
       // Attempt to sign in with Firebase
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
       print("successfully signed in!");
-      // Sign-in successful
+      return true; // Sign-in successful
     } on FirebaseAuthException catch (e) {
       // Handle errors
       String errorMessage;
@@ -74,8 +77,10 @@ class AuthService {
           errorMessage = "An error occurred. Please try again.";
       }
       print(errorMessage); // Print to console for debugging
-      // Display error message to the user (e.g., using a SnackBar)
-      // ... (Code to display error message)
+      throw Exception(errorMessage); // Throw exception with error message
+    } catch (e) {
+      print('Sign-in error: $e');
+      rethrow; // Re-throw to be handled by caller
     }
   }
 }
