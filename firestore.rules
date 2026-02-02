@@ -45,6 +45,12 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
     
+    // Album art collection (top-level, shared cache)
+    match /albumArt/{cacheId} {
+      // Allow authenticated users to read/write album art cache
+      allow read, write: if isAuthenticated();
+    }
+    
     // Collection group queries for reviews (allows reading reviews across all users)
     match /{path=**}/reviews/{reviewId} {
       allow read: if isAuthenticated();
