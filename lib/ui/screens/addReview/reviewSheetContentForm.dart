@@ -607,6 +607,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                 String? imageUrl;
                                 String artistNames = 'Unknown Artist';
                                 String albumName = 'Unknown Album';
+                                String releaseYear = '';
                                 
                                 if (album is spotify.Album) {
                                   albumName = album.name ?? 'Unknown Album';
@@ -614,12 +615,26 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                       ? album.images!.first.url
                                       : null;
                                   artistNames = album.artists?.map((a) => a.name).join(', ') ?? 'Unknown Artist';
+                                  // Extract year from releaseDate
+                                  if (album.releaseDate != null) {
+                                    final dateStr = album.releaseDate.toString();
+                                    if (dateStr.length >= 4) {
+                                      releaseYear = dateStr.substring(0, 4);
+                                    }
+                                  }
                                 } else if (album is spotify.AlbumSimple) {
                                   albumName = album.name ?? 'Unknown Album';
                                   imageUrl = album.images?.isNotEmpty == true
                                       ? album.images!.first.url
                                       : null;
                                   artistNames = album.artists?.map((a) => a.name ?? 'Unknown').join(', ') ?? 'Unknown Artist';
+                                  // Extract year from releaseDate
+                                  if (album.releaseDate != null) {
+                                    final dateStr = album.releaseDate.toString();
+                                    if (dateStr.length >= 4) {
+                                      releaseYear = dateStr.substring(0, 4);
+                                    }
+                                  }
                                 } else {
                                   // Fallback for dynamic type
                                   albumName = album.name?.toString() ?? 'Unknown Album';
@@ -632,6 +647,13 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                       artistNames = (album.artists as List)
                                           .map((a) => a.name?.toString() ?? 'Unknown')
                                           .join(', ');
+                                    }
+                                  }
+                                  // Try to extract year from releaseDate
+                                  if (album.releaseDate != null) {
+                                    final dateStr = album.releaseDate.toString();
+                                    if (dateStr.length >= 4) {
+                                      releaseYear = dateStr.substring(0, 4);
                                     }
                                   }
                                 }
@@ -687,13 +709,15 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                           child: Icon(
                                             Icons.album,
                                             size: 16,
-                                            color: Colors.blue,
+                                            color: Colors.white54,
                                           ),
                                         ),
                                       ],
                                     ),
                                     subtitle: Text(
-                                      '$artistNames • Album',
+                                      releaseYear.isNotEmpty
+                                          ? '$artistNames • $releaseYear'
+                                          : artistNames,
                                       style: const TextStyle(color: Colors.white70),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
