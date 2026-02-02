@@ -151,7 +151,7 @@ class _NewsCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image (only show if available)
+              // Image (only show if available and loads successfully)
               if (article.imageUrl.isNotEmpty) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -160,9 +160,32 @@ class _NewsCard extends StatelessWidget {
                     width: double.infinity,
                     height: 200,
                     fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: double.infinity,
+                        height: 200,
+                        color: Colors.grey[800],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                            color: Colors.white54,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
                     errorBuilder: (context, error, stackTrace) {
-                      // Don't show anything if image fails to load
+                      // Silently hide failed images - don't show error or placeholder
+                      // This prevents console spam from network errors
                       return const SizedBox.shrink();
+                    },
+                    // Add headers to help with CORS issues
+                    headers: const {
+                      'User-Agent': 'Mozilla/5.0 (compatible; Jukeboxd/1.0)',
                     },
                   ),
                 ),

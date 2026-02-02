@@ -51,6 +51,12 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
     
+    // Wikipedia bios collection (top-level, shared cache)
+    match /wikipediaBios/{cacheId} {
+      // Allow authenticated users to read/write Wikipedia bio cache
+      allow read, write: if isAuthenticated();
+    }
+    
     // Collection group queries for reviews (allows reading reviews across all users)
     match /{path=**}/reviews/{reviewId} {
       allow read: if isAuthenticated();

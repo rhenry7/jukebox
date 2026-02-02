@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test_project/Api/api_key.dart';
@@ -16,53 +17,208 @@ Future<List<Track>> fetchSpotifyTracks() async {
 }
 
 // Function 2: Explore tracks from different genres and eras
-Future<List<Track>> fetchExploreTracks() async {
+// Now supports: user preferences, featured playlists, and randomization
+Future<List<Track>> fetchExploreTracks({
+  List<String>? userGenres,
+  Map<String, double>? genreWeights,
+}) async {
   try {
     final credentials = SpotifyApiCredentials(clientId, clientSecret);
     final spotify = SpotifyApi(credentials);
-
-    // Mix of genres and time periods for exploration
-    List<String> exploreQueries = [
-      'genre:indie year:2020-2024',
-      'genre:jazz year:1960-1980',
-      'genre:rock year:1990-2010',
-      'genre:electronic year:2018-2024',
-      'genre:folk year:2015-2024',
-      'genre:r&b year:2000-2024',
-    ];
+    final random = DateTime.now().millisecondsSinceEpoch; // Seed for randomization
 
     List<Track> exploreTracks = [];
 
-    for (String query in exploreQueries) {
-      try {
-        final searchResults = await spotify.search.get(query,
-            types: [SearchType.track]).first(3); // Get 3 tracks from each genre
+    // Step 1: Fetch from Spotify's featured/trending playlists (OPTIMIZED: Skip if errors occur)
+    // Note: Some playlist IDs may not be available in all regions, so we skip gracefully
+    // We catch all errors silently to avoid console spam from expected 404s
+    try {
+      // Try a few different popular playlist IDs (in case one doesn't exist)
+      final featuredPlaylistIds = [
+        '37i9dQZEVXbMDoHDwVN2tF', // Global Top 50
+        '37i9dQZF1DXcBWIGoYBM5M', // Today's Top Hits
+      ];
+      
+      bool foundTracks = false;
+      for (var playlistId in featuredPlaylistIds) {
+        try {
+          // Fetch with timeout to avoid hanging
+          final tracksIterable = await spotify.playlists
+              .getTracksByPlaylistId(playlistId)
+              .all()
+              .timeout(const Duration(seconds: 5));
+          
+          // Take first 5 tracks quickly
+          int count = 0;
+          for (var track in tracksIterable) {
+            if (count >= 5) break;
+            if (track is Track) {
+              exploreTracks.add(track);
+            }
+            count++;
+          }
+          
+          if (count > 0) {
+            foundTracks = true;
+            print('   ✅ Found ${count} tracks from featured playlist');
+            break; // Success, no need to try other playlists
+          }
+        } catch (e, stackTrace) {
+          // Silently skip 404/Resource not found errors - playlist may not exist in this region
+          // The Spotify library throws these errors, but we catch them here to prevent console spam
+          final errorStr = e.toString().toLowerCase();
+          if (errorStr.contains('404') || 
+              errorStr.contains('resource not found') ||
+              errorStr.contains('not found') ||
+              errorStr.contains('error code: 404')) {
+            // Silently continue - don't log expected errors
+            continue;
+          }
+          // For other errors (timeout, network, etc.), also silently continue
+          // to avoid console spam - the genre queries below will still work
+          continue;
+        }
+      }
+    } catch (e) {
+      // Outer catch - silently skip if entire section fails
+      // Continue without featured playlist tracks - genre queries will still work
+    }
 
+    // Step 2: Generate dynamic queries based on user preferences (if available)
+    List<String> exploreQueries = [];
+    
+    if (userGenres != null && userGenres.isNotEmpty) {
+      print('🎵 [EXPLORE] Using user preferences: ${userGenres.take(5).join(", ")}');
+      
+      // Use user's favorite genres (prioritize by weight if available)
+      // OPTIMIZED: Reduced from 6 to 4 genres for faster loading
+      final genresToUse = genreWeights != null && genreWeights.isNotEmpty
+          ? (userGenres.toList()
+              ..sort((a, b) {
+                final weightA = genreWeights[a] ?? 0.5;
+                final weightB = genreWeights[b] ?? 0.5;
+                return weightB.compareTo(weightA);
+              }))
+              .take(4) // Use top 4 genres (reduced from 6)
+          : userGenres.take(4);
+      
+      // Generate random time periods for each genre
+      final timePeriods = _generateRandomTimePeriods(genresToUse.length, random);
+      
+      for (var i = 0; i < genresToUse.length; i++) {
+        final genre = genresToUse.elementAt(i);
+        final timePeriod = timePeriods[i];
+        exploreQueries.add('genre:$genre year:$timePeriod');
+      }
+    } else {
+      // Fallback: Use randomized default genres if no user preferences
+      print('🎵 [EXPLORE] No user preferences, using randomized defaults...');
+      final defaultGenres = [
+        'indie', 'jazz', 'rock', 'electronic', 'folk', 'r&b',
+        'hip hop', 'pop', 'country', 'blues', 'reggae', 'metal'
+      ];
+      defaultGenres.shuffle();
+      
+      // OPTIMIZED: Reduced from 6 to 4 queries for faster loading
+      final timePeriods = _generateRandomTimePeriods(4, random);
+      for (var i = 0; i < 4; i++) {
+        final genre = defaultGenres[i];
+        final timePeriod = timePeriods[i];
+        exploreQueries.add('genre:$genre year:$timePeriod');
+      }
+    }
+
+    // Step 3: Fetch tracks from genre-based queries (OPTIMIZED: Parallel execution)
+    print('🎵 [EXPLORE] Fetching tracks from ${exploreQueries.length} genre queries (parallel)...');
+    
+    // Execute queries in parallel for faster loading
+    final queryFutures = exploreQueries.map((query) async {
+      try {
+        final searchFuture = spotify.search.get(query,
+            types: [SearchType.track]).first(3);
+        
+        final searchResults = await searchFuture.timeout(
+          const Duration(seconds: 5),
+        );
+
+        final tracks = <Track>[];
         if (searchResults.isNotEmpty) {
           for (var page in searchResults) {
             if (page.items != null) {
               for (var trackSimple in page.items!) {
                 if (trackSimple is Track) {
-                  exploreTracks.add(trackSimple);
+                  tracks.add(trackSimple);
                 }
               }
             }
           }
         }
-
-        await Future.delayed(const Duration(milliseconds: 100));
+        return tracks;
+      } on TimeoutException {
+        print('⚠️  Query "$query" timed out');
+        return <Track>[];
       } catch (e) {
-        print('Error with explore query "$query": $e');
-        continue;
+        print('⚠️  Error with explore query "$query": $e');
+        return <Track>[];
+      }
+    }).toList();
+    
+    // Wait for all queries to complete in parallel
+    final results = await Future.wait(queryFutures);
+    for (var tracks in results) {
+      exploreTracks.addAll(tracks);
+    }
+
+    // Remove duplicates (by track ID)
+    final uniqueTracks = <String, Track>{};
+    for (var track in exploreTracks) {
+      if (track.id != null) {
+        uniqueTracks.putIfAbsent(track.id!, () => track);
       }
     }
 
-    exploreTracks.shuffle();
-    return exploreTracks.take(20).toList();
+    // Shuffle and return top 20
+    final finalTracks = uniqueTracks.values.toList()..shuffle();
+    print('✅ [EXPLORE] Returning ${finalTracks.take(20).length} unique tracks');
+    return finalTracks.take(20).toList();
   } catch (e) {
-    print('Error fetching explore tracks: $e');
+    print('❌ Error fetching explore tracks: $e');
     return [];
   }
+}
+
+/// Generate random time periods for genre queries
+List<String> _generateRandomTimePeriods(int count, int seed) {
+  final random = (seed % 1000) / 1000.0; // Normalize seed
+  final periods = <String>[];
+  final currentYear = DateTime.now().year;
+  
+  // Define time period ranges as List<int> [startYear, endYear]
+  final periodRanges = [
+    [currentYear - 4, currentYear], // Recent (last 4 years)
+    [currentYear - 10, currentYear - 4], // Mid-recent (5-10 years ago)
+    [currentYear - 20, currentYear - 10], // Classic (10-20 years ago)
+    [currentYear - 30, currentYear - 20], // Vintage (20-30 years ago)
+    [1960, 1990], // Retro (1960-1990)
+    [1990, 2010], // 90s-2000s
+  ];
+  
+  // Shuffle periods based on seed
+  final shuffledPeriods = List<List<int>>.from(periodRanges);
+  for (var i = 0; i < shuffledPeriods.length; i++) {
+    final j = ((random * 1000 + i) % shuffledPeriods.length).toInt();
+    final temp = shuffledPeriods[i];
+    shuffledPeriods[i] = shuffledPeriods[j];
+    shuffledPeriods[j] = temp;
+  }
+  
+  // Generate count number of periods
+  for (var i = 0; i < count; i++) {
+    final period = shuffledPeriods[i % shuffledPeriods.length];
+    periods.add('${period[0]}-${period[1]}');
+  }
+  
+  return periods;
 }
 
 Future<Pages<Category>> fetchSpotifyCatgories() async {
