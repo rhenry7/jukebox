@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Home/categoryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/ui/screens/albumDiscovery/albumGrid.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
+import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
-class MainNav extends StatefulWidget {
+class MainNav extends ConsumerStatefulWidget {
   const MainNav({super.key, required this.title});
   final String title;
 
   @override
-  State<MainNav> createState() => MainNavState();
+  ConsumerState<MainNav> createState() => MainNavState();
 }
 
-class MainNavState extends State<MainNav> {
+class MainNavState extends ConsumerState<MainNav> {
   int currentPageIndex = 0;
   final TextEditingController _controller = TextEditingController();
   late Future<MusicPreferences?> _preferencesFuture;
@@ -59,6 +61,15 @@ class MainNavState extends State<MainNav> {
   // Public method to change tab from child widgets
   void navigateToTab(int index) {
     _onItemTapped(index);
+  }
+
+  // Get profile label - show username if logged in, otherwise "Profile"
+  String _getProfileLabel() {
+    final user = ref.read(currentUserProvider);
+    if (user != null && user.displayName != null && user.displayName!.isNotEmpty) {
+      return user.displayName!;
+    }
+    return 'Profile';
   }
 
   @override
@@ -104,10 +115,10 @@ class MainNavState extends State<MainNav> {
             icon: Icon(Ionicons.flash_outline),
             label: 'Trending',
           ),
-          const NavigationDestination(
+          NavigationDestination(
             selectedIcon: Icon(Ionicons.person_circle),
             icon: Icon(Ionicons.person_circle_outline),
-            label: 'Profile',
+            label: _getProfileLabel(),
           ),
         ],
       ),
