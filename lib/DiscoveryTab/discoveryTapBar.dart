@@ -123,19 +123,7 @@ class DiscoveryTapBar extends StatelessWidget {
             RecommendedAlbumScreen(),
             PlaylistDiscoveryScreen(), // New MusicBrainz-based playlist discovery
             DiscoveryTrackCards(),
-            MusicNewsWidget(
-              filterKeywords: [
-                'music album',
-                'music artist',
-                'music genre',
-                'hip hop',
-                'pop music',
-                'rock music',
-                'jazz music',
-                'indie music',
-                'electronic music',
-              ],
-            ),
+            const MusicNewsWidget(), // Now uses user preferences automatically
           ],
         ),
       ),

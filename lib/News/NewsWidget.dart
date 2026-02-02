@@ -1,35 +1,122 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/News/News.dart';
+import 'package:flutter_test_project/providers/preferences_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// -------- WIDGET --------
-class MusicNewsWidget extends StatelessWidget {
-  final List<String> filterKeywords; // ⬅️ Now a list!
+class MusicNewsWidget extends ConsumerWidget {
+  final List<String>? filterKeywords; // Optional - if null, uses user preferences
 
-  const MusicNewsWidget({Key? key, required this.filterKeywords})
-      : super(key: key);
+  const MusicNewsWidget({Key? key, this.filterKeywords}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<MusicNewsArticle>>(
-      future: NewsApiService().fetchArticles(filterKeywords),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No news articles found.'));
-        }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferencesAsync = ref.watch(userPreferencesProvider);
+    
+    return preferencesAsync.when(
+      data: (preferences) {
+        // Use personalized keywords if no filterKeywords provided
+        final keywords = filterKeywords ?? 
+            NewsApiService.generatePersonalizedKeywords(
+              favoriteGenres: preferences.favoriteGenres,
+              favoriteArtists: preferences.favoriteArtists,
+            );
+        
+        return FutureBuilder<List<MusicNewsArticle>>(
+          future: filterKeywords == null
+              ? NewsApiService().fetchPersonalizedArticles(
+                  favoriteGenres: preferences.favoriteGenres,
+                  favoriteArtists: preferences.favoriteArtists,
+                )
+              : NewsApiService().fetchArticles(keywords),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.red),
+              );
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading articles',
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${snapshot.error}',
+                      style: const TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.article_outlined, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No music articles found',
+                      style: TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Try updating your music preferences to see personalized news',
+                      style: TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
 
-        final articles = snapshot.data!;
-        return ListView.builder(
-          itemCount: articles.length,
-          itemBuilder: (context, index) {
-            return _NewsCard(article: articles[index]);
+            final articles = snapshot.data!;
+            return RefreshIndicator(
+              onRefresh: () async {
+                // Trigger refresh by invalidating the provider
+                ref.invalidate(userPreferencesProvider);
+              },
+              color: Colors.red[600],
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: articles.length,
+                itemBuilder: (context, index) {
+                  return _NewsCard(article: articles[index]);
+                },
+              ),
+            );
           },
         );
       },
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Colors.red),
+      ),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'Error loading preferences',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: const TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -55,27 +142,58 @@ class _NewsCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
+      color: Colors.grey[900],
+      child: InkWell(
         onTap: () => _launchURL(context, article.url),
-        leading: article.imageUrl.isNotEmpty
-            ? SizedBox(
-                width: 60,
-                height: 60,
-                child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image (only show if available)
+              if (article.imageUrl.isNotEmpty) ...[
+                ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
                     article.imageUrl,
+                    width: double.infinity,
+                    height: 200,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.broken_image),
+                    errorBuilder: (context, error, stackTrace) {
+                      // Don't show anything if image fails to load
+                      return const SizedBox.shrink();
+                    },
                   ),
                 ),
-              )
-            : const Icon(Icons.image_not_supported),
-        title:
-            Text(article.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text(article.description,
-            maxLines: 3, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 12),
+              ],
+              // Title (bold, larger font)
+              Text(
+                article.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              // Description (smaller font, body copy)
+              if (article.description.isNotEmpty)
+                Text(
+                  article.description,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
