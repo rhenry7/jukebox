@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/DiscoveryTab/playlists/preferences.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:spotify/spotify.dart';
 
 class PersonalizedPlaylistsTab extends StatefulWidget {
@@ -98,9 +99,9 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Finding playlists for you...'),
+            const DiscoBallLoading(),
+            const SizedBox(height: 16),
+            const Text('Finding playlists for you...'),
           ],
         ),
       );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/playlist_provider.dart';
 import 'package:flutter_test_project/services/playlist_generation_service.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
@@ -110,9 +111,7 @@ class PlaylistDiscoveryScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Colors.red),
-        ),
+        loading: () => const DiscoBallLoading(),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -379,9 +378,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Colors.red),
-        ),
+        loading: () => const DiscoBallLoading(),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -453,15 +450,8 @@ class _PlaylistTrackCard extends StatelessWidget {
                         if (loadingProgress == null) return child;
                         return Container(
                           color: Colors.grey[900],
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              strokeWidth: 2,
-                              color: Colors.red,
-                            ),
+                          child: const Center(
+                            child: DiscoBallLoading(),
                           ),
                         );
                       },

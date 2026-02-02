@@ -21,16 +21,22 @@ class WikipediaService {
   /// Internal method to fetch bio from Wikipedia API (called by cache service)
   static Future<String?> _fetchArtistSummaryFromAPI(String artistName) async {
     try {
-      // Try multiple variations of the artist name to handle different page titles
-      // REST API automatically handles redirects, so we can try direct access
+      // PRIORITIZE musical disambiguation suffixes FIRST to avoid matching wrong pages
+      // (e.g., "Train" should match "Train (band)" not "Train (vehicle)")
       final nameVariations = [
-        artistName, // Original name
-        artistName.replaceAll(' ', '_'), // With underscores (common Wikipedia format)
-        // Try with common disambiguation suffixes
+        // Try musical disambiguation suffixes FIRST
         '$artistName (band)',
         '$artistName (musician)',
         '$artistName (singer)',
         '$artistName (artist)',
+        '$artistName (musical group)',
+        '$artistName (group)',
+        // Then try with underscores
+        artistName.replaceAll(' ', '_'),
+        '$artistName (band)'.replaceAll(' ', '_'),
+        '$artistName (musician)'.replaceAll(' ', '_'),
+        // Finally try original name (last resort)
+        artistName,
       ];
 
       for (final name in nameVariations) {
@@ -44,22 +50,37 @@ class WikipediaService {
             headers: {
               'Accept': 'application/json',
               'User-Agent': 'Jukeboxd/1.0 (https://juxeboxd.web.app)',
+              'Origin': 'https://juxeboxd.web.app', // Add origin header for CORS
             },
-          ).timeout(const Duration(seconds: 5));
+          ).timeout(
+            const Duration(seconds: 10), // Longer timeout for production
+            onTimeout: () {
+              throw TimeoutException('Wikipedia API request timed out');
+            },
+          );
 
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
             final extract = data['extract'] as String?;
             
-            // Return first 2-3 sentences (approximately 200-300 characters)
+            // Validate that the extract is actually about music/musicians
             if (extract != null && extract.isNotEmpty) {
-              // Find the first few sentences
-              final sentences = extract.split('. ');
-              if (sentences.length >= 2) {
-                return '${sentences.take(2).join('. ')}.';
+              // Check if this is actually about music (avoid matching wrong pages)
+              final extractLower = extract.toLowerCase();
+              final isMusical = _isMusicalContent(extractLower, artistName);
+              
+              if (isMusical) {
+                // Return first 2-3 sentences (approximately 200-300 characters)
+                final sentences = extract.split('. ');
+                if (sentences.length >= 2) {
+                  return '${sentences.take(2).join('. ')}.';
+                }
+                // If less than 2 sentences, return first 250 characters
+                return extract.length > 250 ? '${extract.substring(0, 250)}...' : extract;
+              } else {
+                // Not musical content - try next variation
+                continue;
               }
-              // If less than 2 sentences, return first 250 characters
-              return extract.length > 250 ? '${extract.substring(0, 250)}...' : extract;
             }
           } else if (response.statusCode == 404) {
             // Try next variation
@@ -87,6 +108,66 @@ class WikipediaService {
       // Silently fail - don't spam console
       return null;
     }
+  }
+
+  /// Validate that Wikipedia extract is about music/musicians
+  /// Returns true if the content appears to be about a musical artist/band
+  static bool _isMusicalContent(String extractLower, String artistName) {
+    // Musical keywords that indicate this is about music
+    final musicalKeywords = [
+      'band', 'musician', 'singer', 'artist', 'album', 'song', 'music',
+      'record', 'recording', 'single', 'ep', 'tour', 'concert', 'guitar',
+      'bass', 'drums', 'piano', 'vocal', 'lyrics', 'composer', 'producer',
+      'label', 'chart', 'billboard', 'grammy', 'award', 'genre', 'rock',
+      'pop', 'jazz', 'hip hop', 'rap', 'country', 'folk', 'electronic',
+      'indie', 'alternative', 'punk', 'metal', 'blues', 'r&b', 'soul',
+      'released', 'debut', 'hit', 'top', 'radio', 'streaming', 'spotify',
+    ];
+    
+    // Non-musical keywords that indicate this is NOT about music
+    // (e.g., "train" as vehicle, "eagle" as bird, etc.)
+    final nonMusicalKeywords = [
+      'vehicle', 'transport', 'locomotive', 'railway', 'station',
+      'bird', 'animal', 'species', 'wildlife', 'habitat',
+      'company', 'corporation', 'business', 'industry', 'manufacturing',
+      'plant', 'tree', 'flower', 'botanical',
+      'city', 'town', 'place', 'location', 'geography',
+      'person', 'politician', 'scientist', 'writer', 'author', 'actor',
+    ];
+    
+    // Check for non-musical keywords first (higher priority)
+    for (final keyword in nonMusicalKeywords) {
+      if (extractLower.contains(keyword) && 
+          !extractLower.contains('music') && 
+          !extractLower.contains('band') &&
+          !extractLower.contains('song')) {
+        // If it contains non-musical keywords but no musical context, likely wrong page
+        return false;
+      }
+    }
+    
+    // Check for musical keywords
+    int musicalScore = 0;
+    for (final keyword in musicalKeywords) {
+      if (extractLower.contains(keyword)) {
+        musicalScore++;
+      }
+    }
+    
+    // If we found at least 2 musical keywords, it's likely about music
+    // OR if the artist name appears in musical context
+    if (musicalScore >= 2) {
+      return true;
+    }
+    
+    // If artist name appears with musical context, accept it
+    if (extractLower.contains(artistName.toLowerCase()) && musicalScore >= 1) {
+      return true;
+    }
+    
+    // Default: if we have at least 1 musical keyword, accept it
+    // (better to show something than nothing, but prioritize better matches)
+    return musicalScore >= 1;
   }
 
   /// Get Wikipedia bio without caching (for cache service use)

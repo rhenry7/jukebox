@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_models.dart';
 import 'package:flutter_test_project/services/user_services.dart';
@@ -38,7 +39,7 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                   return Text('Error: ${snapshot.error}');
                 }
                 if (!snapshot.hasData || snapshot.data == null) {
-                  return const CircularProgressIndicator();
+                  return const DiscoBallLoading();
                 } else if (snapshot.hasData) {
                   final UserReviewInfo? userInfo = snapshot.data;
                   final reviews =
@@ -70,7 +71,7 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                 } else if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 } else {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: DiscoBallLoading());
                 }
               })),
     );

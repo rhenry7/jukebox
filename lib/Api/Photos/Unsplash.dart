@@ -3,6 +3,7 @@
 
 import 'dart:convert';
 import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
@@ -170,10 +171,10 @@ class _VinylPhotoWidgetState extends State<VinylPhotoWidget> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Center(
-          child: SizedBox(
+          child: const SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: DiscoBallLoading(),
           ),
         ),
       );

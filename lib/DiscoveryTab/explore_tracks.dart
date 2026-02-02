@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,8 +25,14 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
   }
   
   /// Filter tracks to only include those with substantial bios (2+ lines, ~100+ characters)
+  /// FALLBACK: If no bios are found, returns empty map but tracks will still be shown
   Future<Map<String, String?>> _filterTracksWithBios(List<Track> tracks) async {
     final bios = <String, String?>{};
+    int successCount = 0;
+    int failureCount = 0;
+    
+    // Fetch bios in parallel with timeout for better performance
+    final bioFutures = <Future<void>>[];
     
     for (var track in tracks) {
       final artistName = track.artists != null && track.artists!.isNotEmpty
@@ -35,19 +42,48 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
       // Skip if already processed
       if (bios.containsKey(artistName)) continue;
       
-      final bio = await _getArtistBio(artistName);
-      
-      // Only include if bio exists and is at least 2 lines (roughly 100+ characters)
-      // Check for at least 2 sentences or 100+ characters
-      if (bio != null && bio.length >= 100) {
-        // Also check for at least 2 sentences (contains at least one period after the first)
-        final sentences = bio.split('.');
-        if (sentences.length >= 2) {
-          bios[artistName] = bio;
-        }
-      }
+      // Fetch bio with timeout
+      bioFutures.add(
+        _getArtistBio(artistName)
+            .timeout(
+              const Duration(seconds: 8), // Longer timeout for production
+              onTimeout: () {
+                failureCount++;
+                return null;
+              },
+            )
+            .then((bio) {
+              if (bio != null && bio.length >= 100) {
+                final sentences = bio.split('.');
+                if (sentences.length >= 2) {
+                  bios[artistName] = bio;
+                  successCount++;
+                } else {
+                  failureCount++;
+                }
+              } else {
+                failureCount++;
+              }
+            })
+            .catchError((e) {
+              failureCount++;
+              // Log errors in production for debugging
+              print('⚠️  Error fetching bio for $artistName: $e');
+            }),
+      );
     }
     
+    // Wait for all bio fetches to complete
+    try {
+      await Future.wait(bioFutures, eagerError: false);
+    } catch (e) {
+      print('⚠️  Error in parallel bio fetching: $e');
+    }
+    
+    print('📊 Bio fetch results: $successCount successful, $failureCount failed');
+    
+    // FALLBACK: If we got some tracks but no bios, return empty map
+    // The UI will show tracks without bios rather than showing "No tracks"
     return bios;
   }
 
@@ -123,23 +159,29 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
                       future: _filterTracksWithBios(snapshot.data!),
                       builder: (context, bioSnapshot) {
                         if (bioSnapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32.0),
-                              child: CircularProgressIndicator(color: Colors.red),
-                            ),
+                          return const Padding(
+                            padding: EdgeInsets.all(32.0),
+                            child: DiscoBallLoading(),
                           );
                         }
                         
                         final bios = bioSnapshot.data ?? {};
-                        final filteredTracks = snapshot.data!.where((track) {
-                          final artistName = track.artists != null && track.artists!.isNotEmpty
-                              ? track.artists!.first.name ?? 'Unknown Artist'
-                              : 'Unknown Artist';
-                          return bios.containsKey(artistName);
-                        }).toList();
                         
-                        if (filteredTracks.isEmpty) {
+                        // FALLBACK: If no bios found, show tracks anyway (without bios)
+                        // This prevents the "No tracks with artist information" message
+                        // when Wikipedia API fails in production
+                        final filteredTracks = bios.isEmpty
+                            ? snapshot.data! // Show all tracks if no bios found
+                            : snapshot.data!.where((track) {
+                                final artistName = track.artists != null && track.artists!.isNotEmpty
+                                    ? track.artists!.first.name ?? 'Unknown Artist'
+                                    : 'Unknown Artist';
+                                return bios.containsKey(artistName);
+                              }).toList();
+                        
+                        // Only show empty message if we actually have no tracks at all
+                        if (filteredTracks.isEmpty && snapshot.data!.isNotEmpty) {
+                          // This shouldn't happen, but handle it gracefully
                           return Center(
                             child: Padding(
                               padding: const EdgeInsets.all(32.0),
@@ -230,10 +272,7 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
                                                       borderRadius: BorderRadius.circular(4),
                                                     ),
                                                     child: const Center(
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: Colors.white,
-                                                      ),
+                                                      child: DiscoBallLoading(),
                                                     ),
                                                   );
                                                 },

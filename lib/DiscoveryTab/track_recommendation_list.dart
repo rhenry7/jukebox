@@ -1,5 +1,6 @@
 // Album List Widget
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
@@ -124,10 +125,7 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
+                                child: DiscoBallLoading(),
                               ),
                             );
                           },

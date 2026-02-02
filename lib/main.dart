@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/utils/firebase_options.dart';
@@ -55,11 +56,7 @@ class MyApp extends ConsumerWidget {
         ),
         home: const Scaffold(
           backgroundColor: Colors.black,
-          body: Center(
-            child: CircularProgressIndicator(
-              color: Colors.white,
-            ),
-          ),
+          body: DiscoBallLoading(),
         ),
       );
     }

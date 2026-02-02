@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/providers/preferences_provider.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
@@ -231,9 +232,7 @@ class TrendingTracksWidget extends ConsumerWidget {
               ),
             );
           },
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Colors.red),
-          ),
+          loading: () => const DiscoBallLoading(),
           error: (error, stack) => Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -262,9 +261,7 @@ class TrendingTracksWidget extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: Colors.red),
-      ),
+      loading: () => const DiscoBallLoading(),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

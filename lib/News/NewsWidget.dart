@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/News/News.dart';
 import 'package:flutter_test_project/providers/preferences_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -32,9 +33,7 @@ class MusicNewsWidget extends ConsumerWidget {
               : NewsApiService().fetchArticles(keywords),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.red),
-              );
+              return const DiscoBallLoading();
             } else if (snapshot.hasError) {
               return Center(
                 child: Column(
@@ -95,9 +94,7 @@ class MusicNewsWidget extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: Colors.red),
-      ),
+      loading: () => const DiscoBallLoading(),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -166,15 +163,8 @@ class _NewsCard extends StatelessWidget {
                         width: double.infinity,
                         height: 200,
                         color: Colors.grey[800],
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                            color: Colors.white54,
-                            strokeWidth: 2,
-                          ),
+                        child: const Center(
+                          child: DiscoBallLoading(),
                         ),
                       );
                     },

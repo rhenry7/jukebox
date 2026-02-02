@@ -4,6 +4,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../GIFs/gifs.dart';
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/community_reviews_provider.dart';
@@ -322,11 +323,7 @@ class CommunityReviewList extends ConsumerWidget {
         if (index == reviews.length) {
           return const Padding(
             padding: EdgeInsets.all(16.0),
-            child: Center(
-              child: CircularProgressIndicator(
-                color: Colors.red,
-              ),
-            ),
+            child: DiscoBallLoading(),
           );
         }
 

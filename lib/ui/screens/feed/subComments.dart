@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/Api/apis.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments_responding_to_post.dart';
@@ -134,8 +135,7 @@ class SubCommentLists extends State<SubComments> {
                                     return const SizedBox(
                                       width: 24,
                                       height: 24,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
+                                      child: DiscoBallLoading(),
                                     );
                                   },
                                 ),

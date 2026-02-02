@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';
 
@@ -263,7 +264,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
       future: _preferencesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: DiscoBallLoading());
         } else if (snapshot.hasError) {
           return const Center(child: Text('Error loading preferences'));
         } else if (!snapshot.hasData) {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
@@ -478,13 +479,10 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                             ? [
                                 const Padding(
                                   padding: EdgeInsets.all(8.0),
-                                  child: SizedBox(
+                                  child: const SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
+                                    child: DiscoBallLoading(),
                                   ),
                                 )
                               ]

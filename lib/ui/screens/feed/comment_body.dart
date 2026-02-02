@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 import 'package:flutter_test_project/ui/screens/feed/subComments.dart';
 import 'package:flutter_test_project/utils/helpers.dart';
@@ -148,7 +149,7 @@ class CommentsBody extends StatelessWidget {
                                   return child;
                                 } else {
                                   return const Center(
-                                      child: CircularProgressIndicator());
+                                      child: DiscoBallLoading());
                                 }
                               },
                             ),

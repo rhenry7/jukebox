@@ -190,7 +190,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
         children: [
           Expanded(
             child: !_isInitialized
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: DiscoBallLoading())
                 : _albumsFuture == null
                     ? const Center(
                         child: Text('Failed to load recommendations'))

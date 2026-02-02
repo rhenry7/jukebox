@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../GIFs/gifs.dart';
 import 'ProfileSignUpWidget.dart';
 import 'auth/authService.dart';
 import '../../../routing/MainNavigation.dart';
@@ -133,9 +134,7 @@ class _SignInScreenState extends State<SignInScreen> {
     // If user is already signed in, show loading while redirecting
     if (_auth.currentUser != null) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: DiscoBallLoading(),
       );
     }
 
@@ -249,10 +248,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
+                            child: DiscoBallLoading(),
                           )
                         : const Text("Sign In"),
                   ),

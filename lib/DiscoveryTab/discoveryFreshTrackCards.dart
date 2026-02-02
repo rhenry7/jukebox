@@ -365,10 +365,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Center(
-                child: flutter.CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
+                child: DiscoBallLoading(),
               ),
             );
           },
