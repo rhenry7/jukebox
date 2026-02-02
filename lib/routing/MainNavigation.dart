@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Home/categoryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/ui/screens/albumDiscovery/albumGrid.dart';
+import 'package:flutter_test_project/ui/screens/Trending/trending_tracks.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
@@ -31,7 +31,7 @@ class MainNavState extends ConsumerState<MainNav> {
       artist: 'artist',
       albumImageUrl: "",
     ),
-    const AlbumGrid(),
+    const TrendingTracksWidget(), // Updated to use personalized trending tracks
     profileRouter(),
   ];
 
