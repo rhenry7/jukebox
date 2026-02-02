@@ -32,10 +32,6 @@
   <title>flutter_test_project</title>
   <link rel="manifest" href="manifest.json">
 
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    const serviceWorkerVersion = "{{flutter_service_worker_version}}";
-  </script>
   <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer></script>
 </head>
@@ -43,10 +39,13 @@
   <script>
     window.addEventListener('load', function(ev) {
       // Download main.dart.js
+      // Flutter replaces {{flutter_service_worker_version}} with the actual version
+      // Simply skip service worker config to avoid syntax errors
+      // The app will work fine without it
+      var serviceWorkerConfig = null;
+      
       _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
+        serviceWorker: serviceWorkerConfig,
         onEntrypointLoaded: function(engineInitializer) {
           engineInitializer.initializeEngine().then(function(appRunner) {
             appRunner.runApp();
