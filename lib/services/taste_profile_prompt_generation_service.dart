@@ -2,12 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Service for analyzing music profiles and generating recommendation prompts
 class MusicProfileService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore? _firestore;
+
+  /// [firestore] is optional for testing. Pass [FirebaseFirestore.instance]
+  /// in production (after Firebase.initializeApp()).
+  MusicProfileService({FirebaseFirestore? firestore}) : _firestore = firestore;
 
   /// Fetches the user's music profile from Firestore
   Future<Map<String, dynamic>?> getUserMusicProfile(String userId) async {
+    if (_firestore == null) return null;
     try {
-      final docSnapshot = await _firestore
+      final docSnapshot = await _firestore!
           .collection('users')
           .doc(userId)
           .collection('musicProfile')
@@ -224,8 +229,9 @@ class MusicProfileService {
   /// Updates the music profile in Firestore
   Future<void> updateMusicProfile(
       String userId, Map<String, dynamic> updates) async {
+    if (_firestore == null) return;
     try {
-      await _firestore
+      await _firestore!
           .collection('users')
           .doc(userId)
           .collection('musicProfile')
@@ -243,8 +249,9 @@ class MusicProfileService {
   /// Creates initial music profile if it doesn't exist
   Future<void> createMusicProfile(
       String userId, Map<String, dynamic> initialProfile) async {
+    if (_firestore == null) return;
     try {
-      await _firestore
+      await _firestore!
           .collection('users')
           .doc(userId)
           .collection('musicProfile')
@@ -262,6 +269,7 @@ class MusicProfileService {
   /// Increments listening metrics
   Future<void> trackListeningActivity(String userId, String trackId,
       {bool skipped = false, bool repeated = false}) async {
+    if (_firestore == null) return;
     try {
       final updates = <String, dynamic>{};
 
@@ -273,7 +281,7 @@ class MusicProfileService {
         updates['repeatCounts.$trackId'] = FieldValue.increment(1);
       }
 
-      await _firestore
+      await _firestore!
           .collection('users')
           .doc(userId)
           .collection('musicProfile')
@@ -287,8 +295,9 @@ class MusicProfileService {
 
   /// Adds a track to recently played
   Future<void> addToRecentlyPlayed(String userId, String trackId) async {
+    if (_firestore == null) return;
     try {
-      await _firestore
+      await _firestore!
           .collection('users')
           .doc(userId)
           .collection('musicProfile')

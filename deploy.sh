@@ -3,7 +3,41 @@
 echo "🚀 Starting deployment process..."
 echo ""
 
-# Build Flutter web app
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Step 1: Run tests
+echo "🧪 Running tests..."
+if flutter test; then
+    echo -e "${GREEN}✅ All tests passed${NC}"
+else
+    echo -e "${RED}❌ Tests failed! Please fix tests before deploying.${NC}"
+    exit 1
+fi
+
+echo ""
+
+# Step 2: Analyze code (warnings are OK, errors are not)
+echo "🔍 Analyzing code..."
+flutter analyze --no-fatal-infos --no-fatal-warnings
+ANALYZE_EXIT_CODE=$?
+
+if [ $ANALYZE_EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✅ Code analysis passed (no errors)${NC}"
+elif [ $ANALYZE_EXIT_CODE -eq 1 ]; then
+    echo -e "${YELLOW}⚠️  Code analysis found warnings (non-blocking)${NC}"
+    echo "   Note: Warnings are acceptable, but errors would block deployment"
+else
+    echo -e "${RED}❌ Code analysis failed! Please fix errors before deploying.${NC}"
+    exit 1
+fi
+
+echo ""
+
+# Step 3: Build Flutter web app
 echo "📦 Building Flutter web app (release mode)..."
 flutter build web --release
 

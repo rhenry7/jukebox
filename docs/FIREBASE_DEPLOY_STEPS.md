@@ -140,4 +140,4 @@ To update your site after making changes:
 2. Run: `flutter build web --release`
 3. Run: `firebase deploy --only hosting`
 
-That's it! Your changes will be live in a few minutes.
+That's it! Your changes are live in a few minutes.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart' as flutter;
@@ -92,7 +93,9 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
   Widget build(BuildContext context) {
     // Fetch taste profile to get user's music preferences
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    final tasteProfileService = MusicProfileService();
+    final tasteProfileService = MusicProfileService(
+      firestore: FirebaseFirestore.instance,
+    );
     
     // Build the tracks future based on taste profile
     final tracksFuture = userId != null
