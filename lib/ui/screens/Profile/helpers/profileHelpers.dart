@@ -87,6 +87,37 @@ Widget profileRouter() {
   }
 }
 
+/// Check if user has music preferences set up
+Future<bool> hasUserPreferences(String userId) async {
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('musicPreferences')
+        .doc('profile')
+        .get();
+    
+    if (!doc.exists) {
+      return false;
+    }
+    
+    final data = doc.data();
+    if (data == null) {
+      return false;
+    }
+    
+    // Check if they have at least some preferences set
+    final favoriteGenres = data['favoriteGenres'] as List?;
+    final favoriteArtists = data['favoriteArtists'] as List?;
+    
+    return (favoriteGenres != null && favoriteGenres.isNotEmpty) ||
+           (favoriteArtists != null && favoriteArtists.isNotEmpty);
+  } catch (e) {
+    print("Error checking user preferences: $e");
+    return false;
+  }
+}
+
 Future<void> signUp(String userName, String email, String password) async {
   AuthService authService = AuthService();
   User? user = await authService.signUp(userName, email, password);

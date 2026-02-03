@@ -40,11 +40,6 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
 
   @override
   Widget build(BuildContext context) {
-    setState(() {
-      userName = _userNameController.text.trim();
-      email = _emailController.text.trim();
-      password = _passwordController.text.trim();
-    });
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Center(
@@ -145,50 +140,104 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                   ElevatedButton(
                     onPressed: () async {
                       // Action when the button is pressed
+                      print('🔵 [SIGNUP] Create Account button pressed');
                       try {
-                        // Send to Firebase
-                        await signUp(userName, email,
-                            password); // Ensure signUp is an async function
-
-                        // After successful sign-up, check if the user is authenticated
-                        if (FirebaseAuth.instance.currentUser != null) {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                                builder: (context) => const MainNav(
-                                    title:
-                                        "JUKEBOXD")), // Replace with your app's main widget
-                            (Route<dynamic> route) =>
-                                false, // Removes all previous routes
-                          );
-
-                          // Show SnackBar after navigating
+                        // Read values directly from controllers
+                        final userNameValue = _userNameController.text.trim();
+                        final emailValue = _emailController.text.trim();
+                        final passwordValue = _passwordController.text.trim();
+                        
+                        print('🔵 [SIGNUP] Values: userName=$userNameValue, email=$emailValue, password=${passwordValue.isNotEmpty ? "***" : "empty"}');
+                        
+                        // Validate inputs
+                        if (userNameValue.isEmpty || emailValue.isEmpty || passwordValue.isEmpty) {
+                          print('⚠️ [SIGNUP] Validation failed: empty fields');
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Welcome Back!'),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                onPressed: () {
-                                  // Do something when the action is pressed
-                                  print('Undo pressed');
-                                },
-                              ),
+                            const SnackBar(
+                              content: Text('Please fill in all fields'),
                             ),
                           );
+                          return;
+                        }
+
+                        print('✅ [SIGNUP] Validation passed, calling signUp...');
+                        // Send to Firebase
+                        await signUp(userNameValue, emailValue, passwordValue);
+                        print('✅ [SIGNUP] signUp call completed');
+
+                        // Wait a moment for Firebase to update
+                        await Future.delayed(const Duration(milliseconds: 500));
+
+                        // After successful sign-up, check if the user is authenticated
+                        final currentUser = FirebaseAuth.instance.currentUser;
+                        if (currentUser != null) {
+                          // Check if user has preferences set up
+                          final hasPrefs = await hasUserPreferences(currentUser.uid);
+                          
+                          if (hasPrefs) {
+                            // User has preferences, go to home
+                            if (mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                    builder: (context) => const MainNav(
+                                        title: "JUKEBOXD")),
+                                (Route<dynamic> route) => false,
+                              );
+                              
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Welcome!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          } else {
+                            // User has no preferences, route to preferences page
+                            if (mounted) {
+                              // Navigate to MainNav with flag to navigate to preferences
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                    builder: (context) => const MainNav(
+                                        title: "JUKEBOXD",
+                                        navigateToPreferences: true)),
+                                (Route<dynamic> route) => false,
+                              );
+                              
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Welcome! Please set up your music preferences to get started.'),
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                          }
+                        } else {
+                          // Sign-up failed
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Sign-up failed. Please try again.'),
+                              ),
+                            );
+                          }
                         }
 
                         // Clear input fields
-                        setState(() {
-                          userName = '';
-                          email = '';
-                          password = '';
-                        });
+                        if (mounted) {
+                          _userNameController.clear();
+                          _emailController.clear();
+                          _passwordController.clear();
+                        }
                       } catch (e) {
                         // Handle sign-up errors here
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Sign-up failed: $e'),
-                          ),
-                        );
+                        print('❌ [SIGNUP] Error: $e');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Sign-up failed: $e'),
+                            ),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(

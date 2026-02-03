@@ -11,8 +11,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
 class MainNav extends ConsumerStatefulWidget {
-  const MainNav({super.key, required this.title});
+  const MainNav(
+      {super.key, required this.title, this.navigateToPreferences = false});
   final String title;
+  final bool navigateToPreferences;
 
   @override
   ConsumerState<MainNav> createState() => MainNavState();
@@ -66,10 +68,40 @@ class MainNavState extends ConsumerState<MainNav> {
   // Get profile label - show username if logged in, otherwise "Profile"
   String _getProfileLabel() {
     final user = ref.read(currentUserProvider);
-    if (user != null && user.displayName != null && user.displayName!.isNotEmpty) {
+    if (user != null &&
+        user.displayName != null &&
+        user.displayName!.isNotEmpty) {
       return user.displayName!;
     }
     return 'Profile';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // If navigateToPreferences is true, navigate after first frame
+    if (widget.navigateToPreferences) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          // Navigate to profile tab first
+          setState(() {
+            currentPageIndex = 4;
+          });
+          // Then navigate to preferences
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => Scaffold(
+                    body: profileRoute('Preferences'),
+                  ),
+                ),
+              );
+            }
+          });
+        }
+      });
+    }
   }
 
   @override
