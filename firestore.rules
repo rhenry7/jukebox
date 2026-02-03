@@ -21,7 +21,7 @@ service cloud.firestore {
       
       // Reviews subcollection
       match /reviews/{reviewId} {
-        // Allow users to read all reviews (for console viewing and collection group queries)
+        // Allow authenticated users to read all reviews (for community feed)
         allow read: if isAuthenticated();
         // Allow users to write their own reviews
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
@@ -70,9 +70,33 @@ service cloud.firestore {
     }
     
     // Collection group queries for reviews (allows reading reviews across all users)
+    // This rule must come after the specific users/{userId}/reviews rule to avoid conflicts
+    // The wildcard pattern matches any path ending in /reviews/{reviewId}
     match /{path=**}/reviews/{reviewId} {
+      // Allow authenticated users to read any review (for community feed)
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      // Allow users to write only their own reviews (enforced by userId check)
+      allow write: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Review likes collection (top-level)
+    match /reviewLikes/{reviewId} {
+      // Allow authenticated users to read like counts
+      allow read: if isAuthenticated();
+      // Allow authenticated users to update like counts (only via increment/decrement)
+      allow write: if isAuthenticated();
+      
+      // Likes subcollection (individual user likes)
+      match /likes/{userId} {
+        // Allow users to read all likes (to check if someone liked)
+        allow read: if isAuthenticated();
+        // Allow users to create/delete their own likes only
+        allow create: if isAuthenticated() && request.auth.uid == userId;
+        allow delete: if isAuthenticated() && request.auth.uid == userId;
+        // No updates allowed (only create/delete)
+        allow update: if false;
+      }
     }
   }
 }

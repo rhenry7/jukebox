@@ -8,8 +8,10 @@ import 'package:gap/gap.dart';
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId, userReviewsProvider;
+import '../../../providers/review_likes_provider.dart';
 import '../../../services/get_album_service.dart';
 import '../../../services/genre_cache_service.dart';
+import '../../../services/review_likes_service.dart';
 import '../../../utils/helpers.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
@@ -403,17 +405,26 @@ class FriendsReviewList extends ConsumerWidget {
   }
 }
 
-class ReviewCardWidget extends StatelessWidget {
+class ReviewCardWidget extends ConsumerWidget {
   final Review review;
-  const ReviewCardWidget({super.key, required this.review});
+  final String? reviewId; // Full review ID for likes: users/{userId}/reviews/{docId}
+  final bool showLikeButton; // Only show like button in community tab
+  
+  const ReviewCardWidget({
+    super.key, 
+    required this.review,
+    this.reviewId,
+    this.showLikeButton = false,
+  });
+  
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row: Image, Artist, Song, Rating
+          // Top Row: Image, Artist, Song, Rating, Like Button
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -438,13 +449,23 @@ class ReviewCardWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Artist Name
-                    Text(
-                      review.artist,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                    // Top row: Artist Name and Like Button
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            review.artist,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        // Like Button (top right) - only show in community tab
+                        if (showLikeButton && reviewId != null)
+                          _LikeButton(reviewId: reviewId!),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     // Song Title
@@ -563,10 +584,89 @@ class ReviewCardWidget extends StatelessWidget {
   }
 }
 
+// Like button widget for review cards
+class _LikeButton extends ConsumerWidget {
+  final String reviewId;
+  
+  const _LikeButton({required this.reviewId});
+  
+  String _formatLikeCount(int count) {
+    if (count >= 1000) {
+      final k = (count / 1000).toStringAsFixed(1);
+      return k.endsWith('.0') ? '${k.substring(0, k.length - 2)}k' : '${k}k';
+    }
+    return count.toString();
+  }
+  
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userId = ref.watch(currentUserIdProvider);
+    final likeCountAsync = ref.watch(reviewLikeCountProvider(reviewId));
+    final isLikedAsync = userId != null 
+        ? ref.watch(reviewUserLikeStatusProvider(reviewId))
+        : const AsyncValue.data(false);
+    
+    return likeCountAsync.when(
+      data: (likeCount) {
+        final isLiked = isLikedAsync.value ?? false;
+        
+        return GestureDetector(
+          onTap: userId != null ? () async {
+            try {
+              final service = ReviewLikesService();
+              await service.toggleLike(reviewId, userId);
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            }
+          } : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isLiked ? Icons.favorite : Icons.favorite_border,
+                color: isLiked ? Colors.red : Colors.white70,
+                size: 18,
+              ),
+              if (likeCount > 0) ...[
+                const SizedBox(width: 4),
+                Text(
+                  _formatLikeCount(likeCount),
+                  style: TextStyle(
+                    color: isLiked ? Colors.red : Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+      error: (error, stack) => const SizedBox.shrink(),
+    );
+  }
+}
+
 // Helper widget to fetch and display genres for reviews
 class ReviewCardWithGenres extends StatefulWidget {
   final Review review;
-  const ReviewCardWithGenres({super.key, required this.review});
+  final String? reviewId; // Full review ID for likes
+  final bool showLikeButton; // Only show like button in community tab
+  
+  const ReviewCardWithGenres({
+    super.key, 
+    required this.review,
+    this.reviewId,
+    this.showLikeButton = false,
+  });
 
   @override
   State<ReviewCardWithGenres> createState() => _ReviewCardWithGenresState();
@@ -626,6 +726,8 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
     
     return ReviewCardWidget(
       review: widget.review.copyWith(genres: genres),
+      reviewId: widget.reviewId,
+      showLikeButton: widget.showLikeButton,
     );
   }
 }

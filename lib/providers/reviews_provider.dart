@@ -7,8 +7,13 @@ import 'package:flutter_test_project/providers/auth_provider.dart';
 class ReviewWithDocId {
   final Review review;
   final String docId;
+  final String? fullReviewId; // Full path: users/{userId}/reviews/{docId} - for likes
   
-  ReviewWithDocId({required this.review, required this.docId});
+  ReviewWithDocId({
+    required this.review, 
+    required this.docId,
+    this.fullReviewId,
+  });
 }
 
 /// User's reviews stream with document IDs - automatically updates when reviews are added/updated/deleted

@@ -361,7 +361,11 @@ class CommunityReviewList extends ConsumerWidget {
                   side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
                 ),
                 color: Colors.white10,
-                child: ReviewCardWithGenres(review: review.review),
+                child: ReviewCardWithGenres(
+                  review: review.review,
+                  reviewId: review.fullReviewId,
+                  showLikeButton: true, // Show like button in community tab
+                ),
               ),
             ),
           ),

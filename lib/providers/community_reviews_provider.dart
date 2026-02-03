@@ -17,10 +17,13 @@ final communityReviewsProvider = StreamProvider.family<List<ReviewWithDocId>, in
               // Get the userId from the document path: users/{userId}/reviews/{reviewId}
               final pathParts = doc.reference.path.split('/');
               final userId = pathParts.length >= 2 ? pathParts[1] : '';
+              // Full path is the review ID for likes: users/{userId}/reviews/{reviewId}
+              final fullReviewId = doc.reference.path;
               
               return ReviewWithDocId(
                 review: review,
                 docId: doc.id,
+                fullReviewId: fullReviewId, // Add full path for likes
               );
             } catch (e) {
               print('Error parsing review ${doc.id}: $e');
