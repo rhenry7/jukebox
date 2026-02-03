@@ -57,6 +57,18 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
     
+    // User playlists collection (top-level)
+    match /playlists/{playlistId} {
+      // Allow users to read their own playlists
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Allow users to create playlists (must set userId to their own)
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      // Allow users to update/delete their own playlists
+      allow update, delete: if isAuthenticated() && 
+                               resource.data.userId == request.auth.uid;
+    }
+    
     // Collection group queries for reviews (allows reading reviews across all users)
     match /{path=**}/reviews/{reviewId} {
       allow read: if isAuthenticated();
