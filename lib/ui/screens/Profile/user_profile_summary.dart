@@ -3,6 +3,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_models.dart';
 import 'package:flutter_test_project/services/user_services.dart';
+import 'package:flutter_test_project/ui/screens/Profile/profile_analytics_dashboard.dart';
 import 'package:ionicons/ionicons.dart';
 
 class UserProfileSummary extends StatefulWidget {
@@ -48,25 +49,38 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                   if (userInfo == null) {
                     return const Center(child: Text("no data from user info"));
                   }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 100.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // BACK BUTTON
-                        const Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  return Column(
+                    children: [
+                      // BACK BUTTON
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: 60.0,
+                          left: 16.0,
+                          right: 16.0,
+                        ),
+                        child: const Row(
                           children: [
                             BackButton(),
                           ],
                         ),
-                        // CARD CONTENT
-                        ProfileCardHeader(userInfo: userInfo, reviews: reviews),
-                        ProfileStatsContainer(
-                            userInfo: userInfo, reviews: reviews)
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 16),
+                      // CARD CONTENT
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: ProfileCardHeader(
+                          userInfo: userInfo,
+                          reviews: reviews,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: ProfileStatsContainer(
+                          userInfo: userInfo,
+                          reviews: reviews,
+                        ),
+                      ),
+                    ],
                   );
                 } else if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -90,106 +104,76 @@ class ProfileCardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.only(top: 10.0),
-        child: Card(
-          child: SizedBox(
-            child: SizedBox(
-                width: 400,
-                height: 200,
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Card(
-                          color: Colors.grey[800],
-                          child: Row(
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.all(10.0),
-                                child: Center(
-                                    child: SizedBox(
-                                  width: 100,
-                                  height: 100,
-                                  child: Card(
-                                    color: Colors.black26,
-                                    child: Icon(
-                                      Ionicons.person_circle_outline,
-                                      color: Colors.white,
-                                      size: 50.0,
-                                      semanticLabel:
-                                          'Text to announce in accessibility modes',
-                                    ),
-                                  ),
-                                )),
-                              ),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Center(
-                                        child: SizedBox(
-                                          width: 200,
-                                          child: Text(
-                                            userInfo?.displayName ?? "",
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 28,
-                                            ),
-                                            textAlign: TextAlign.left,
-                                            softWrap: true,
-                                            maxLines: 8,
-                                            overflow: TextOverflow
-                                                .ellipsis, // this bound is important !!
-                                          ),
-                                        ),
-                                      )),
-                                  Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 8.0, right: 8.0),
-                                      child: Center(
-                                        child: SizedBox(
-                                          width: 200,
-                                          child: Text(
-                                            "You already have ${reviews.length.toString()} reviews!",
-                                            style: TextStyle(
-                                                color: Colors.grey[300]),
-                                            textAlign: TextAlign.left,
-                                            softWrap: true,
-                                            maxLines: 8,
-                                            overflow: TextOverflow
-                                                .ellipsis, // this bound is important !!
-                                          ),
-                                        ),
-                                      )),
-                                  Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 8.0, right: 8.0),
-                                      child: Center(
-                                        child: SizedBox(
-                                          width: 200,
-                                          child: Text(
-                                            "juxeboxxn since ${userInfo?.joinDate?.year.toString()}",
-                                            style: TextStyle(
-                                                color: Colors.grey[300]),
-                                            textAlign: TextAlign.left,
-                                            softWrap: true,
-                                            maxLines: 8,
-                                            overflow: TextOverflow
-                                                .ellipsis, // this bound is important !!
-                                          ),
-                                        ),
-                                      ))
-                                ],
-                              ),
-                            ],
-                          )),
-                    ])),
-          ),
-        ));
+    return Card(
+      color: Colors.grey[900],
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Ionicons.person_circle_outline,
+                color: Colors.white,
+                size: 50.0,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // User Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    userInfo?.displayName ?? "",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "You already have ${reviews.length.toString()} reviews!",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  if (userInfo?.joinDate != null)
+                    Text(
+                      "juxeboxxn since ${userInfo!.joinDate!.year.toString()}",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -203,54 +187,10 @@ class ProfileStatsContainer extends StatelessWidget {
   final UserReviewInfo? userInfo;
   final List<Review> reviews;
 
-  // use the rating bar thing
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.only(top: 10.0),
-        child: Card(
-          child: SizedBox(
-            child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Card(
-                      color: Colors.grey[800],
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 200,
-                            height: 200,
-                            child: Expanded(
-                              child: Center(
-                                child: Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          "avg review ${UserServices().getAverageRating(reviews)}",
-                                          style: TextStyle(
-                                              color: Colors.grey[300]),
-                                          textAlign: TextAlign.left,
-                                          softWrap: true,
-                                          maxLines: 8,
-                                          overflow: TextOverflow
-                                              .ellipsis, // this bound is important !!
-                                        ),
-                                      ],
-                                    )),
-                              ),
-                            ),
-                          )
-                        ],
-                      )),
-                ]),
-          ),
-        ));
+    return Expanded(
+      child: ProfileAnalyticsDashboard(),
+    );
   }
 }

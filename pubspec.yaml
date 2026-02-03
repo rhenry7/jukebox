@@ -54,6 +54,7 @@ dependencies:
   shared_preferences: ^2.5.3
   flutter_dotenv: ^6.0.0
   flutter_riverpod: ^2.4.9
+  fl_chart: ^0.68.0
 
 dev_dependencies:
   flutter_test:
