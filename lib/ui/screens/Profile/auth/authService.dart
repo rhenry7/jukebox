@@ -8,7 +8,7 @@ class AuthService {
       String displayName, String email, String password) async {
     try {
       // Attempt to create a new user
-      UserCredential userCredential =
+      final UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -52,29 +52,29 @@ class AuthService {
       // Attempt to sign in with Firebase
       await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-      print("successfully signed in!");
+      print('successfully signed in!');
       return true; // Sign-in successful
     } on FirebaseAuthException catch (e) {
       // Handle errors
       String errorMessage;
       switch (e.code) {
         case 'user-not-found':
-          errorMessage = "No user found with this email.";
+          errorMessage = 'No user found with this email.';
           break;
         case 'wrong-password':
-          errorMessage = "Incorrect password.";
+          errorMessage = 'Incorrect password.';
           break;
         case 'invalid-email':
-          errorMessage = "Invalid email address.";
+          errorMessage = 'Invalid email address.';
           break;
         case 'too-many-requests':
-          errorMessage = "Too many requests. Please try again later.";
+          errorMessage = 'Too many requests. Please try again later.';
           break;
         case 'operation-not-allowed':
-          errorMessage = "This operation is not allowed.";
+          errorMessage = 'This operation is not allowed.';
           break;
         default:
-          errorMessage = "An error occurred. Please try again.";
+          errorMessage = 'An error occurred. Please try again.';
       }
       print(errorMessage); // Print to console for debugging
       throw Exception(errorMessage); // Throw exception with error message

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
-import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/services/album_art_cache_service.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
@@ -108,13 +107,13 @@ class PlaylistGenerationService {
     final finalTracks = _deduplicateAndReturn(ranked, trackCount);
     
     // Step 7: Enrich with album art (fetch images)
-    return await enrichTracksWithImages(finalTracks);
+    return enrichTracksWithImages(finalTracks);
   }
 
   /// Fetch album art for a single track using Spotify API (with caching)
   static Future<String?> fetchAlbumArt(String title, String artist) async {
     // Use cache service to check cache first, then fetch if needed
-    return await AlbumArtCacheService.getAlbumArtWithCache(
+    return AlbumArtCacheService.getAlbumArtWithCache(
       title,
       artist,
       () async {
@@ -129,9 +128,9 @@ class PlaylistGenerationService {
               .first(1);
           
           if (searchResults.isNotEmpty) {
-            for (var page in searchResults) {
+            for (final page in searchResults) {
               if (page.items != null) {
-                for (var item in page.items!) {
+                for (final item in page.items!) {
                   if (item is spotify.Track) {
                     final album = item.album;
                     if (album != null && album.images != null && album.images!.isNotEmpty) {
@@ -316,7 +315,7 @@ class PlaylistGenerationService {
     Map<String, double> genreWeights, {
     int limit = 10,
   }) async {
-    List<PlaylistTrack> tracks = [];
+    final List<PlaylistTrack> tracks = [];
 
     // Sort genres by weight (highest first)
     final sortedGenres = List<String>.from(genres);
@@ -359,7 +358,7 @@ class PlaylistGenerationService {
             final recordings = data['recordings'] as List?;
             
             if (recordings != null) {
-              for (var recording in recordings) {
+              for (final recording in recordings) {
                 final track = _parseRecording(recording);
                 if (track != null) {
                   // Store genre weight with track for ranking
@@ -431,7 +430,7 @@ class PlaylistGenerationService {
         
         if (recordings != null) {
           return recordings
-              .map((r) => _parseRecording(r))
+              .map(_parseRecording)
               .whereType<PlaylistTrack>()
               .toList();
         }
@@ -757,6 +756,6 @@ class PlaylistGenerationService {
     }
     
     // Enrich with album art (fetch images)
-    return await enrichTracksWithImages(finalTracks);
+    return enrichTracksWithImages(finalTracks);
   }
 }

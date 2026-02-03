@@ -5,10 +5,10 @@ import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 Future<EnhancedUserPreferences> _fetchUserPreferences() async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
 
   if (userId.isEmpty) {
-    print("User not logged in, cannot fetch preferences.");
+    print('User not logged in, cannot fetch preferences.');
     return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
   }
 

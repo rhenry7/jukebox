@@ -71,20 +71,20 @@ class _AnalyticsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (reviews.isEmpty) {
-      return Center(
+      return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text(
+              Icon(Icons.bar_chart, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
                 'No data to display',
                 style: TextStyle(color: Colors.white, fontSize: 18),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Start reviewing music to see your analytics!',
                 style: TextStyle(color: Colors.white70),
                 textAlign: TextAlign.center,
@@ -127,7 +127,7 @@ class _ReviewScoreChartCard extends StatelessWidget {
     final Map<String, double> monthlyAverages = {};
     final Map<String, int> monthlyCounts = {};
 
-    for (var review in reviews) {
+    for (final review in reviews) {
       if (review.date != null) {
         final monthKey = DateFormat('MMM yyyy').format(review.date!);
         monthlyAverages[monthKey] =

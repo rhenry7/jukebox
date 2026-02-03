@@ -53,7 +53,7 @@ class _SignInScreenState extends State<SignInScreen> {
         // User is already signed in, navigate to home
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => const MainNav(title: "JUKEBOXD"),
+            builder: (context) => const MainNav(title: 'JUKEBOXD'),
           ),
           (Route<dynamic> route) => false, // Remove all previous routes
         );
@@ -82,7 +82,7 @@ class _SignInScreenState extends State<SignInScreen> {
     });
 
     try {
-      AuthService authService = AuthService();
+      final AuthService authService = AuthService();
       final success = await authService.signIn(email, password);
 
       if (success && _auth.currentUser != null) {
@@ -102,7 +102,7 @@ class _SignInScreenState extends State<SignInScreen> {
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => const MainNav(title: "JUKEBOXD"),
+                builder: (context) => const MainNav(title: 'JUKEBOXD'),
               ),
               (Route<dynamic> route) => false, // Remove all previous routes
             );
@@ -169,7 +169,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 controller: _emailController,
                 focusNode: _emailFocusNode,
                 decoration: InputDecoration(
-                  labelText: "Email",
+                  labelText: 'Email',
                   labelStyle: TextStyle(
                     color: _emailFocusNode.hasFocus 
                         ? Colors.red[600] 
@@ -208,7 +208,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 controller: _passwordController,
                 focusNode: _passwordFocusNode,
                 decoration: InputDecoration(
-                  labelText: "Password",
+                  labelText: 'Password',
                   labelStyle: TextStyle(
                     color: _passwordFocusNode.hasFocus 
                         ? Colors.red[600] 
@@ -250,7 +250,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             height: 20,
                             child: DiscoBallLoading(),
                           )
-                        : const Text("Sign In"),
+                        : const Text('Sign In'),
                   ),
                 ),
                 ElevatedButton(
@@ -268,7 +268,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   style: ButtonStyle(
                     backgroundColor: WidgetStateProperty.all(Colors.green),
                   ),
-                  child: const Text("Sign Up"),
+                  child: const Text('Sign Up'),
                 ),
               ],
             ),

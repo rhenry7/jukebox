@@ -21,10 +21,10 @@ Future<void> submitReview(String review, double score, String artist,
     String title, bool liked, String albumImageUrl) async {
   // album display image url
   print(artist);
-  User? user = FirebaseAuth.instance.currentUser;
+  final User? user = FirebaseAuth.instance.currentUser;
   if (user != null) {
     print(review.toString());
-    String userId = user.uid;
+    final String userId = user.uid;
     
     // Fetch and cache genres for this track (in background, don't block)
     GenreCacheService.getGenresWithCache(title, artist).then((genres) {
@@ -71,9 +71,9 @@ Future<void> submitReview(String review, double score, String artist,
         }
       });
     } catch (e) {
-      print("❌ Could not post review");
-      print("Error: ${e.toString()}");
-      print("Error type: ${e.runtimeType}");
+      print('❌ Could not post review');
+      print('Error: ${e.toString()}');
+      print('Error type: ${e.runtimeType}');
       // Don't rethrow - let UI handle the error state
     }
   } else {
@@ -84,7 +84,7 @@ Future<void> submitReview(String review, double score, String artist,
 void addUserReview() async {
   final FirebaseAuth auth = FirebaseAuth.instance;
   final database = FirebaseFirestore.instance.collection('users');
-  DatabaseReference ref = FirebaseDatabase.instance.ref();
+  final DatabaseReference ref = FirebaseDatabase.instance.ref();
   if (auth.currentUser != null) {
     final db = Firebase.app('jukeboxd');
   }
@@ -99,7 +99,7 @@ Future<void> deleteReview(String userId, String reviewDocId) async {
         .doc()
         .delete();
   } catch (e) {
-    print("Could not delete review: $e");
+    print('Could not delete review: $e');
   }
 }
 
@@ -137,7 +137,7 @@ Future<void> _updatePreferencesFromReviews(String userId) async {
     final topArtists = reviewProfile.artistPreferences.entries.toList()
       ..sort((a, b) => b.value.preferenceScore.compareTo(a.value.preferenceScore));
     
-    for (var entry in topArtists.take(5)) {
+    for (final entry in topArtists.take(5)) {
       if (!updatedFavoriteArtists.contains(entry.key) && 
           entry.value.preferenceScore > 0.7 &&
           entry.value.reviewCount >= 2) { // At least 2 reviews
@@ -150,7 +150,7 @@ Future<void> _updatePreferencesFromReviews(String userId) async {
     final topGenres = reviewProfile.genrePreferences.entries.toList()
       ..sort((a, b) => b.value.preferenceStrength.compareTo(a.value.preferenceStrength));
     
-    for (var entry in topGenres.take(3)) {
+    for (final entry in topGenres.take(3)) {
       if (!updatedFavoriteGenres.contains(entry.key) && 
           entry.value.preferenceStrength > 0.6 &&
           entry.value.reviewCount >= 3) { // At least 3 reviews in this genre
@@ -175,12 +175,12 @@ Future<void> _updatePreferencesFromReviews(String userId) async {
 Future<void> updateSavedTracks(String artist, String title) async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
   if (userId.isEmpty) {
-    print("User not logged in, cannot upload preferences.");
+    print('User not logged in, cannot upload preferences.');
     return;
   }
-  final String saved = "arist: $artist, song: $title";
+  final String saved = 'arist: $artist, song: $title';
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -195,12 +195,12 @@ Future<void> updateSavedTracks(String artist, String title) async {
 Future<void> updateDislikedTracks(String artist, String title) async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
   if (userId.isEmpty) {
-    print("User not logged in, cannot upload preferences.");
+    print('User not logged in, cannot upload preferences.');
     return;
   }
-  final String disliked = "arist: $artist, song: $title";
+  final String disliked = 'arist: $artist, song: $title';
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -215,12 +215,12 @@ Future<void> updateDislikedTracks(String artist, String title) async {
 Future<void> updateRemovePreferences(String artist, String title) async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
   if (userId.isEmpty) {
-    print("User not logged in, cannot upload preferences.");
+    print('User not logged in, cannot upload preferences.');
     return;
   }
-  final String saved = "arist: $artist, song: $title";
+  final String saved = 'arist: $artist, song: $title';
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -238,12 +238,12 @@ List<MusicRecommendation> removeDuplicatesFaster({
 }) {
   final savedSet = savedTracks
       .map((t) =>
-          "${t.artist.toLowerCase().trim()}|${t.song.toLowerCase().trim()}")
+          '${t.artist.toLowerCase().trim()}|${t.song.toLowerCase().trim()}')
       .toSet();
 
   return albums.where((album) {
     final key =
-        "${album.artist.toLowerCase().trim()}|${album.song.toLowerCase().trim()}";
+        '${album.artist.toLowerCase().trim()}|${album.song.toLowerCase().trim()}';
     return !savedSet.contains(key);
   }).toList();
 }
@@ -257,9 +257,9 @@ List<MusicRecommendation> removeDuplication(
     List<MusicRecommendation> albums, EnhancedUserPreferences preferences) {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
   if (userId.isEmpty) {
-    print("User not logged in, cannot upload preferences.");
+    print('User not logged in, cannot upload preferences.');
     return [];
   }
   final List<String> savedTracks = preferences.savedTracks;

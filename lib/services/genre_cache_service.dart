@@ -118,7 +118,7 @@ class GenreCacheService {
           .get();
       
       final batch = FirebaseFirestore.instance.batch();
-      for (var doc in snapshot.docs) {
+      for (final doc in snapshot.docs) {
         batch.delete(doc.reference);
       }
       await batch.commit();

@@ -1,7 +1,7 @@
 
 String formatDateTimeDifference(String isoDateTime) {
-  DateTime dateTime = DateTime.parse(isoDateTime);
-  Duration difference = DateTime.now().difference(dateTime);
+  final DateTime dateTime = DateTime.parse(isoDateTime);
+  final Duration difference = DateTime.now().difference(dateTime);
 
   if (difference.inDays >= 1) {
     return '${difference.inDays}d';
@@ -44,5 +44,5 @@ String formatRelativeTime(DateTime? dateTime) {
 String getCurrentDate() {
   final date = DateTime.now().toString();
   final dateParse = DateTime.parse(date);
-  return "${dateParse.day}-${dateParse.month}-${dateParse.year}";
+  return '${dateParse.day}-${dateParse.month}-${dateParse.year}';
 }

@@ -23,7 +23,7 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
   /// The WikipediaService now handles caching automatically via WikipediaBioCacheService
   Future<String?> _getArtistBio(String artistName) async {
     // WikipediaService.getArtistSummary now uses Firestore caching automatically
-    return await WikipediaService.getArtistSummary(artistName);
+    return WikipediaService.getArtistSummary(artistName);
   }
   
   /// Filter tracks to only include those with substantial bios (2+ lines, ~100+ characters)
@@ -36,7 +36,7 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
     // Fetch bios in parallel with timeout for better performance
     final bioFutures = <Future<void>>[];
     
-    for (var track in tracks) {
+    for (final track in tracks) {
       final artistName = track.artists != null && track.artists!.isNotEmpty
           ? track.artists!.first.name ?? 'Unknown Artist'
           : 'Unknown Artist';
@@ -120,22 +120,22 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     if (snapshot.data!.isEmpty) {
-                      return Center(
+                      return const Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(32.0),
+                          padding: EdgeInsets.all(32.0),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.explore_outlined, 
+                              Icon(Icons.explore_outlined, 
                                   size: 64, color: Colors.grey),
-                              const SizedBox(height: 16),
-                              const Text(
+                              SizedBox(height: 16),
+                              Text(
                                 'No tracks to explore',
                                 style: TextStyle(
                                     color: Colors.white, fontSize: 20),
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
+                              SizedBox(height: 8),
+                              Text(
                                 'Pull down to refresh and discover new music!',
                                 style: TextStyle(color: Colors.white70),
                                 textAlign: TextAlign.center,

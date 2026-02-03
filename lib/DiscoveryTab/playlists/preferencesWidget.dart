@@ -10,9 +10,9 @@ class PersonalizedPlaylistsTab extends StatefulWidget {
   final UserPreferences userPreferences;
 
   const PersonalizedPlaylistsTab({
-    Key? key,
+    super.key,
     required this.userPreferences,
-  }) : super(key: key);
+  });
 
   @override
   _PersonalizedPlaylistsTabState createState() =>
@@ -99,9 +99,9 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const DiscoBallLoading(),
-            const SizedBox(height: 16),
-            const Text('Finding playlists for you...'),
+            DiscoBallLoading(),
+            SizedBox(height: 16),
+            Text('Finding playlists for you...'),
           ],
         ),
       );
@@ -167,8 +167,7 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
 class PlaylistDetailPage extends StatelessWidget {
   final Playlist playlist;
 
-  const PlaylistDetailPage({Key? key, required this.playlist})
-      : super(key: key);
+  const PlaylistDetailPage({super.key, required this.playlist});
 
   @override
   Widget build(BuildContext context) {
@@ -211,11 +210,11 @@ class PlaylistCard extends StatelessWidget {
   final VoidCallback onLike;
 
   const PlaylistCard({
-    Key? key,
+    super.key,
     required this.playlist,
     required this.onTap,
     required this.onLike,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

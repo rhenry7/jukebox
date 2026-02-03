@@ -81,22 +81,22 @@ class CommentWidgetState extends State<CommentWidget> {
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           if (snapshot.data!.albums.isEmpty) {
-                            return Center(
+                            return const Center(
                               child: Padding(
-                                padding: const EdgeInsets.all(32.0),
+                                padding: EdgeInsets.all(32.0),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.comment_outlined, 
+                                    Icon(Icons.comment_outlined, 
                                         size: 64, color: Colors.grey),
-                                    const SizedBox(height: 16),
-                                    const Text(
+                                    SizedBox(height: 16),
+                                    Text(
                                       'No community posts yet',
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 20),
                                     ),
-                                    const SizedBox(height: 8),
-                                    const Text(
+                                    SizedBox(height: 8),
+                                    Text(
                                       'Be the first to share your thoughts!',
                                       style: TextStyle(color: Colors.white70),
                                       textAlign: TextAlign.center,

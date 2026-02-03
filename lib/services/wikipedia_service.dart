@@ -12,7 +12,7 @@ class WikipediaService {
   /// Uses REST API directly (handles redirects automatically) to avoid CORS issues
   static Future<String?> getArtistSummary(String artistName) async {
     // Use cache service to check cache first, then fetch if needed
-    return await WikipediaBioCacheService.getBioWithCache(
+    return WikipediaBioCacheService.getBioWithCache(
       artistName,
       () => _fetchArtistSummaryFromAPI(artistName),
     );
@@ -173,6 +173,6 @@ class WikipediaService {
   /// Get Wikipedia bio without caching (for cache service use)
   /// This is the actual API fetch method
   static Future<String?> getArtistSummaryUncached(String artistName) async {
-    return await _fetchArtistSummaryFromAPI(artistName);
+    return _fetchArtistSummaryFromAPI(artistName);
   }
 }

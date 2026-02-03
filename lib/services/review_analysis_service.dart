@@ -16,14 +16,14 @@ class ReviewAnalysisService {
         
         // If no new reviews, return cached profile
         if (reviewCount == cachedCount) {
-          print('Using cached review profile (${cachedCount} reviews)');
+          print('Using cached review profile ($cachedCount reviews)');
           return cachedProfile.profile;
         }
         
         // If only a few new reviews, do incremental update
         if (reviewCount > cachedCount && (reviewCount - cachedCount) <= 10) {
           print('Incremental update: ${reviewCount - cachedCount} new reviews');
-          return await _incrementalUpdate(userId, cachedProfile.profile, cachedCount);
+          return _incrementalUpdate(userId, cachedProfile.profile, cachedCount);
         }
       }
     }
@@ -228,7 +228,7 @@ class ReviewAnalysisService {
         'mentionedArtists': profile.reviewSentiment.mentionedArtists,
         'mentionedGenres': profile.reviewSentiment.mentionedGenres,
         'wordFrequency': profile.reviewSentiment.wordFrequency.map(
-          (k, v) => MapEntry(k, v),
+          MapEntry.new,
         ),
       },
       'temporalPatterns': {
@@ -375,7 +375,7 @@ class ReviewAnalysisService {
     
     // Rating distribution
     final distribution = <int, int>{};
-    for (var review in reviews) {
+    for (final review in reviews) {
       final rating = review.score.round();
       distribution[rating] = (distribution[rating] ?? 0) + 1;
     }
@@ -389,7 +389,7 @@ class ReviewAnalysisService {
     
     // Highly rated artists (4.5+)
     final artistRatings = <String, List<double>>{};
-    for (var review in reviews) {
+    for (final review in reviews) {
       artistRatings.putIfAbsent(review.artist, () => []).add(review.score);
     }
     
@@ -422,9 +422,9 @@ class ReviewAnalysisService {
     final genreData = <String, List<Review>>{};
     
     // Group reviews by genre
-    for (var review in reviews) {
+    for (final review in reviews) {
       if (review.genres != null && review.genres!.isNotEmpty) {
-        for (var genre in review.genres!) {
+        for (final genre in review.genres!) {
           genreData.putIfAbsent(genre, () => []).add(review);
         }
       }
@@ -447,7 +447,7 @@ class ReviewAnalysisService {
       
       // Get favorite artists in this genre
       final artistRatings = <String, List<double>>{};
-      for (var review in genreReviews) {
+      for (final review in genreReviews) {
         artistRatings.putIfAbsent(review.artist, () => []).add(review.score);
       }
       
@@ -479,7 +479,7 @@ class ReviewAnalysisService {
     final artistData = <String, List<Review>>{};
     
     // Group reviews by artist
-    for (var review in reviews) {
+    for (final review in reviews) {
       artistData.putIfAbsent(review.artist, () => []).add(review);
     }
     
@@ -548,17 +548,17 @@ class ReviewAnalysisService {
     final mentionedArtists = <String>{};
     final mentionedGenres = <String>{};
     
-    for (var review in reviews) {
+    for (final review in reviews) {
       final text = review.review.toLowerCase();
       
       // Calculate sentiment
       int positiveCount = 0;
       int negativeCount = 0;
       
-      for (var word in positiveWords) {
+      for (final word in positiveWords) {
         if (text.contains(word)) positiveCount++;
       }
-      for (var word in negativeWords) {
+      for (final word in negativeWords) {
         if (text.contains(word)) negativeCount++;
       }
       
@@ -570,7 +570,7 @@ class ReviewAnalysisService {
       
       // Extract keywords (simple approach - can be enhanced with NLP)
       final words = text.split(RegExp(r'[^\w]+'));
-      for (var word in words) {
+      for (final word in words) {
         if (word.length > 4) { // Ignore short words
           wordFrequency[word] = (wordFrequency[word] ?? 0) + 1;
         }
@@ -635,9 +635,9 @@ class ReviewAnalysisService {
     
     // Genre trends
     final recentGenres = <String, int>{};
-    for (var review in last30Days) {
+    for (final review in last30Days) {
       if (review.genres != null) {
-        for (var genre in review.genres!) {
+        for (final genre in review.genres!) {
           recentGenres[genre] = (recentGenres[genre] ?? 0) + 1;
         }
       }

@@ -1,9 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
-import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:flutter_test_project/services/genre_cache_service.dart';
 import 'package:spotify/spotify.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
@@ -17,14 +15,14 @@ class RecommendationEnhancements {
 
     // Genre diversity
     final genreSet = <String>{};
-    for (var rec in recommendations) {
+    for (final rec in recommendations) {
       genreSet.addAll(rec.genres);
     }
     final genreDiversity = genreSet.length / recommendations.length;
 
     // Artist diversity
     final artistSet = <String>{};
-    for (var rec in recommendations) {
+    for (final rec in recommendations) {
       artistSet.add(rec.artist.toLowerCase().trim());
     }
     final artistDiversity = artistSet.length / recommendations.length;
@@ -45,7 +43,7 @@ class RecommendationEnhancements {
           .get();
 
       final currentUserArtists = <String>{};
-      for (var doc in currentUserReviews.docs) {
+      for (final doc in currentUserReviews.docs) {
         final review = Review.fromFirestore(doc.data());
         currentUserArtists.add(review.artist.toLowerCase().trim());
       }
@@ -62,7 +60,7 @@ class RecommendationEnhancements {
           .limit(500) // Limit for performance
           .get();
 
-      for (var doc in allReviews.docs) {
+      for (final doc in allReviews.docs) {
         final review = Review.fromFirestore(doc.data());
         final userId = review.userId;
         
@@ -101,13 +99,13 @@ class RecommendationEnhancements {
           .get();
 
       final reviewedTracks = <String>{};
-      for (var doc in currentUserReviews.docs) {
+      for (final doc in currentUserReviews.docs) {
         final review = Review.fromFirestore(doc.data());
         reviewedTracks.add('${review.artist}|${review.title}'.toLowerCase());
       }
 
       // Collect recommendations from similar users
-      for (var userId in similarUserIds.take(5)) { // Limit to top 5 similar users
+      for (final userId in similarUserIds.take(5)) { // Limit to top 5 similar users
         final userReviews = await FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
@@ -116,7 +114,7 @@ class RecommendationEnhancements {
             .limit(10)
             .get();
 
-        for (var doc in userReviews.docs) {
+        for (final doc in userReviews.docs) {
           final review = Review.fromFirestore(doc.data());
           final trackKey = '${review.artist}|${review.title}'.toLowerCase();
           
@@ -159,7 +157,7 @@ class RecommendationEnhancements {
       final seedArtists = <String>{};
       
       // Extract artist names from saved tracks
-      for (var saved in preferences.savedTracks.take(10)) {
+      for (final saved in preferences.savedTracks.take(10)) {
         // Parse "artist: ArtistName, song: SongName" format
         if (saved.contains('artist:')) {
           final parts = saved.split('artist:')[1].split(',');
@@ -183,7 +181,7 @@ class RecommendationEnhancements {
       final musicRecs = <MusicRecommendation>[];
       
       // Search for recent releases from similar artists or in similar genres
-      for (var artistName in seedArtists.take(3)) {
+      for (final artistName in seedArtists.take(3)) {
         try {
           // Search for tracks by this artist from recent years (discovery focus)
           final currentYear = DateTime.now().year;
@@ -193,9 +191,9 @@ class RecommendationEnhancements {
               .get(searchQuery, types: [SearchType.track])
               .first(2); // Get 2 tracks per artist
           
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var item in page.items!) {
+              for (final item in page.items!) {
                 if (item is Track && item.name != null && item.artists != null && item.artists!.isNotEmpty) {
                   final artistName = item.artists!.map((a) => a.name ?? '').where((n) => n.isNotEmpty).join(', ');
                   final firstArtist = item.artists!.first.name ?? '';
@@ -279,7 +277,7 @@ class RecommendationEnhancements {
     final usedArtists = <String>{};
 
     // First pass: prioritize diverse recommendations
-    for (var rec in recommendations) {
+    for (final rec in recommendations) {
       final artist = rec.artist.toLowerCase().trim();
       final hasNewGenre = rec.genres.any((g) => !usedGenres.contains(g.toLowerCase()));
       final hasNewArtist = !usedArtists.contains(artist);
@@ -295,7 +293,7 @@ class RecommendationEnhancements {
     }
 
     // Second pass: fill remaining slots
-    for (var rec in recommendations) {
+    for (final rec in recommendations) {
       if (selected.length >= recommendations.length) break;
       if (!selected.contains(rec)) {
         selected.add(rec);
@@ -321,7 +319,7 @@ class RecommendationEnhancements {
     }
 
     // Reduce novelty if track is similar to saved tracks
-    for (var saved in preferences.savedTracks) {
+    for (final saved in preferences.savedTracks) {
       if (saved.toLowerCase().contains(artist) || saved.toLowerCase().contains(song)) {
         score *= 0.3;
         break;
@@ -334,7 +332,7 @@ class RecommendationEnhancements {
       return genreWeight < 0.5; // Less explored genres
     }).length / (recommendation.genres.length + 1);
 
-    score *= (1.0 + genreNovelty * 0.5);
+    score *= 1.0 + genreNovelty * 0.5;
 
     return score.clamp(0.0, 1.0);
   }

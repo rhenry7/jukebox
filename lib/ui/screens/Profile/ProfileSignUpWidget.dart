@@ -54,7 +54,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                   const Gap(30),
 
                   const Gap(30),
-                  const Text("Sign Up", style: TextStyle(fontSize: 20)),
+                  const Text('Sign Up', style: TextStyle(fontSize: 20)),
                   const Gap(50),
                   TextFormField(
                     controller: _userNameController,
@@ -180,7 +180,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                               Navigator.of(context).pushAndRemoveUntil(
                                 MaterialPageRoute(
                                     builder: (context) => const MainNav(
-                                        title: "JUKEBOXD")),
+                                        title: 'JUKEBOXD')),
                                 (Route<dynamic> route) => false,
                               );
                               
@@ -198,7 +198,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                               Navigator.of(context).pushAndRemoveUntil(
                                 MaterialPageRoute(
                                     builder: (context) => const MainNav(
-                                        title: "JUKEBOXD",
+                                        title: 'JUKEBOXD',
                                         navigateToPreferences: true)),
                                 (Route<dynamic> route) => false,
                               );

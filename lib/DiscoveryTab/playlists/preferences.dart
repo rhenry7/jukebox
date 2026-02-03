@@ -49,27 +49,27 @@ class PersonalizedPlaylistService {
       final spotify = SpotifyApi(SpotifyApiCredentials(clientId, clientSecret));
 
       // Generate playlist recommendations based on user preferences
-      List<PlaylistRecommendation> recommendations =
+      final List<PlaylistRecommendation> recommendations =
           _generatePlaylistRecommendations(preferences);
 
       // Sort by relevance score
       recommendations
           .sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
 
-      List<Playlist> personalizedPlaylists = [];
+      final List<Playlist> personalizedPlaylists = [];
 
       // Search for playlists based on recommendations
-      for (var recommendation in recommendations.take(3)) {
+      for (final recommendation in recommendations.take(3)) {
         try {
-          for (String query in recommendation.searchQueries) {
+          for (final String query in recommendation.searchQueries) {
             final searchResults = await spotify.search.get(query, types: [
               SearchType.playlist
             ]).first(3); // Get 3 playlists per query
 
             if (searchResults.isNotEmpty) {
-              for (var page in searchResults) {
+              for (final page in searchResults) {
                 if (page.items != null) {
-                  for (var playlistSimple in page.items!) {
+                  for (final playlistSimple in page.items!) {
                     if (playlistSimple is PlaylistSimple) {
                       // Convert to full Playlist if needed
                       final playlist =
@@ -93,19 +93,19 @@ class PersonalizedPlaylistService {
       }
 
       // Remove duplicates and apply final filtering
-      Map<String, Playlist> uniquePlaylists = {};
-      for (var playlist in personalizedPlaylists) {
+      final Map<String, Playlist> uniquePlaylists = {};
+      for (final playlist in personalizedPlaylists) {
         if (playlist.id != null && _isPlaylistRelevant(playlist, preferences)) {
           uniquePlaylists[playlist.id!] = playlist;
         }
       }
 
-      List<Playlist> finalPlaylists = uniquePlaylists.values.toList();
+      final List<Playlist> finalPlaylists = uniquePlaylists.values.toList();
 
       // Sort by follower count and relevance
       finalPlaylists.sort((a, b) {
-        int followersA = a.followers?.total ?? 0;
-        int followersB = b.followers?.total ?? 0;
+        final int followersA = a.followers?.total ?? 0;
+        final int followersB = b.followers?.total ?? 0;
         return followersB.compareTo(followersA);
       });
       return finalPlaylists.take(10).toList();
@@ -118,24 +118,24 @@ class PersonalizedPlaylistService {
   // Generate playlist recommendations based on user preferences
   List<PlaylistRecommendation> _generatePlaylistRecommendations(
       UserPreferences preferences) {
-    List<PlaylistRecommendation> recommendations = [];
+    final List<PlaylistRecommendation> recommendations = [];
 
     // Single genre playlists
-    for (String genre in preferences.favoriteGenres) {
-      double weight = preferences.genreWeights[genre] ?? 0.7;
+    for (final String genre in preferences.favoriteGenres) {
+      final double weight = preferences.genreWeights[genre] ?? 0.7;
 
       recommendations.addAll([
         PlaylistRecommendation(
-          name: "Best of $genre",
-          description: "Top $genre tracks",
-          searchQueries: ["$genre hits", "best $genre", "$genre classics"],
+          name: 'Best of $genre',
+          description: 'Top $genre tracks',
+          searchQueries: ['$genre hits', 'best $genre', '$genre classics'],
           genres: [genre],
           relevanceScore: weight * 0.9,
         ),
         PlaylistRecommendation(
-          name: "Modern $genre",
-          description: "Contemporary $genre music",
-          searchQueries: ["$genre 2024", "$genre new", "modern $genre"],
+          name: 'Modern $genre',
+          description: 'Contemporary $genre music',
+          searchQueries: ['$genre 2024', '$genre new', 'modern $genre'],
           genres: [genre],
           relevanceScore: weight * 0.8,
         ),
@@ -146,18 +146,18 @@ class PersonalizedPlaylistService {
     if (preferences.favoriteGenres.length >= 2) {
       for (int i = 0; i < preferences.favoriteGenres.length; i++) {
         for (int j = i + 1; j < preferences.favoriteGenres.length; j++) {
-          String genre1 = preferences.favoriteGenres[i];
-          String genre2 = preferences.favoriteGenres[j];
-          double weight1 = preferences.genreWeights[genre1] ?? 0.7;
-          double weight2 = preferences.genreWeights[genre2] ?? 0.7;
+          final String genre1 = preferences.favoriteGenres[i];
+          final String genre2 = preferences.favoriteGenres[j];
+          final double weight1 = preferences.genreWeights[genre1] ?? 0.7;
+          final double weight2 = preferences.genreWeights[genre2] ?? 0.7;
 
           recommendations.add(PlaylistRecommendation(
-            name: "$genre1 meets $genre2",
-            description: "Fusion of $genre1 and $genre2",
+            name: '$genre1 meets $genre2',
+            description: 'Fusion of $genre1 and $genre2',
             searchQueries: [
-              "$genre1 $genre2",
-              "$genre1 $genre2 fusion",
-              "$genre1 $genre2 mix"
+              '$genre1 $genre2',
+              '$genre1 $genre2 fusion',
+              '$genre1 $genre2 mix'
             ],
             genres: [genre1, genre2],
             relevanceScore: (weight1 + weight2) / 2 * 0.85,
@@ -167,14 +167,14 @@ class PersonalizedPlaylistService {
     }
 
     // Decade-based recommendations
-    List<String> decades = ['80s', '90s', '2000s', '2010s'];
-    for (String genre in preferences.favoriteGenres) {
-      for (String decade in decades) {
-        double weight = preferences.genreWeights[genre] ?? 0.7;
+    final List<String> decades = ['80s', '90s', '2000s', '2010s'];
+    for (final String genre in preferences.favoriteGenres) {
+      for (final String decade in decades) {
+        final double weight = preferences.genreWeights[genre] ?? 0.7;
         recommendations.add(PlaylistRecommendation(
-          name: "$decade $genre",
-          description: "$genre music from the $decade",
-          searchQueries: ["$decade $genre", "$genre $decade hits"],
+          name: '$decade $genre',
+          description: '$genre music from the $decade',
+          searchQueries: ['$decade $genre', '$genre $decade hits'],
           genres: [genre],
           relevanceScore: weight * 0.75,
         ));
@@ -182,14 +182,14 @@ class PersonalizedPlaylistService {
     }
 
     // Mood-based playlists
-    List<String> moods = ['chill', 'workout', 'focus', 'party', 'relaxing'];
-    for (String genre in preferences.favoriteGenres) {
-      for (String mood in moods) {
-        double weight = preferences.genreWeights[genre] ?? 0.7;
+    final List<String> moods = ['chill', 'workout', 'focus', 'party', 'relaxing'];
+    for (final String genre in preferences.favoriteGenres) {
+      for (final String mood in moods) {
+        final double weight = preferences.genreWeights[genre] ?? 0.7;
         recommendations.add(PlaylistRecommendation(
-          name: "$mood $genre",
-          description: "$genre music for ${mood}ing",
-          searchQueries: ["$mood $genre", "$genre $mood"],
+          name: '$mood $genre',
+          description: '$genre music for ${mood}ing',
+          searchQueries: ['$mood $genre', '$genre $mood'],
           genres: [genre],
           relevanceScore: weight * 0.7,
         ));
@@ -197,19 +197,19 @@ class PersonalizedPlaylistService {
     }
 
     // Artist-based recommendations
-    for (String artist in preferences.favoriteArtists.take(5)) {
+    for (final String artist in preferences.favoriteArtists.take(5)) {
       recommendations.addAll([
         PlaylistRecommendation(
-          name: "Artists like $artist",
-          description: "Similar artists to $artist",
-          searchQueries: ["$artist similar", "like $artist", "$artist radio"],
+          name: 'Artists like $artist',
+          description: 'Similar artists to $artist',
+          searchQueries: ['$artist similar', 'like $artist', '$artist radio'],
           genres: [],
           relevanceScore: 0.8,
         ),
         PlaylistRecommendation(
-          name: "$artist essentials",
-          description: "Essential $artist tracks",
-          searchQueries: ["$artist best", "$artist hits", "$artist essential"],
+          name: '$artist essentials',
+          description: 'Essential $artist tracks',
+          searchQueries: ['$artist best', '$artist hits', '$artist essential'],
           genres: [],
           relevanceScore: 0.85,
         ),
@@ -221,12 +221,12 @@ class PersonalizedPlaylistService {
 
   // Check if playlist is relevant to user preferences
   bool _isPlaylistRelevant(Playlist playlist, UserPreferences preferences) {
-    String playlistName = playlist.name?.toLowerCase() ?? '';
-    String playlistDescription = playlist.description?.toLowerCase() ?? '';
-    String combinedText = '$playlistName $playlistDescription';
+    final String playlistName = playlist.name?.toLowerCase() ?? '';
+    final String playlistDescription = playlist.description?.toLowerCase() ?? '';
+    final String combinedText = '$playlistName $playlistDescription';
 
     // Check if playlist contains disliked genres
-    for (String dislikedGenre in preferences.dislikedGenres) {
+    for (final String dislikedGenre in preferences.dislikedGenres) {
       if (combinedText.contains(dislikedGenre.toLowerCase())) {
         return false;
       }
@@ -235,7 +235,7 @@ class PersonalizedPlaylistService {
     // Check if playlist contains preferred genres or artists
     bool hasPreferredContent = false;
 
-    for (String genre in preferences.favoriteGenres) {
+    for (final String genre in preferences.favoriteGenres) {
       if (combinedText.contains(genre.toLowerCase())) {
         hasPreferredContent = true;
         break;
@@ -243,7 +243,7 @@ class PersonalizedPlaylistService {
     }
 
     if (!hasPreferredContent) {
-      for (String artist in preferences.favoriteArtists) {
+      for (final String artist in preferences.favoriteArtists) {
         if (combinedText.contains(artist.toLowerCase())) {
           hasPreferredContent = true;
           break;
@@ -264,22 +264,22 @@ class PersonalizedPlaylistService {
       final credentials = SpotifyApiCredentials(clientId, clientSecret);
       final spotify = SpotifyApi(credentials);
 
-      Map<String, double> updatedWeights =
+      final Map<String, double> updatedWeights =
           Map.from(currentPreferences.genreWeights);
-      List<String> newFavoriteGenres =
+      final List<String> newFavoriteGenres =
           List.from(currentPreferences.favoriteGenres);
-      List<String> newDislikedGenres =
+      final List<String> newDislikedGenres =
           List.from(currentPreferences.dislikedGenres);
 
       // Analyze liked playlists to boost genre preferences
-      for (String playlistId in likedPlaylistIds) {
+      for (final String playlistId in likedPlaylistIds) {
         try {
           final playlist = await spotify.playlists.get(playlistId);
-          String playlistText =
+          final String playlistText =
               '${playlist.name} ${playlist.description}'.toLowerCase();
 
           // Simple genre detection (you might want to use Spotify's audio features API for better analysis)
-          for (String genre in _getAllGenres()) {
+          for (final String genre in _getAllGenres()) {
             if (playlistText.contains(genre.toLowerCase())) {
               updatedWeights[genre] = (updatedWeights[genre] ?? 0.5) + 0.1;
               if (updatedWeights[genre]! > 1.0) updatedWeights[genre] = 1.0;

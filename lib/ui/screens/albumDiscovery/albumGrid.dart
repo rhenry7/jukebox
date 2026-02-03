@@ -21,20 +21,20 @@ Future<List<MusicBrainzAlbum>> processAlbums() async {
     final List<String>? albumJsonList = prefs.getStringList('cachedAlbums');
 
     if (albumJsonList != null && albumJsonList.isNotEmpty) {
-      print("Loading cached albums");
+      print('Loading cached albums');
       return albumJsonList
           .map((jsonStr) {
             try {
               return MusicBrainzAlbum.fromJson(jsonDecode(jsonStr));
             } catch (e) {
-              print("Error parsing cached album: $e");
+              print('Error parsing cached album: $e');
               return null;
             }
           })
           .whereType<MusicBrainzAlbum>()
           .toList();
     } else {
-      print("Fetching fresh album data");
+      print('Fetching fresh album data');
       final spotifyAlbums = await fetchPopularAlbums();
       final enrichedAlbums =
           await MusicBrainzService().enrichAlbumsWithMusicBrainz(spotifyAlbums);
@@ -46,7 +46,7 @@ Future<List<MusicBrainzAlbum>> processAlbums() async {
       return enrichedAlbums;
     }
   } catch (e) {
-    print("Error in processAlbums: $e");
+    print('Error in processAlbums: $e');
     rethrow;
   }
 }
@@ -56,7 +56,7 @@ class _AlbumGrid extends State<AlbumGrid> {
   @override
   void initState() {
     super.initState();
-    print("initState called"); // Add this line
+    print('initState called'); // Add this line
     albums = processAlbums();
   }
 
@@ -77,7 +77,7 @@ class _AlbumGrid extends State<AlbumGrid> {
               itemCount: snapshot.data!.length, // Number of cards to display
               itemBuilder: (context, index) {
                 final album = snapshot.data![index];
-                final genres = album.genres?.join(", ").toString();
+                final genres = album.genres?.join(', ').toString();
                 final foundImage = album.imageURL;
                 final artists = album.artist;
                 return Card(
@@ -92,9 +92,9 @@ class _AlbumGrid extends State<AlbumGrid> {
                             0.9; // Takes up 90% of the screen
 
                             return MyReviewSheetContentForm(
-                              title: album.title ?? "no album found",
-                              albumImageUrl: foundImage ?? "",
-                              artist: artists ?? "unknown",
+                              title: album.title ?? 'no album found',
+                              albumImageUrl: foundImage ?? '',
+                              artist: artists ?? 'unknown',
                             );
                           });
                     },

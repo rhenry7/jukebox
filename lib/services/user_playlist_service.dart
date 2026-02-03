@@ -13,7 +13,7 @@ class UserPlaylistService {
         .orderBy('updatedAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => UserPlaylist.fromFirestore(doc))
+            .map(UserPlaylist.fromFirestore)
             .toList());
   }
 

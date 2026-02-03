@@ -70,11 +70,11 @@ class MusicBrainzService {
   static Future<List<MusicBrainzAlbum>> searchAlbums({
     required int year,
     int? month = 6,
-    String? genre = "hip hop",
+    String? genre = 'hip hop',
     int limit = 10,
   }) async {
     await _rateLimit();
-    print("in search albums");
+    print('in search albums');
 
     String query = '$year';
     if (month != null) {
@@ -98,9 +98,9 @@ class MusicBrainzService {
     try {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        List<MusicBrainzAlbum> albums = [];
+        final List<MusicBrainzAlbum> albums = [];
 
-        for (var item in data['release-groups'] ?? []) {
+        for (final item in data['release-groups'] ?? []) {
           final album = _parseAlbum(item);
           if (album != null) albums.add(album);
         }
@@ -138,7 +138,7 @@ class MusicBrainzService {
     final tags = data['tags'] as List?;
     final genres = tags
             ?.map((tag) => tag['name'] as String)
-            .where((tag) => _isGenre(tag))
+            .where(_isGenre)
             .toList() ??
         <String>[];
 
@@ -214,12 +214,12 @@ class MusicBrainzService {
         
         if (recordings != null && recordings.isNotEmpty) {
           // Check if any recording matches (fuzzy match for artist name)
-          for (var recording in recordings) {
+          for (final recording in recordings) {
             final recTitle = (recording['title'] as String? ?? '').toLowerCase();
             final artistCredits = recording['artist-credit'] as List?;
             
             if (artistCredits != null && artistCredits.isNotEmpty) {
-              for (var credit in artistCredits) {
+              for (final credit in artistCredits) {
                 final artistName = (credit['name'] as String? ?? '').toLowerCase();
                 final trackNameLower = trackName.toLowerCase();
                 final cleanArtistLower = cleanArtist.toLowerCase();
@@ -251,7 +251,7 @@ class MusicBrainzService {
 
   Future<List<MusicBrainzAlbum>> enrichAlbumsWithMusicBrainz(
       List<Album> spotifyAlbums) async {
-    List<MusicBrainzAlbum> enriched = [];
+    final List<MusicBrainzAlbum> enriched = [];
 
     for (final album in spotifyAlbums) {
       final title = album.name;

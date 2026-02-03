@@ -116,7 +116,7 @@ class CommentsRespondingToPost extends StatelessWidget {
                                                       InkWell(
                                                         onTap: () {
                                                           print(
-                                                              "tapped inkwell, should route");
+                                                              'tapped inkwell, should route');
                                                         },
                                                         child: Text(
                                                           comment.likes

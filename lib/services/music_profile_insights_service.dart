@@ -64,7 +64,7 @@ class MusicProfileInsightsService {
 
     // Add artists from preferences (if they exist)
     if (preferences != null && preferences.favoriteArtists.isNotEmpty) {
-      for (var artist in preferences.favoriteArtists) {
+      for (final artist in preferences.favoriteArtists) {
         artistScores[artist] = ArtistScore(
           name: artist,
           reviewCount: 0,
@@ -76,7 +76,7 @@ class MusicProfileInsightsService {
 
     // Analyze reviews to score artists
     final artistReviews = <String, List<Review>>{};
-    for (var review in reviews) {
+    for (final review in reviews) {
       artistReviews.putIfAbsent(review.artist, () => []).add(review);
     }
 
@@ -140,7 +140,7 @@ class MusicProfileInsightsService {
     // Add genres from preferences with their weights
     if (preferences != null) {
       // Add favorite genres from preferences
-      for (var genre in preferences.favoriteGenres) {
+      for (final genre in preferences.favoriteGenres) {
         final weight = preferences.genreWeights[genre] ?? 0.5;
         genreScores[genre] = GenreScore(
           name: genre,
@@ -167,9 +167,9 @@ class MusicProfileInsightsService {
 
     // Analyze reviews to score genres
     final genreReviews = <String, List<Review>>{};
-    for (var review in reviews) {
+    for (final review in reviews) {
       if (review.genres != null && review.genres!.isNotEmpty) {
-        for (var genre in review.genres!) {
+        for (final genre in review.genres!) {
           genreReviews.putIfAbsent(genre, () => []).add(review);
         }
       }
@@ -235,7 +235,7 @@ class MusicProfileInsightsService {
 
     // Group by artist-title combination (treating as album)
     final albumCounts = <String, int>{};
-    for (var review in reviews) {
+    for (final review in reviews) {
       // Use "Artist - Title" as album identifier
       final albumKey = '${review.artist} - ${review.title}';
       albumCounts[albumKey] = (albumCounts[albumKey] ?? 0) + 1;
@@ -257,7 +257,7 @@ class MusicProfileInsightsService {
     // If no album appears multiple times, return the artist of the most reviewed song
     if (reviews.isNotEmpty) {
       final artistCounts = <String, int>{};
-      for (var review in reviews) {
+      for (final review in reviews) {
         artistCounts[review.artist] = (artistCounts[review.artist] ?? 0) + 1;
       }
       final topArtist = artistCounts.entries.toList()
@@ -279,7 +279,7 @@ class MusicProfileInsightsService {
     double bonus = 0.0;
     int recentCount = 0;
 
-    for (var review in reviews) {
+    for (final review in reviews) {
       if (review.date != null) {
         final daysAgo = now.difference(review.date!).inDays;
         if (daysAgo <= 30) {
@@ -340,7 +340,7 @@ class MusicProfileInsightsService {
         final existingArtists = List<String>.from(
           currentData['favoriteArtists'] ?? [],
         );
-        for (var artist in insights.favoriteArtists) {
+        for (final artist in insights.favoriteArtists) {
           if (!existingArtists.contains(artist)) {
             existingArtists.add(artist);
           }
@@ -351,7 +351,7 @@ class MusicProfileInsightsService {
         final existingGenres = List<String>.from(
           currentData['favoriteGenres'] ?? [],
         );
-        for (var genre in insights.favoriteGenres) {
+        for (final genre in insights.favoriteGenres) {
           if (!existingGenres.contains(genre)) {
             existingGenres.add(genre);
           }

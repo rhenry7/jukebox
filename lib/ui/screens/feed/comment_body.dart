@@ -24,9 +24,9 @@ class CommentsBody extends StatelessWidget {
     final album = commentWithMusicInfo.albums[index];
     final albumImages = album.images;
     final String largeImageUrl =
-        albumImages?.isNotEmpty == true ? albumImages!.first.url ?? "" : "";
+        albumImages?.isNotEmpty == true ? albumImages!.first.url ?? '' : '';
     final String smallImageUrl =
-        albumImages?.isNotEmpty == true ? albumImages!.last.url ?? "" : "";
+        albumImages?.isNotEmpty == true ? albumImages!.last.url ?? '' : '';
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -36,9 +36,9 @@ class CommentsBody extends StatelessWidget {
             context,
             MaterialPageRoute(
                 builder: (context) => SubComments(
-                      title: album.name ?? "",
+                      title: album.name ?? '',
                       imageUrl: largeImageUrl,
-                      userId: review.userId ?? "",
+                      userId: review.userId ?? '',
                       displayName: review.displayName,
                       joinDate: '',
                       reviews: '',
@@ -193,9 +193,9 @@ class CommentsBody extends StatelessWidget {
                                 MaterialPageRoute(
                                     builder: (BuildContext context) =>
                                         SubComments(
-                                          title: review.title ?? "",
+                                          title: review.title ?? '',
                                           imageUrl: largeImageUrl,
-                                          userId: review.userId ?? "",
+                                          userId: review.userId ?? '',
                                           displayName: review.displayName,
                                           joinDate: '',
                                           reviews: '',

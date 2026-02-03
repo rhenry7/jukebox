@@ -15,7 +15,7 @@ final musicProfileInsightsProvider = FutureProvider<MusicProfileInsights>((ref) 
     );
   }
   
-  return await MusicProfileInsightsService.getProfileInsights(userId);
+  return MusicProfileInsightsService.getProfileInsights(userId);
 });
 
 /// Provider that auto-refreshes when reviews change
@@ -33,5 +33,5 @@ final musicProfileInsightsAutoProvider = FutureProvider<MusicProfileInsights>((r
     );
   }
   
-  return await MusicProfileInsightsService.getProfileInsights(userId);
+  return MusicProfileInsightsService.getProfileInsights(userId);
 });

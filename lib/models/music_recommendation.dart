@@ -19,7 +19,7 @@ class MusicRecommendation {
     if (json['genres'] != null) {
       if (json['genres'] is List) {
         final dynamicList = json['genres'] as List;
-        for (var item in dynamicList) {
+        for (final item in dynamicList) {
           final genreStr = item.toString();
           if (genreStr.isNotEmpty) {
             genresList.add(genreStr);

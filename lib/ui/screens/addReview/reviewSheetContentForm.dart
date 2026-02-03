@@ -52,7 +52,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
   @override
   void initState() {
     super.initState();
-    DateTime now = DateTime.now();
+    final DateTime now = DateTime.now();
     currentDate = DateFormat.yMMMMd('en_US').format(now);
 
     // Initialize with widget values if provided
@@ -137,14 +137,14 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       print('   ✅ API request successful');
       print('   Processing results...');
 
-      List<spotify.Track> tracks = [];
-      List<dynamic> albums = []; // Use dynamic to handle both Album and AlbumSimple
+      final List<spotify.Track> tracks = [];
+      final List<dynamic> albums = []; // Use dynamic to handle both Album and AlbumSimple
       int totalItemsProcessed = 0;
       
-      for (var page in searchResults) {
+      for (final page in searchResults) {
         if (page.items != null) {
           print('   📄 Processing page with ${page.items!.length} items');
-          for (var item in page.items!) {
+          for (final item in page.items!) {
             totalItemsProcessed++;
             if (item is spotify.Track) {
               tracks.add(item);
@@ -175,7 +175,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
 
       if (tracks.isNotEmpty) {
         print('   🎵 Tracks:');
-        for (var track in tracks.take(5)) {
+        for (final track in tracks.take(5)) {
           print('      - "${track.name}" by ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
         }
         if (tracks.length > 5) {
@@ -185,7 +185,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
 
       if (albums.isNotEmpty) {
         print('   💿 Albums:');
-        for (var album in albums.take(5)) {
+        for (final album in albums.take(5)) {
           print('      - "${album.name}" by ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
         }
         if (albums.length > 5) {
@@ -363,7 +363,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       return;
     }
 
-    String review = reviewController.text.trim();
+    final String review = reviewController.text.trim();
 
     // Basic validation
     if (review.isEmpty && ratingScore == 0) {
@@ -447,7 +447,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
               Row(
                 children: [
                   Text(
-                    auth.currentUser?.displayName ?? "NotSignedIn",
+                    auth.currentUser?.displayName ?? 'NotSignedIn',
                     style: const TextStyle(color: Colors.white),
                   ),
                   const Gap(8),
@@ -479,7 +479,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                             ? [
                                 const Padding(
                                   padding: EdgeInsets.all(8.0),
-                                  child: const SizedBox(
+                                  child: SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: DiscoBallLoading(),

@@ -13,7 +13,7 @@ class AlbumArtCacheService {
     
     // Replace invalid Firestore document ID characters
     // Firestore document IDs cannot contain: /, \, ?, #, [, ], *, and cannot be longer than 1500 bytes
-    String sanitizedTitle = normalizedTitle
+    final String sanitizedTitle = normalizedTitle
         .replaceAll('/', '_')
         .replaceAll('\\', '_')
         .replaceAll('?', '_')
@@ -23,7 +23,7 @@ class AlbumArtCacheService {
         .replaceAll('*', '_')
         .replaceAll('|', '_'); // Also replace pipe for cleaner keys
     
-    String sanitizedArtist = normalizedArtist
+    final String sanitizedArtist = normalizedArtist
         .replaceAll('/', '_')
         .replaceAll('\\', '_')
         .replaceAll('?', '_')
@@ -34,7 +34,7 @@ class AlbumArtCacheService {
         .replaceAll('|', '_');
     
     // Use underscore separator instead of pipe
-    final cacheKey = '${sanitizedTitle}_${sanitizedArtist}';
+    final cacheKey = '${sanitizedTitle}_$sanitizedArtist';
     
     // Ensure it's not too long (Firestore limit is 1500 bytes, but we'll limit to 500 chars for safety)
     if (cacheKey.length > 500) {

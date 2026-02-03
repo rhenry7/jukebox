@@ -36,7 +36,7 @@ class MusicProfileService {
     final artistMentions = <String>[];
     final genreMentions = <String>[];
 
-    for (var review in reviews) {
+    for (final review in reviews) {
       if (review is! String) continue;
 
       final lowerReview = review.toLowerCase();
@@ -59,7 +59,7 @@ class MusicProfileService {
       // Extract artist mentions (simple pattern matching)
       final artistPattern = RegExp(r'by ([a-z\s\.]+)');
       final artistMatches = artistPattern.allMatches(lowerReview);
-      for (var match in artistMatches) {
+      for (final match in artistMatches) {
         if (match.group(1) != null) {
           artistMentions.add(match.group(1)!.trim());
         }
@@ -91,7 +91,7 @@ class MusicProfileService {
       'lyrics'
     ];
 
-    for (var keyword in musicKeywords) {
+    for (final keyword in musicKeywords) {
       if (text.contains(keyword)) {
         terms.add(keyword);
       }
@@ -134,7 +134,7 @@ class MusicProfileService {
 
     // Primary preferences
     promptBuffer.writeln('STRONGLY PREFERRED GENRES (priority order):');
-    for (var genre in topGenres.take(5)) {
+    for (final genre in topGenres.take(5)) {
       final weight = genreWeights[genre];
       promptBuffer.writeln('- $genre (weight: $weight)');
     }
@@ -143,7 +143,7 @@ class MusicProfileService {
     // Favorite artists
     if (favoriteArtists.isNotEmpty) {
       promptBuffer.writeln('FAVORITE ARTISTS:');
-      for (var artist in favoriteArtists) {
+      for (final artist in favoriteArtists) {
         promptBuffer.writeln('- $artist');
       }
       promptBuffer.writeln();
@@ -185,7 +185,7 @@ class MusicProfileService {
     // Saved tracks as reference
     if (savedTracks.isNotEmpty) {
       promptBuffer.writeln('REFERENCE TRACKS (user has saved):');
-      for (var track in savedTracks.take(5)) {
+      for (final track in savedTracks.take(5)) {
         promptBuffer.writeln('- $track');
       }
       promptBuffer.writeln();

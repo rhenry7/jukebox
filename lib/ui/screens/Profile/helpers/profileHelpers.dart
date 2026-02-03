@@ -10,30 +10,30 @@ import 'package:flutter_test_project/ui/screens/Profile/user_profile_summary.dar
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 
 Future<Map<String, dynamic>> getCurrentUser() async {
-  User? user = FirebaseAuth.instance.currentUser;
+  final User? user = FirebaseAuth.instance.currentUser;
 
   if (user != null) {
     try {
-      var documentSnapshot = await FirebaseFirestore.instance
-          .collection("users")
+      final documentSnapshot = await FirebaseFirestore.instance
+          .collection('users')
           .doc(user.uid)
           .get();
 
       if (documentSnapshot.exists) {
-        Map<String, dynamic> userData = documentSnapshot.data()!;
-        print("User data: $userData");
+        final Map<String, dynamic> userData = documentSnapshot.data()!;
+        print('User data: $userData');
         return userData; // Return the user data
         // Access specific data: userData['fieldName']
       } else {
-        print("User document does not exist.");
+        print('User document does not exist.');
       }
     } catch (e) {
-      print("Error getting user data: $e");
+      print('Error getting user data: $e');
     }
   } else {
-    print("No user is signed in.");
+    print('No user is signed in.');
   }
-  throw Exception("Failed to get user data.");
+  throw Exception('Failed to get user data.');
 }
 
 Widget profileRoute(String route) {
@@ -46,7 +46,7 @@ Widget profileRoute(String route) {
     case 'Notifications':
       return ElevatedButton(
         onPressed: () {},
-        child: const Text("This is a Button"),
+        child: const Text('This is a Button'),
       );
     case 'Preferences':
       return MusicTasteProfileWidget(
@@ -54,10 +54,10 @@ Widget profileRoute(String route) {
       );
     default:
       if (auth.currentUser != null) {
-        print("user signed in");
+        print('user signed in');
         return const UserProfileSummary();
       } else {
-        print("user NOT signed in");
+        print('user NOT signed in');
         return const SignInScreen();
       }
   }
@@ -66,9 +66,9 @@ Widget profileRoute(String route) {
 void signOut() async {
   try {
     FirebaseAuth.instance.signOut();
-    print("user signed out");
+    print('user signed out');
   } catch (e) {
-    print("Error signing out: $e");
+    print('Error signing out: $e');
   }
 }
 
@@ -78,7 +78,7 @@ void signOut() async {
 Widget profileRouter() {
   final FirebaseAuth auth = FirebaseAuth.instance;
   print(auth.currentUser);
-  print(auth.currentUser?.displayName ?? "");
+  print(auth.currentUser?.displayName ?? '');
   print(auth.currentUser?.email ?? '');
   if (auth.currentUser != null) {
     return const ProfilePage();
@@ -113,18 +113,18 @@ Future<bool> hasUserPreferences(String userId) async {
     return (favoriteGenres != null && favoriteGenres.isNotEmpty) ||
            (favoriteArtists != null && favoriteArtists.isNotEmpty);
   } catch (e) {
-    print("Error checking user preferences: $e");
+    print('Error checking user preferences: $e');
     return false;
   }
 }
 
 Future<void> signUp(String userName, String email, String password) async {
-  AuthService authService = AuthService();
-  User? user = await authService.signUp(userName, email, password);
+  final AuthService authService = AuthService();
+  final User? user = await authService.signUp(userName, email, password);
   // add userId, userDisplay name
 
   if (user != null) {
-    String userId = user.uid;
+    final String userId = user.uid;
     await FirebaseFirestore.instance.collection('users').doc(userId).set({
       'password': password,
       'email': email,
@@ -135,8 +135,8 @@ Future<void> signUp(String userName, String email, String password) async {
       //'friends': [],
       //'reviews': []
     });
-    print("Sign-up successful! User ID: ${user.uid}");
+    print('Sign-up successful! User ID: ${user.uid}');
   } else {
-    print("Sign-up failed.");
+    print('Sign-up failed.');
   }
 }

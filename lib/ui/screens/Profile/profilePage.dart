@@ -30,12 +30,12 @@ class ProfileView extends State<ProfilePage> {
         child: Card(
           child: FutureBuilder<List<Review>>(
               future: users,
-              builder: ((context, snapshot) {
+              builder: (context, snapshot) {
                 if (snapshot.hasData) {
                   // TODO: Reevaluate this thing; can be better
                   final String userName =
                       FirebaseAuth.instance.currentUser?.displayName ??
-                          "no user name";
+                          'no user name';
                   return SingleChildScrollView(
                     child: Column(
                       children: [
@@ -44,16 +44,16 @@ class ProfileView extends State<ProfilePage> {
                         ProfileButton(
                             name: userName, icon: Ionicons.person_circle),
                         const ProfileButton(
-                            name: "Reviews",
+                            name: 'Reviews',
                             icon: Ionicons.musical_notes_outline),
                         const ProfileButton(
-                            name: "Preferences",
+                            name: 'Preferences',
                             icon: Ionicons.analytics_outline),
                         const ProfileButton(
-                            name: "Notifications",
+                            name: 'Notifications',
                             icon: Ionicons.notifications_outline),
                         const ProfileButton(
-                            name: "LogOut", icon: Ionicons.exit_outline),
+                            name: 'LogOut', icon: Ionicons.exit_outline),
                       ],
                     ),
                   );
@@ -62,7 +62,7 @@ class ProfileView extends State<ProfilePage> {
                 } else {
                   return const Text('');
                 }
-              })),
+              }),
         ),
       ),
     ));

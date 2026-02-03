@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +14,7 @@ void main() async {
 
   // Load environment variables from .env file (local dev)
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: '.env');
     loadApiKeysFromDotenv(); // Fallback for API keys when --dart-define not used
   } catch (e) {
     // If .env file doesn't exist, app will use --dart-define values or empty

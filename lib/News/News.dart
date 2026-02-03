@@ -36,7 +36,7 @@ class NewsApiService {
     List<String>? favoriteGenres,
     List<String>? favoriteArtists,
   }) {
-    List<String> keywords = [];
+    final List<String> keywords = [];
     
     // Base music news keywords (always included)
     keywords.addAll([
@@ -49,7 +49,7 @@ class NewsApiService {
     
     // Add favorite genres
     if (favoriteGenres != null && favoriteGenres.isNotEmpty) {
-      for (var genre in favoriteGenres.take(5)) { // Limit to top 5 genres
+      for (final genre in favoriteGenres.take(5)) { // Limit to top 5 genres
         keywords.add('$genre music');
         keywords.add('$genre artist');
         keywords.add('$genre album');
@@ -58,7 +58,7 @@ class NewsApiService {
     
     // Add favorite artists (limit to top 3 to avoid query being too long)
     if (favoriteArtists != null && favoriteArtists.isNotEmpty) {
-      for (var artist in favoriteArtists.take(3)) {
+      for (final artist in favoriteArtists.take(3)) {
         keywords.add(artist);
       }
     }
@@ -99,7 +99,7 @@ class NewsApiService {
     final queryTerms = <String>[];
     
     // Add music context to each keyword
-    for (var keyword in keywords) {
+    for (final keyword in keywords) {
       // If keyword already contains music-related terms, use as-is
       if (keyword.toLowerCase().contains('music') ||
           keyword.toLowerCase().contains('album') ||
@@ -137,7 +137,7 @@ class NewsApiService {
         // Filter out articles that are clearly not music-related
         final musicArticles = articles
             .map((articleJson) => MusicNewsArticle.fromJson(articleJson))
-            .where((article) => _isMusicRelated(article))
+            .where(_isMusicRelated)
             .toList();
         
         print('📰 [NEWS] Filtered to ${musicArticles.length} music-related articles');
@@ -166,7 +166,7 @@ class NewsApiService {
     final text = '${article.title} ${article.description}'.toLowerCase();
     
     // Article is music-related if it contains at least 2 music keywords
-    final matchCount = musicKeywords.where((keyword) => text.contains(keyword)).length;
+    final matchCount = musicKeywords.where(text.contains).length;
     return matchCount >= 2;
   }
 }

@@ -12,7 +12,7 @@ class WikipediaBioCacheService {
     
     // Replace invalid Firestore document ID characters
     // Firestore document IDs cannot contain: /, \, ?, #, [, ], *, and cannot be longer than 1500 bytes
-    String sanitized = normalized
+    final String sanitized = normalized
         .replaceAll('/', '_')
         .replaceAll('\\', '_')
         .replaceAll('?', '_')

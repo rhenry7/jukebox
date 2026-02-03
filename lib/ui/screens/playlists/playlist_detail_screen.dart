@@ -75,9 +75,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           .first(20);
 
       final tracks = <spotify.Track>[];
-      for (var page in searchResults) {
+      for (final page in searchResults) {
         if (page.items != null) {
-          for (var item in page.items!) {
+          for (final item in page.items!) {
             if (item is spotify.Track) {
               tracks.add(item);
             }
@@ -375,14 +375,14 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 ),
                 // Search results (separate sliver to avoid overflow)
                 if (_showSearchResults && _searchResults.isNotEmpty)
-                  SliverToBoxAdapter(
+                  const SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 12),
-                          const Text(
+                          SizedBox(height: 12),
+                          Text(
                             'Search Results',
                             style: TextStyle(
                               color: Colors.white,
@@ -390,7 +390,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                         ],
                       ),
                     ),

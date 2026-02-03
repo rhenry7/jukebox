@@ -47,20 +47,20 @@ class ReviewCardSkeleton extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               // Text skeletons
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SkeletonLoader(width: double.infinity, height: 20),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     SkeletonLoader(width: 150, height: 16),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     SkeletonLoader(width: 100, height: 16),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     SkeletonLoader(width: double.infinity, height: 14),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     SkeletonLoader(width: double.infinity, height: 14),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     SkeletonLoader(width: 200, height: 14),
                   ],
                 ),
@@ -91,14 +91,14 @@ class RecommendationCardSkeleton extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             const SizedBox(width: 16),
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SkeletonLoader(width: double.infinity, height: 14),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   SkeletonLoader(width: 120, height: 12),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   SkeletonLoader(width: 100, height: 12),
                 ],
               ),

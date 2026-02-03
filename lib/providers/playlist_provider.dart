@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/providers/preferences_provider.dart';
 import 'package:flutter_test_project/services/playlist_generation_service.dart';
 
@@ -11,14 +10,14 @@ final playlistProvider = FutureProvider.family<List<PlaylistTrack>, PlaylistRequ
     data: (preferences) async {
       // If playlistType is specified, use generatePlaylistByType
       if (request.playlistType != null) {
-        return await PlaylistGenerationService.generatePlaylistByType(
+        return PlaylistGenerationService.generatePlaylistByType(
           preferences: preferences,
           playlistType: request.playlistType!,
           trackCount: request.trackCount,
         );
       }
       // Otherwise use regular generatePlaylist
-      return await PlaylistGenerationService.generatePlaylist(
+      return PlaylistGenerationService.generatePlaylist(
         preferences: preferences,
         context: request.context,
         trackCount: request.trackCount,
@@ -60,7 +59,7 @@ final playlistByTypeProvider = FutureProvider.family<List<PlaylistTrack>, Map<St
   
   return preferencesAsync.when(
     data: (preferences) async {
-      return await PlaylistGenerationService.generatePlaylistByType(
+      return PlaylistGenerationService.generatePlaylistByType(
         preferences: preferences,
         playlistType: params['type'] as String? ?? 'genre',
         trackCount: params['count'] as int? ?? 20,

@@ -39,7 +39,7 @@ class TrendingTracksService {
 
       print('🔥 [TRENDING] Fetching trending tracks from Global Top 50...');
 
-      List<TrendingTrack> trendingTracks = [];
+      final List<TrendingTrack> trendingTracks = [];
       
       // Use "Today's Top Hits" - it's updated daily and reflects current trends
       // Alternative: Use search for recent popular tracks
@@ -54,22 +54,22 @@ class TrendingTracksService {
         
         // Add user's favorite genres if available
         if (preferences.favoriteGenres.isNotEmpty) {
-          for (var genre in preferences.favoriteGenres.take(2)) {
+          for (final genre in preferences.favoriteGenres.take(2)) {
             searchQueries.add('year:$currentYear genre:$genre');
           }
         }
         
         // Search for trending tracks
-        for (var query in searchQueries.take(3)) {
+        for (final query in searchQueries.take(3)) {
           try {
             print('   🔍 Searching: $query');
             final searchResults = await spotifyApi.search
                 .get(query, types: [spotify.SearchType.track])
                 .first(10);
 
-            for (var page in searchResults) {
+            for (final page in searchResults) {
               if (page.items != null) {
-                for (var track in page.items!) {
+                for (final track in page.items!) {
                   if (track is spotify.Track && track.id != null) {
                     // Use track data directly - it already has popularity
                     final popularity = track.popularity ?? 0;
@@ -140,9 +140,9 @@ class TrendingTracksService {
 
     // Check if track artist is in user's favorite artists
     if (preferences.favoriteArtists.isNotEmpty && track.artists != null) {
-      for (var artist in track.artists!) {
+      for (final artist in track.artists!) {
         final artistName = artist.name?.toLowerCase() ?? '';
-        for (var favArtist in preferences.favoriteArtists) {
+        for (final favArtist in preferences.favoriteArtists) {
           if (artistName.contains(favArtist.toLowerCase()) ||
               favArtist.toLowerCase().contains(artistName)) {
             score += 0.5; // High boost for favorite artist
@@ -157,7 +157,7 @@ class TrendingTracksService {
       // Check album name and track name for genre keywords
       final trackText = '${track.name ?? ""} ${track.album?.name ?? ""}'.toLowerCase();
       
-      for (var genre in preferences.favoriteGenres.take(3)) { // Limit to top 3 genres for speed
+      for (final genre in preferences.favoriteGenres.take(3)) { // Limit to top 3 genres for speed
         final genreWeight = preferences.genreWeights[genre] ?? 0.5;
         if (trackText.contains(genre.toLowerCase())) {
           score += 0.3 * genreWeight; // Weighted by user's genre preference
@@ -189,18 +189,18 @@ class TrendingTracksWidget extends ConsumerWidget {
         return trendingAsync.when(
           data: (trendingTracks) {
             if (trendingTracks.isEmpty) {
-              return Center(
+              return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.trending_up, size: 64, color: Colors.grey),
-                    const Gap(16),
-                    const Text(
+                    Icon(Icons.trending_up, size: 64, color: Colors.grey),
+                    Gap(16),
+                    Text(
                       'No trending tracks found',
                       style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
-                    const Gap(8),
-                    const Text(
+                    Gap(8),
+                    Text(
                       'Try updating your music preferences',
                       style: TextStyle(color: Colors.white70),
                       textAlign: TextAlign.center,
@@ -262,13 +262,13 @@ class TrendingTracksWidget extends ConsumerWidget {
         );
       },
       loading: () => const DiscoBallLoading(),
-      error: (error, stack) => Center(
+      error: (error, stack) => const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const Gap(16),
-            const Text(
+            Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Gap(16),
+            Text(
               'Error loading preferences',
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),

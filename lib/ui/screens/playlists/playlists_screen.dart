@@ -16,17 +16,17 @@ class PlaylistsScreen extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
 
     if (userId == null) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.person_off, size: 80, color: Colors.grey),
-                const SizedBox(height: 24),
-                const Text(
+                Icon(Icons.person_off, size: 80, color: Colors.grey),
+                SizedBox(height: 24),
+                Text(
                   'Sign In Required',
                   style: TextStyle(
                     color: Colors.white,
@@ -34,8 +34,8 @@ class PlaylistsScreen extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Text(
+                SizedBox(height: 16),
+                Text(
                   'Sign in to create and manage your playlists!',
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                   textAlign: TextAlign.center,
@@ -203,7 +203,7 @@ class _PlaylistCard extends StatelessWidget {
           ),
         );
       },
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white10,
           borderRadius: BorderRadius.circular(12),
@@ -297,7 +297,7 @@ class _AddPlaylistCard extends StatelessWidget {
           ),
         );
       },
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white10,
           borderRadius: BorderRadius.circular(12),

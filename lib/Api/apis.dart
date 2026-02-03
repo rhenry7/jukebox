@@ -27,7 +27,7 @@ Future<List<Track>> fetchExploreTracks({
     final spotify = SpotifyApi(credentials);
     final random = DateTime.now().millisecondsSinceEpoch; // Seed for randomization
 
-    List<Track> exploreTracks = [];
+    final List<Track> exploreTracks = [];
 
     // Step 1: Fetch from Spotify's featured/trending playlists (OPTIMIZED: Skip if errors occur)
     // Note: Some playlist IDs may not be available in all regions, so we skip gracefully
@@ -40,7 +40,7 @@ Future<List<Track>> fetchExploreTracks({
       ];
       
       bool foundTracks = false;
-      for (var playlistId in featuredPlaylistIds) {
+      for (final playlistId in featuredPlaylistIds) {
         try {
           // Fetch with timeout to avoid hanging
           final tracksIterable = await spotify.playlists
@@ -50,20 +50,18 @@ Future<List<Track>> fetchExploreTracks({
           
           // Take first 10 tracks from featured playlist
           int count = 0;
-          for (var track in tracksIterable) {
+          for (final track in tracksIterable) {
             if (count >= 10) break; // Increased from 5 to 10
-            if (track is Track) {
-              exploreTracks.add(track);
-            }
-            count++;
+            exploreTracks.add(track);
+                      count++;
           }
           
           if (count > 0) {
             foundTracks = true;
-            print('   ✅ Found ${count} tracks from featured playlist');
+            print('   ✅ Found $count tracks from featured playlist');
             break; // Success, no need to try other playlists
           }
-        } catch (e, stackTrace) {
+        } catch (e) {
           // Silently skip 404/Resource not found errors - playlist may not exist in this region
           // The Spotify library throws these errors, but we catch them here to prevent console spam
           final errorStr = e.toString().toLowerCase();
@@ -85,7 +83,7 @@ Future<List<Track>> fetchExploreTracks({
     }
 
     // Step 2: Generate dynamic queries based on user preferences (if available)
-    List<String> exploreQueries = [];
+    final List<String> exploreQueries = [];
     
     if (userGenres != null && userGenres.isNotEmpty) {
       print('🎵 [EXPLORE] Using user preferences: ${userGenres.take(5).join(", ")}');
@@ -143,9 +141,9 @@ Future<List<Track>> fetchExploreTracks({
 
         final tracks = <Track>[];
         if (searchResults.isNotEmpty) {
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var trackSimple in page.items!) {
+              for (final trackSimple in page.items!) {
                 if (trackSimple is Track) {
                   tracks.add(trackSimple);
                 }
@@ -165,13 +163,13 @@ Future<List<Track>> fetchExploreTracks({
     
     // Wait for all queries to complete in parallel
     final results = await Future.wait(queryFutures);
-    for (var tracks in results) {
+    for (final tracks in results) {
       exploreTracks.addAll(tracks);
     }
 
     // Remove duplicates (by track ID)
     final uniqueTracks = <String, Track>{};
-    for (var track in exploreTracks) {
+    for (final track in exploreTracks) {
       if (track.id != null) {
         uniqueTracks.putIfAbsent(track.id!, () => track);
       }
@@ -237,7 +235,7 @@ Future<List<Track>> fetchTrendingTracks() async {
     final spotify = SpotifyApi(credentials);
 
     // Search for popular tracks from recent years
-    List<String> trendingQueries = [
+    final List<String> trendingQueries = [
       'year:2024',
       'year:2023-2024 genre:pop',
       'year:2024 genre:hip-hop',
@@ -245,18 +243,18 @@ Future<List<Track>> fetchTrendingTracks() async {
       'year:2024 genre:electronic',
     ];
 
-    List<Track> allTracks = [];
+    final List<Track> allTracks = [];
 
-    for (String query in trendingQueries) {
+    for (final String query in trendingQueries) {
       try {
         final searchResults = await spotify.search.get(query, types: [
           SearchType.track
         ]).first(4); // Get 4 tracks from each search
 
         if (searchResults.isNotEmpty) {
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var trackSimple in page.items!) {
+              for (final trackSimple in page.items!) {
                 if (trackSimple is Track) {
                   allTracks.add(trackSimple);
                 }
@@ -273,14 +271,14 @@ Future<List<Track>> fetchTrendingTracks() async {
     }
 
     // Remove duplicates and shuffle
-    Map<String, Track> uniqueTracks = {};
-    for (var track in allTracks) {
+    final Map<String, Track> uniqueTracks = {};
+    for (final track in allTracks) {
       if (track.id != null) {
         uniqueTracks[track.id!] = track;
       }
     }
 
-    List<Track> finalTracks = uniqueTracks.values.toList();
+    final List<Track> finalTracks = uniqueTracks.values.toList();
     finalTracks.shuffle();
     return finalTracks.take(20).toList();
   } catch (e) {
@@ -296,7 +294,7 @@ Future<List<Track>> fetchHiddenGemTracks() async {
     final spotify = SpotifyApi(credentials);
 
     // Search for tracks from niche genres
-    List<String> hiddenGemQueries = [
+    final List<String> hiddenGemQueries = [
       'genre:shoegaze',
       'genre:post-rock',
       'genre:dream-pop',
@@ -305,17 +303,17 @@ Future<List<Track>> fetchHiddenGemTracks() async {
       'genre:lo-fi',
     ];
 
-    List<Track> gemTracks = [];
+    final List<Track> gemTracks = [];
 
-    for (String query in hiddenGemQueries) {
+    for (final String query in hiddenGemQueries) {
       try {
         final searchResults =
             await spotify.search.get(query, types: [SearchType.track]).first(3);
 
         if (searchResults.isNotEmpty) {
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var trackSimple in page.items!) {
+              for (final trackSimple in page.items!) {
                 if (trackSimple is Track) {
                   gemTracks.add(trackSimple);
                 }
@@ -348,24 +346,24 @@ Future<List<Track>> fetchNewReleaseTracks() async {
     final currentYear = DateTime.now().year;
 
     // Focus on very recent releases
-    List<String> newReleaseQueries = [
+    final List<String> newReleaseQueries = [
       'year:$currentYear',
       'year:$currentYear genre:alternative',
       'year:$currentYear genre:indie',
       'year:$currentYear genre:pop',
     ];
 
-    List<Track> newTracks = [];
+    final List<Track> newTracks = [];
 
-    for (String query in newReleaseQueries) {
+    for (final String query in newReleaseQueries) {
       try {
         final searchResults =
             await spotify.search.get(query, types: [SearchType.track]).first(5);
 
         if (searchResults.isNotEmpty) {
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var trackSimple in page.items!) {
+              for (final trackSimple in page.items!) {
                 if (trackSimple is Track) {
                   newTracks.add(trackSimple);
                 }
@@ -382,14 +380,14 @@ Future<List<Track>> fetchNewReleaseTracks() async {
     }
 
     // Remove duplicates
-    Map<String, Track> uniqueTracks = {};
-    for (var track in newTracks) {
+    final Map<String, Track> uniqueTracks = {};
+    for (final track in newTracks) {
       if (track.id != null) {
         uniqueTracks[track.id!] = track;
       }
     }
 
-    List<Track> finalTracks = uniqueTracks.values.toList();
+    final List<Track> finalTracks = uniqueTracks.values.toList();
     finalTracks.shuffle();
     return finalTracks.take(20).toList();
   } catch (e) {
@@ -405,15 +403,15 @@ Future<List<Album>> fetchSpotifyAlbums() async {
       .getTracksByPlaylistId(
           '37i9dQZF1DX1gRalH1mWrP') // replace with list from recommendation;
       .all();
-  List<String> albumsIds = [];
+  final List<String> albumsIds = [];
 
-  for (var track in tracks) {
-    albumsIds.add(track.album!.id ?? "");
+  for (final track in tracks) {
+    albumsIds.add(track.album!.id ?? '');
   }
   // might not need this part
   final sb = StringBuffer();
-  sb.writeAll(albumsIds, ",");
-  List<String> limitAlbumIds = albumsIds.sublist(0, 15);
+  sb.writeAll(albumsIds, ',');
+  final List<String> limitAlbumIds = albumsIds.sublist(0, 15);
   final albums = await getFromSpotify.albums.list(limitAlbumIds);
   return albums.toList();
 }
@@ -424,7 +422,7 @@ Future<List<Album>> fetchExploreAlbums() async {
     final spotify = SpotifyApi(credentials);
 
     // Mix of different genres and time periods for exploration
-    List<String> exploreQueries = [
+    final List<String> exploreQueries = [
       'genre:indie year:2020-2024',
       'genre:jazz year:1960-1980',
       'genre:electronic year:2022-2024',
@@ -432,17 +430,17 @@ Future<List<Album>> fetchExploreAlbums() async {
       'genre:hip-hop year:2018-2024',
     ];
 
-    List<Album> allAlbums = [];
+    final List<Album> allAlbums = [];
 
-    for (String query in exploreQueries) {
+    for (final String query in exploreQueries) {
       try {
         final searchResults = await spotify.search.get(query,
             types: [SearchType.album]).first(4); // Get 4 from each genre
 
         if (searchResults.isNotEmpty) {
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var albumSimple in page.items!) {
+              for (final albumSimple in page.items!) {
                 if (albumSimple is AlbumSimple && albumSimple.id != null) {
                   final fullAlbum = await spotify.albums.get(albumSimple.id!);
                   allAlbums.add(fullAlbum);
@@ -485,11 +483,11 @@ Future<List<Album>> fetchPopularAlbums({String query = 'year:2019'}) async {
     final searchResults =
         await spotify.search.get(query, types: [SearchType.album]).first(20);
 
-    List<Album> albums = [];
+    final List<Album> albums = [];
     if (searchResults.isNotEmpty) {
-      for (var page in searchResults) {
+      for (final page in searchResults) {
         if (page.items != null) {
-          for (var albumSimple in page.items!) {
+          for (final albumSimple in page.items!) {
             if (albumSimple is AlbumSimple && albumSimple.id != null) {
               // Get full album details
               final fullAlbum = await spotify.albums.get(albumSimple.id!);
@@ -518,24 +516,24 @@ Future<List<Album>> fetchNewDiscoveries(
     final currentYear = DateTime.now().year;
     final lastYear = currentYear - 1;
 
-    List<String> newReleaseQueries = [
+    final List<String> newReleaseQueries = [
       // 'year:$currentYear', // This year's releases
       // 'year:$lastYear tag:new', // Last year with "new" tag
       'year:$currentYear genre:$genre1',
       //'year:$currentYear genre:$genre2',
     ];
 
-    List<Album> newAlbums = [];
+    final List<Album> newAlbums = [];
 
-    for (String query in newReleaseQueries) {
+    for (final String query in newReleaseQueries) {
       try {
         final searchResults = await spotify.search.get(query,
             types: [SearchType.album]).first(5); // Get 5 from each search
 
         if (searchResults.isNotEmpty) {
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var albumSimple in page.items!) {
+              for (final albumSimple in page.items!) {
                 if (albumSimple is AlbumSimple && albumSimple.id != null) {
                   final fullAlbum = await spotify.albums.get(albumSimple.id!);
                   newAlbums.add(fullAlbum);
@@ -553,14 +551,14 @@ Future<List<Album>> fetchNewDiscoveries(
     }
 
     // Remove duplicates by ID
-    Map<String, Album> uniqueAlbums = {};
-    for (var album in newAlbums) {
+    final Map<String, Album> uniqueAlbums = {};
+    for (final album in newAlbums) {
       if (album.id != null) {
         uniqueAlbums[album.id!] = album;
       }
     }
 
-    List<Album> sortedAlbums = uniqueAlbums.values.toList();
+    final List<Album> sortedAlbums = uniqueAlbums.values.toList();
     sortedAlbums.shuffle(); // Shuffle for variety
 
     return sortedAlbums.take(20).toList();
@@ -574,7 +572,7 @@ Future<List<Album>> fetchNewDiscoveries(
 
 Future<List<Review>> fetchMockUserComments() async {
   final url = Uri.parse(
-      "https://66d638b1f5859a704268af2d.mockapi.io/test/v1/usercomments");
+      'https://66d638b1f5859a704268af2d.mockapi.io/test/v1/usercomments');
   final response = await http.get(url);
   if (response.statusCode == 200) {
     // Parse the JSON data

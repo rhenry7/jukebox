@@ -41,10 +41,10 @@ class MusicRecommendationService {
     try {
       final userId = FirebaseAuth.instance.currentUser != null
           ? FirebaseAuth.instance.currentUser!.uid
-          : "";
+          : '';
       
       if (userId.isEmpty) {
-        throw MusicRecommendationException('User not logged in');
+        throw const MusicRecommendationException('User not logged in');
       }
 
       // NEW: Analyze all user reviews for deep personalization (with caching)
@@ -70,7 +70,7 @@ class MusicRecommendationService {
               .map((doc) => Review.fromFirestore(doc.data()))
               .toList());
 
-      List<dynamic> reviewList = [];
+      final List<dynamic> reviewList = [];
       for (final review in reviews.take(5)) {
         reviewList.add({
           'song': review.title,
@@ -88,13 +88,13 @@ class MusicRecommendationService {
           .get();
 
       if (!doc.exists) {
-        throw MusicRecommendationException('User preferences not found');
+        throw const MusicRecommendationException('User preferences not found');
       }
 
       final EnhancedUserPreferences preferences =
           EnhancedUserPreferences.fromJson(doc.data()!);
 
-      List<MusicRecommendation> allRecommendations = [];
+      final List<MusicRecommendation> allRecommendations = [];
 
       // 1. Get AI-based recommendations (improved prompt with review analysis)
       try {
@@ -265,10 +265,10 @@ class MusicRecommendationService {
     String reviewAnalysisSection = '';
     if (reviewProfile != null) {
       final ratingInsight = reviewProfile.ratingPattern.averageRating >= 4.0
-          ? "User tends to rate highly - recommend more experimental/discovery music"
+          ? 'User tends to rate highly - recommend more experimental/discovery music'
           : reviewProfile.ratingPattern.averageRating <= 2.5
-              ? "User is critical - recommend safer, highly-regarded albums"
-              : "User has balanced ratings - mix of safe and discovery";
+              ? 'User is critical - recommend safer, highly-regarded albums'
+              : 'User has balanced ratings - mix of safe and discovery';
       
       final topGenres = reviewProfile.genrePreferences.entries.toList()
         ..sort((a, b) => b.value.preferenceStrength.compareTo(a.value.preferenceStrength));
@@ -280,7 +280,7 @@ class MusicRecommendationService {
 
 DEEP REVIEW ANALYSIS (from ${reviewProfile.ratingPattern.ratingDistribution.values.fold<int>(0, (sum, count) => sum + count)} total reviews):
 - Rating Pattern: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} average rating
-  ${ratingInsight}
+  $ratingInsight
 - Top Genres from Reviews: ${topGenres.take(5).map((e) => '${e.key} (strength: ${e.value.preferenceStrength.toStringAsFixed(2)})').join(', ')}
 - Top Artists from Reviews: ${topArtists.take(5).map((e) => '${e.key} (score: ${e.value.preferenceScore.toStringAsFixed(2)})').join(', ')}
 - Recent Trends: ${reviewProfile.temporalPatterns.recentTrends.isNotEmpty ? reviewProfile.temporalPatterns.recentTrends.join(', ') : 'None'}
@@ -291,7 +291,7 @@ RECOMMENDATION STRATEGY:
 1. PRIORITIZE genres with high preference strength from reviews: ${topGenres.take(3).map((e) => e.key).join(', ')}
 2. EXPLORE artists similar to top-rated artists: ${topArtists.take(3).map((e) => e.key).join(', ')}
 3. CONSIDER recent trends: ${reviewProfile.temporalPatterns.recentTrends.isNotEmpty ? reviewProfile.temporalPatterns.recentTrends.join(', ') : 'No strong trends'}
-4. BALANCE: ${ratingInsight}
+4. BALANCE: $ratingInsight
 ''';
     }
 
@@ -340,10 +340,10 @@ DISCOVERY REQUIREMENTS:
    - 10%: Serendipitous picks (slightly outside their comfort zone but still relevant)
 
 CRITICAL REQUIREMENTS:
-- Return EXACTLY ${count} recommendations as a JSON array
+- Return EXACTLY $count recommendations as a JSON array
 - ONLY recommend songs that you KNOW exist on Spotify
 - DO NOT invent, guess, or create song titles, artist names, or album names
-- If you cannot find ${count} real songs that match the criteria, return fewer (but still valid JSON)
+- If you cannot find $count real songs that match the criteria, return fewer (but still valid JSON)
 - All recommendations will be validated against Spotify - fake songs will be rejected
 - Return ONLY valid JSON, no markdown, no commentary, no explanations
 
@@ -366,7 +366,7 @@ Format:
     double score = 0.5; // Base score
     
     // Genre match from reviews (weighted by preference strength)
-    for (var genre in recommendation.genres) {
+    for (final genre in recommendation.genres) {
       final genrePref = reviewProfile.genrePreferences[genre];
       if (genrePref != null) {
         score += genrePref.preferenceStrength * 0.3;
@@ -375,7 +375,7 @@ Format:
     
     // Artist similarity (if similar to highly-rated artists)
     final artist = recommendation.artist.toLowerCase();
-    for (var topArtist in reviewProfile.ratingPattern.highlyRatedArtists) {
+    for (final topArtist in reviewProfile.ratingPattern.highlyRatedArtists) {
       final topArtistLower = topArtist.toLowerCase();
       if (artist.contains(topArtistLower) || topArtistLower.contains(artist)) {
         score += 0.2;
@@ -614,7 +614,7 @@ Format:
     bool skipMetadataEnrichment,
   ) async {
     // Validate all in parallel (Spotify has no rate limit for search)
-    return await Future.wait(
+    return Future.wait(
       recommendations.map((rec) => _validateSingleRecommendationSpotifyOnly(spotify, rec, skipMetadataEnrichment)),
     );
   }
@@ -632,9 +632,9 @@ Format:
           .get(trackQuery, types: [SearchType.track])
           .first(1);
 
-      for (var page in trackSearchResults) {
+      for (final page in trackSearchResults) {
         if (page.items != null) {
-          for (var item in page.items!) {
+          for (final item in page.items!) {
             if (item is Track) {
               // Found on Spotify!
               if (skipMetadataEnrichment) {
@@ -726,9 +726,9 @@ Format:
             .get(trackQuery, types: [SearchType.track])
             .first(1);
 
-        for (var page in trackSearchResults) {
+        for (final page in trackSearchResults) {
           if (page.items != null) {
-            for (var item in page.items!) {
+            for (final item in page.items!) {
               if (item is Track) {
                 // Found on Spotify! Return with full metadata
                 final artistName = item.artists?.isNotEmpty == true
@@ -766,9 +766,9 @@ Format:
             .get(lenientQuery, types: [SearchType.track])
             .first(1);
 
-        for (var page in lenientSearchResults) {
+        for (final page in lenientSearchResults) {
           if (page.items != null) {
-            for (var item in page.items!) {
+            for (final item in page.items!) {
               if (item is Track) {
                 // Fuzzy match: check if track name and artist are similar
                 final trackNameLower = (item.name ?? '').toLowerCase();
@@ -887,9 +887,9 @@ Format:
               .get(artistName, types: [SearchType.artist])
               .first(1);
           
-          for (var page in searchResults) {
+          for (final page in searchResults) {
             if (page.items != null) {
-              for (var item in page.items!) {
+              for (final item in page.items!) {
                 if (item is Artist && item.genres != null && item.genres!.isNotEmpty) {
                   genres = item.genres!.toList();
                   print('Got ${genres.length} artist genres from Spotify for ${rec.song}');
@@ -943,9 +943,9 @@ Format:
                 .first(1);
 
             // Extract album image from search results
-            for (var page in searchResults) {
+            for (final page in searchResults) {
               if (page.items != null) {
-                for (var item in page.items!) {
+                for (final item in page.items!) {
                   if (item is Track && item.album != null) {
                     final images = item.album!.images;
                     if (images != null && images.isNotEmpty) {
@@ -966,9 +966,9 @@ Format:
                   .get(albumQuery, types: [SearchType.album])
                   .first(1);
 
-              for (var page in albumSearchResults) {
+              for (final page in albumSearchResults) {
                 if (page.items != null) {
-                  for (var item in page.items!) {
+                  for (final item in page.items!) {
                     if (item is AlbumSimple &&
                         item.images != null &&
                         item.images!.isNotEmpty) {
@@ -1028,9 +1028,9 @@ Format:
           .first(1);
 
       // Extract album image from search results
-      for (var page in searchResults) {
+      for (final page in searchResults) {
         if (page.items != null) {
-          for (var item in page.items!) {
+          for (final item in page.items!) {
             if (item is Track && item.album != null) {
               final images = item.album!.images;
               if (images != null && images.isNotEmpty) {
@@ -1051,9 +1051,9 @@ Format:
             .get(albumQuery, types: [SearchType.album])
             .first(1);
 
-        for (var page in albumSearchResults) {
+        for (final page in albumSearchResults) {
           if (page.items != null) {
-            for (var item in page.items!) {
+            for (final item in page.items!) {
               if (item is AlbumSimple &&
                   item.images != null &&
                   item.images!.isNotEmpty) {

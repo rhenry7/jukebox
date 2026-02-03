@@ -8,7 +8,7 @@ void main() {
     // This test verifies the widget test harness and a simple MaterialApp build.
     testWidgets('MaterialApp builds without crashing', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(child: Text('Test')),
           ),

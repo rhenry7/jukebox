@@ -33,7 +33,7 @@ final userReviewsProvider = StreamProvider<List<ReviewWithDocId>>((ref) {
       .map((snapshot) => snapshot.docs
           .map((doc) {
             try {
-              final review = Review.fromFirestore(doc.data() as Map<String, dynamic>);
+              final review = Review.fromFirestore(doc.data());
               return ReviewWithDocId(review: review, docId: doc.id);
             } catch (e) {
               print('Error parsing review ${doc.id}: $e');
@@ -62,7 +62,7 @@ final userReviewsByIdProvider = StreamProvider.family<List<Review>, String>((ref
       .map((snapshot) => snapshot.docs
           .map((doc) {
             try {
-              return Review.fromFirestore(doc.data() as Map<String, dynamic>);
+              return Review.fromFirestore(doc.data());
             } catch (e) {
               print('Error parsing review ${doc.id}: $e');
               return null;

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
@@ -9,8 +8,6 @@ import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/community_reviews_provider.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
-import '../../../services/genre_cache_service.dart';
-import '../../../utils/helpers.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
@@ -260,7 +257,7 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
       loading: () => ListView.builder(
         itemCount: 3,
         itemBuilder: (context, index) {
-          return ReviewCardSkeleton();
+          return const ReviewCardSkeleton();
         },
       ),
       error: (error, stackTrace) {
@@ -327,7 +324,7 @@ class CommunityReviewList extends ConsumerWidget {
           );
         }
 
-        var review = reviews[index];
+        final review = reviews[index];
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           child: Dismissible(

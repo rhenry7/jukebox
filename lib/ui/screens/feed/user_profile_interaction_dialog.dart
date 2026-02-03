@@ -20,12 +20,12 @@ class UserProfileInteractionDialog extends StatelessWidget {
   String currentUid = FirebaseAuth.instance.currentUser!.uid;
 
   UserProfileInteractionDialog({
-    Key? key,
+    super.key,
     required this.displayName,
     required this.reviewCount,
     required this.accountCreationDate,
     this.onClose,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

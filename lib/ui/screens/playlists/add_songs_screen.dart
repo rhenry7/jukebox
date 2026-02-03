@@ -77,9 +77,9 @@ class _AddSongsScreenState extends ConsumerState<AddSongsScreen> {
           .first(20);
 
       final tracks = <spotify.Track>[];
-      for (var page in searchResults) {
+      for (final page in searchResults) {
         if (page.items != null) {
-          for (var item in page.items!) {
+          for (final item in page.items!) {
             if (item is spotify.Track) {
               tracks.add(item);
             }
@@ -222,13 +222,13 @@ class _AddSongsScreenState extends ConsumerState<AddSongsScreen> {
             child: _isSearching
                 ? const Center(child: DiscoBallLoading())
                 : _searchResults.isEmpty
-                    ? Center(
+                    ? const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.search, size: 64, color: Colors.grey),
-                            const SizedBox(height: 16),
-                            const Text(
+                            Icon(Icons.search, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
                               'Search for songs to add',
                               style: TextStyle(color: Colors.white70, fontSize: 16),
                             ),

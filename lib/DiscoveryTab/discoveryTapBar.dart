@@ -3,7 +3,6 @@ import 'package:flutter_test_project/MusicPreferences/spotifyRecommendations/hel
 
 import '../News/NewsWidget.dart';
 import '../ui/screens/DiscoveryTab/playlist_discovery.dart';
-import 'discoveryFreshTrackCards.dart';
 import 'explore_tracks.dart';
 
 class DiscoveryTapBar extends StatelessWidget {
@@ -122,8 +121,8 @@ class DiscoveryTapBar extends StatelessWidget {
           children: [
             RecommendedAlbumScreen(),
             PlaylistDiscoveryScreen(), // New MusicBrainz-based playlist discovery
-            const ExploreTracks(),
-            const MusicNewsWidget(), // Now uses user preferences automatically
+            ExploreTracks(),
+            MusicNewsWidget(), // Now uses user preferences automatically
           ],
         ),
       ),

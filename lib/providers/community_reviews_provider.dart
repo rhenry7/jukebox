@@ -13,7 +13,7 @@ final communityReviewsProvider = StreamProvider.family<List<ReviewWithDocId>, in
       .map((snapshot) => snapshot.docs
           .map((doc) {
             try {
-              final review = Review.fromFirestore(doc.data() as Map<String, dynamic>);
+              final review = Review.fromFirestore(doc.data());
               // Get the userId from the document path: users/{userId}/reviews/{reviewId}
               final pathParts = doc.reference.path.split('/');
               final userId = pathParts.length >= 2 ? pathParts[1] : '';

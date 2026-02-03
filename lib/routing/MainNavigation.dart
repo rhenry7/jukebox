@@ -31,7 +31,7 @@ class MainNavState extends ConsumerState<MainNav> {
     const MyReviewSheetContentForm(
       title: 'track-title',
       artist: 'artist',
-      albumImageUrl: "",
+      albumImageUrl: '',
     ),
     const TrendingTracksWidget(), // Updated to use personalized trending tracks
     profileRouter(),
@@ -50,7 +50,7 @@ class MainNavState extends ConsumerState<MainNav> {
             return const MyReviewSheetContentForm(
               title: 'track-title',
               artist: 'artist',
-              albumImageUrl: "",
+              albumImageUrl: '',
             );
           });
     } else {
@@ -109,7 +109,7 @@ class MainNavState extends ConsumerState<MainNav> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "MIXTAKES",
+          'MIXTAKES',
           style: GoogleFonts.gasoekOne(
             textStyle: const TextStyle(
               color: Colors.red,
@@ -128,7 +128,7 @@ class MainNavState extends ConsumerState<MainNav> {
           const NavigationDestination(
             selectedIcon: Icon(Ionicons.home),
             icon: Icon(Ionicons.home_outline),
-            label: "Home",
+            label: 'Home',
           ),
           const NavigationDestination(
             selectedIcon: Icon(Ionicons.planet_outline),
@@ -148,8 +148,8 @@ class MainNavState extends ConsumerState<MainNav> {
             label: 'Trending',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Ionicons.person_circle),
-            icon: Icon(Ionicons.person_circle_outline),
+            selectedIcon: const Icon(Ionicons.person_circle),
+            icon: const Icon(Ionicons.person_circle_outline),
             label: _getProfileLabel(),
           ),
         ],

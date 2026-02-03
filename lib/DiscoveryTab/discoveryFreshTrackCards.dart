@@ -19,7 +19,7 @@ class PersonalizedPlaylistsList extends StatefulWidget {
 class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
 
   late PersonalizedPlaylistService _playlistService;
   List<Playlist> _playlists = [];
@@ -54,7 +54,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
 
       // Load user preferences from Firestore
       //UserPreferences? preferences = await _loadUserPreferencesFromFirestore();
-      UserPreferences? preferences = createExampleUserPreferences();
+      final UserPreferences preferences = createExampleUserPreferences();
 
       // if (preferences == null) {
       //   // If no preferences found, use example preferences or prompt user to set them up
@@ -68,10 +68,10 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
       });
 
       // Fetch personalized playlists based on preferences
-      List<Playlist> playlists =
+      final List<Playlist> playlists =
           await _playlistService.fetchPersonalizedPlaylists(preferences);
       print(
-          "Found playlists: $playlists, Found preferences: ${preferences.favoriteGenres}");
+          'Found playlists: $playlists, Found preferences: ${preferences.favoriteGenres}');
 
       setState(() {
         _playlists = playlists;
@@ -87,7 +87,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
 
   Future<UserPreferences?> _loadUserPreferencesFromFirestore() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
+      final DocumentSnapshot doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .get();
@@ -96,7 +96,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
         return null;
       }
 
-      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
       return UserPreferences(
         favoriteGenres: List<String>.from(data['favoriteGenres'] ?? []),
@@ -134,7 +134,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
 
     try {
       // Update preferences based on liked playlist
-      UserPreferences updatedPreferences =
+      final UserPreferences updatedPreferences =
           await _playlistService.updatePreferencesFromHistory(
         _userPreferences!,
         [playlist.id!], // liked playlists
@@ -191,14 +191,14 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
   }
 
   String _getPlaylistSubtitle(Playlist playlist) {
-    List<String> subtitleParts = [];
+    final List<String> subtitleParts = [];
 
     if (playlist.tracks?.total != null) {
       subtitleParts.add('${playlist.tracks!.total} tracks');
     }
 
     if (playlist.followers?.total != null) {
-      int followers = playlist.followers!.total!;
+      final int followers = playlist.followers!.total!;
       if (followers >= 1000000) {
         subtitleParts
             .add('${(followers / 1000000).toStringAsFixed(1)}M followers');
@@ -279,7 +279,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
       child: ListView.builder(
         itemCount: _playlists.length,
         itemBuilder: (context, index) {
-          var playlist = _playlists[index];
+          final playlist = _playlists[index];
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Card(
@@ -359,7 +359,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
           fit: flutter.BoxFit.cover,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
-            return Container(
+            return DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.grey[800],
                 borderRadius: BorderRadius.circular(4),
@@ -370,7 +370,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
             );
           },
           errorBuilder: (context, error, stackTrace) {
-            return Container(
+            return DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.grey[800],
                 borderRadius: BorderRadius.circular(4),
@@ -386,7 +386,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
       );
     }
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.grey[800],
         borderRadius: BorderRadius.circular(4),

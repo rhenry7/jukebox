@@ -9,7 +9,7 @@ import 'package:flutter_test_project/models/music_preferences.dart';
 Future<MusicPreferences?> fetchMusicPreferences() async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
   try {
     final docSnapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -100,11 +100,11 @@ class MusicTasteProfileWidget extends StatefulWidget {
   final bool isOnboarding;
 
   const MusicTasteProfileWidget({
-    Key? key,
+    super.key,
     this.initialPreferences,
     required this.onPreferencesChanged,
     this.isOnboarding = false,
-  }) : super(key: key);
+  });
 
   @override
   State<MusicTasteProfileWidget> createState() =>
@@ -177,7 +177,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
 
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
-      : "";
+      : '';
 
   @override
   void initState() {
@@ -207,7 +207,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
 
   Future<void> _uploadPreferences() async {
     if (userId.isEmpty) {
-      print("User not logged in, cannot upload preferences.");
+      print('User not logged in, cannot upload preferences.');
       return;
     }
 
@@ -224,7 +224,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
 
   Future<EnhancedUserPreferences> _fetchPreferences() async {
     if (userId.isEmpty) {
-      print("User not logged in, cannot fetch preferences.");
+      print('User not logged in, cannot fetch preferences.');
       return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
     }
 
@@ -466,7 +466,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
                           newGenreWeights[genre] = value;
 
                           // Update favorite genres list based on preference
-                          List<String> newFavoriteGenres =
+                          final List<String> newFavoriteGenres =
                               List.from(_preferences.favoriteGenres);
                           if (value >= 0.6 &&
                               !newFavoriteGenres.contains(genre)) {
@@ -477,7 +477,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
                           }
 
                           // Update disliked genres list
-                          List<String> newDislikedGenres =
+                          final List<String> newDislikedGenres =
                               List.from(_preferences.dislikedGenres);
                           if (value <= 0.3 &&
                               !newDislikedGenres.contains(genre)) {
@@ -802,13 +802,13 @@ class CircularPercentageIndicator extends StatelessWidget {
   final Widget? center;
 
   const CircularPercentageIndicator({
-    Key? key,
+    super.key,
     required this.radius,
     required this.percent,
     required this.progressColor,
     required this.backgroundColor,
     this.center,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -829,7 +829,7 @@ class CircularPercentageIndicator extends StatelessWidget {
           ),
           if (center != null)
             Positioned.fill(
-              child: Center(child: center!),
+              child: Center(child: center),
             ),
         ],
       ),

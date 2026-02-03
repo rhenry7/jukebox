@@ -27,7 +27,7 @@ class UnsplashService {
       }
 
       // Search terms for vinyl/record photos
-      List<String> searchQueries = [
+      final List<String> searchQueries = [
         'vinyl record $albumName $artistName',
         'vinyl record collection $artistName',
         'vinyl records music collection',
@@ -36,7 +36,7 @@ class UnsplashService {
       ];
 
       // Try each search query until we get results
-      for (String query in searchQueries) {
+      for (final String query in searchQueries) {
         final url =
             Uri.parse('$_baseUrl/search/photos').replace(queryParameters: {
           'query': query,
@@ -86,7 +86,7 @@ class UnsplashService {
       });
 
       final response = await http.get(url);
-      print("response: ${response.body}");
+      print('response: ${response.body}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final results = data['results'] as List;
@@ -115,11 +115,11 @@ class VinylPhotoWidget extends StatefulWidget {
   final double size;
 
   const VinylPhotoWidget({
-    Key? key,
+    super.key,
     required this.albumName,
     required this.artistName,
     this.size = 60.0,
-  }) : super(key: key);
+  });
 
   @override
   _VinylPhotoWidgetState createState() => _VinylPhotoWidgetState();
@@ -171,7 +171,7 @@ class _VinylPhotoWidgetState extends State<VinylPhotoWidget> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Center(
-          child: const SizedBox(
+          child: SizedBox(
             width: 20,
             height: 20,
             child: DiscoBallLoading(),

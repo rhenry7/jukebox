@@ -9,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 class MusicNewsWidget extends ConsumerWidget {
   final List<String>? filterKeywords; // Optional - if null, uses user preferences
 
-  const MusicNewsWidget({Key? key, this.filterKeywords}) : super(key: key);
+  const MusicNewsWidget({super.key, this.filterKeywords});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,9 +41,9 @@ class MusicNewsWidget extends ConsumerWidget {
                   children: [
                     const Icon(Icons.error_outline, size: 64, color: Colors.red),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'Error loading articles',
-                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                      style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -55,18 +55,18 @@ class MusicNewsWidget extends ConsumerWidget {
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
+              return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.article_outlined, size: 64, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text(
+                    Icon(Icons.article_outlined, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
                       'No music articles found',
                       style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'Try updating your music preferences to see personalized news',
                       style: TextStyle(color: Colors.white70),
                       textAlign: TextAlign.center,
@@ -122,7 +122,7 @@ class MusicNewsWidget extends ConsumerWidget {
 class _NewsCard extends StatelessWidget {
   final MusicNewsArticle article;
 
-  const _NewsCard({Key? key, required this.article}) : super(key: key);
+  const _NewsCard({required this.article});
 
   void _launchURL(BuildContext context, String url) async {
     final uri = Uri.parse(url);

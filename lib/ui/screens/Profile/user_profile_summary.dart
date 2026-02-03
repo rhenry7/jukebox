@@ -47,18 +47,18 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                       userInfo?.reviews ?? []; // Provide empty list fallback
                   print(snapshot.data?.reviews);
                   if (userInfo == null) {
-                    return const Center(child: Text("no data from user info"));
+                    return const Center(child: Text('no data from user info'));
                   }
                   return Column(
                     children: [
                       // BACK BUTTON
-                      Padding(
-                        padding: const EdgeInsets.only(
+                      const Padding(
+                        padding: EdgeInsets.only(
                           top: 60.0,
                           left: 16.0,
                           right: 16.0,
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             BackButton(),
                           ],
@@ -137,7 +137,7 @@ class ProfileCardHeader extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    userInfo?.displayName ?? "",
+                    userInfo?.displayName ?? '',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -148,7 +148,7 @@ class ProfileCardHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "You already have ${reviews.length.toString()} reviews!",
+                    'You already have ${reviews.length.toString()} reviews!',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
@@ -159,7 +159,7 @@ class ProfileCardHeader extends StatelessWidget {
                   const SizedBox(height: 4),
                   if (userInfo?.joinDate != null)
                     Text(
-                      "juxeboxxn since ${userInfo!.joinDate!.year.toString()}",
+                      'juxeboxxn since ${userInfo!.joinDate!.year.toString()}',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -189,7 +189,7 @@ class ProfileStatsContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return const Expanded(
       child: ProfileAnalyticsDashboard(),
     );
   }

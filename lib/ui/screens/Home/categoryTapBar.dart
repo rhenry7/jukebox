@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 
 import '_comments.dart';
 import 'community_reviews.dart';
