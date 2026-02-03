@@ -11,7 +11,7 @@ class DiscoBallLoading extends StatelessWidget {
         children: [
           flutter.Image.asset('lib/assets/images/discoball_loading.png'),
           const SizedBox(height: 8),
-          const Text('One sec...', style: TextStyle(color: Colors.white)),
+          const Text('Thinking...', style: TextStyle(color: Colors.white)),
         ],
       ),
     );

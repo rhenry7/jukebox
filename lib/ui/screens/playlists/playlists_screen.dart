@@ -51,14 +51,6 @@ class PlaylistsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'My Playlists',
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
       body: playlistsAsync.when(
         data: (playlists) {
           if (playlists.isEmpty) {
