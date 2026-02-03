@@ -78,7 +78,6 @@ class Review {
       'displayName': displayName,
       'userId': userId,
       'artist': artist,
-      'title': title,
       'review': review,
       'score': score,
       'date': date?.toIso8601String(),
