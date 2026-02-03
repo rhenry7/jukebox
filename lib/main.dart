@@ -7,19 +7,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
+import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/utils/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables from .env file
+
+  // Load environment variables from .env file (local dev)
   try {
     await dotenv.load(fileName: ".env");
+    loadApiKeysFromDotenv(); // Fallback for API keys when --dart-define not used
   } catch (e) {
-    // If .env file doesn't exist, app will use fallback values
+    // If .env file doesn't exist, app will use --dart-define values or empty
     debugPrint('Warning: Could not load .env file: $e');
   }
-  
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

@@ -45,8 +45,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Hide key from version control
-api_key.dart
+# Hide real keys — lib/Api/api_key.dart is a committed stub; use .env or dart-define for real values
 .env
 .env.local
 .env.*.local
