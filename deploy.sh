@@ -37,9 +37,33 @@ fi
 
 echo ""
 
-# Step 3: Build Flutter web app
+# Step 3: Build Flutter web app (release mode) with API keys from .env
+# Keys are passed via --dart-define so the deployed app has them compiled in.
+# (The .env asset can 404 on Firebase Hosting; dart-define avoids that.)
 echo "📦 Building Flutter web app (release mode)..."
-flutter build web --release
+DART_DEFINES_ARRAY=()
+if [ -f .env ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [ -z "$line" ] && continue
+        [[ "$line" =~ ^# ]] && continue
+        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+            key="${BASH_REMATCH[1]}"
+            val="${BASH_REMATCH[2]}"
+            val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
+            case "$key" in
+                FIREBASE_OPTIONS_KEY|FIREBASE_APP_ID|SPOTIFY_CLIENT_ID|CLIENT_ID|SPOTIFY_CLIENT_SECRET|CLIENT_SECRET|NEWS_API_KEY|OPENAI_API_KEY|OPENAI_KEY|UNSPLASH_ACCESS_KEY|UNSPLASH_SECRET)
+                    DART_DEFINES_ARRAY+=(--dart-define="${key}=${val}")
+                    ;;
+            esac
+        fi
+    done < .env
+    echo "   Using API keys from .env for build (keys compiled into app for deploy)"
+fi
+if [ ${#DART_DEFINES_ARRAY[@]} -eq 0 ]; then
+    echo "   ⚠️  No .env found or no keys in .env — deployed app may show 'Firebase API key missing'"
+fi
+flutter build web --release "${DART_DEFINES_ARRAY[@]}"
 
 if [ $? -ne 0 ]; then
     echo "❌ Build failed! Please check the errors above."
