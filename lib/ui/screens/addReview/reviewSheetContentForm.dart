@@ -30,7 +30,8 @@ class MyReviewSheetContentForm extends ConsumerStatefulWidget {
       _MyReviewSheetContentFormState();
 }
 
-class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentForm> {
+class _MyReviewSheetContentFormState
+    extends ConsumerState<MyReviewSheetContentForm> {
   final FirebaseAuth auth = FirebaseAuth.instance;
   late String currentDate;
   bool liked = false;
@@ -41,7 +42,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
 
   // Search state
   List<spotify.Track> _trackResults = [];
-  List<dynamic> _albumResults = []; // Use dynamic to handle both Album and AlbumSimple
+  List<dynamic> _albumResults =
+      []; // Use dynamic to handle both Album and AlbumSimple
   bool _isSearching = false;
   String _selectedTrackTitle = '';
   String _selectedTrackArtist = '';
@@ -77,10 +79,12 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
     _searchDebounce?.cancel();
 
     final query = searchParams.text.trim();
-    debugPrint('⌨️  [INPUT] Search input changed: "$query" (length: ${query.length})');
-    
+    debugPrint(
+        '⌨️  [INPUT] Search input changed: "$query" (length: ${query.length})');
+
     if (query.length >= 2) {
-      debugPrint('   ✅ Query length sufficient, starting debounce timer (500ms)');
+      debugPrint(
+          '   ✅ Query length sufficient, starting debounce timer (500ms)');
       // Debounce search by 500ms
       _searchDebounce = Timer(const Duration(milliseconds: 500), () {
         debugPrint('   ⏰ Debounce timer completed, executing search');
@@ -130,17 +134,17 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       debugPrint('   Limit: $limit');
       debugPrint('   Making API request to Spotify...');
 
-      final searchResults = await spotifyApi.search
-          .get(query, types: searchTypes)
-          .first(limit);
+      final searchResults =
+          await spotifyApi.search.get(query, types: searchTypes).first(limit);
 
       debugPrint('   ✅ API request successful');
       debugPrint('   Processing results...');
 
       final List<spotify.Track> tracks = [];
-      final List<dynamic> albums = []; // Use dynamic to handle both Album and AlbumSimple
+      final List<dynamic> albums =
+          []; // Use dynamic to handle both Album and AlbumSimple
       int totalItemsProcessed = 0;
-      
+
       for (final page in searchResults) {
         if (page.items != null) {
           debugPrint('   📄 Processing page with ${page.items!.length} items');
@@ -148,17 +152,20 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
             totalItemsProcessed++;
             if (item is spotify.Track) {
               tracks.add(item);
-              debugPrint('   🎵 Track found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+              debugPrint(
+                  '   🎵 Track found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
             } else if (item is spotify.Album) {
               albums.add(item);
-              debugPrint('   💿 Album found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+              debugPrint(
+                  '   💿 Album found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
             } else if (item is spotify.AlbumSimple) {
               // Handle AlbumSimple - it has the same properties we need
               albums.add(item);
               final artistNames = item.artists != null
                   ? item.artists!.map((a) => a.name ?? 'Unknown').join(', ')
                   : 'Unknown';
-              debugPrint('   💿 AlbumSimple found: "${item.name}" by $artistNames');
+              debugPrint(
+                  '   💿 AlbumSimple found: "${item.name}" by $artistNames');
             } else {
               debugPrint('   ⚠️  Unknown item type: ${item.runtimeType}');
             }
@@ -176,7 +183,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       if (tracks.isNotEmpty) {
         debugPrint('   🎵 Tracks:');
         for (final track in tracks.take(5)) {
-          debugPrint('      - "${track.name}" by ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+          debugPrint(
+              '      - "${track.name}" by ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
         }
         if (tracks.length > 5) {
           debugPrint('      ... and ${tracks.length - 5} more tracks');
@@ -186,7 +194,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       if (albums.isNotEmpty) {
         debugPrint('   💿 Albums:');
         for (final album in albums.take(5)) {
-          debugPrint('      - "${album.name}" by ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+          debugPrint(
+              '      - "${album.name}" by ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
         }
         if (albums.length > 5) {
           debugPrint('      ... and ${albums.length - 5} more albums');
@@ -221,10 +230,12 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
   void _selectTrack(spotify.Track track) {
     debugPrint('🎵 [SELECT] Track selected:');
     debugPrint('   Title: "${track.name}"');
-    debugPrint('   Artist: ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+    debugPrint(
+        '   Artist: ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
     debugPrint('   Album: ${track.album?.name ?? 'Unknown'}');
-    debugPrint('   Image URL: ${track.album?.images?.isNotEmpty == true ? track.album!.images!.first.url ?? 'None' : 'None'}');
-    
+    debugPrint(
+        '   Image URL: ${track.album?.images?.isNotEmpty == true ? track.album!.images!.first.url ?? 'None' : 'None'}');
+
     setState(() {
       _selectedTrackTitle = track.name ?? '';
       _selectedTrackArtist = track.artists?.map((a) => a.name).join(', ') ?? '';
@@ -241,17 +252,18 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
   void _selectAlbum(spotify.Album album) {
     debugPrint('💿 [SELECT] Album selected:');
     debugPrint('   Title: "${album.name}"');
-    debugPrint('   Artist: ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
-    debugPrint('   Image URL: ${album.images?.isNotEmpty == true ? album.images!.first.url ?? 'None' : 'None'}');
+    debugPrint(
+        '   Artist: ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+    debugPrint(
+        '   Image URL: ${album.images?.isNotEmpty == true ? album.images!.first.url ?? 'None' : 'None'}');
     debugPrint('   Release Date: ${album.releaseDate ?? 'Unknown'}');
     debugPrint('   Album Type: ${album.albumType ?? 'Unknown'}');
-    
+
     setState(() {
       _selectedTrackTitle = album.name ?? '';
       _selectedTrackArtist = album.artists?.map((a) => a.name).join(', ') ?? '';
-      _selectedTrackImageUrl = album.images?.isNotEmpty == true
-          ? album.images!.first.url ?? ''
-          : '';
+      _selectedTrackImageUrl =
+          album.images?.isNotEmpty == true ? album.images!.first.url ?? '' : '';
       _trackResults = [];
       _albumResults = [];
       searchParams.clear();
@@ -263,7 +275,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
     final isSelected = _searchFilter == filter;
     return GestureDetector(
       onTap: () {
-        debugPrint('🏷️  [FILTER] Changed filter from "$_searchFilter" to "$filter"');
+        debugPrint(
+            '🏷️  [FILTER] Changed filter from "$_searchFilter" to "$filter"');
         setState(() {
           _searchFilter = filter;
           // Trigger new search if there's a query
@@ -271,7 +284,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
             debugPrint('   Triggering new search with filter "$filter"');
             _performSearch(searchParams.text.trim());
           } else {
-            debugPrint('   No active query, filter changed but no search triggered');
+            debugPrint(
+                '   No active query, filter changed but no search triggered');
           }
         });
       },
@@ -387,7 +401,7 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
             ? _selectedTrackImageUrl
             : widget.albumImageUrl,
       );
-      
+
       // Invalidate reviews provider to refresh all screens automatically
       ref.invalidate(userReviewsProvider);
       if (liked) {
@@ -482,7 +496,11 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: DiscoBallLoading(),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.0,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
                                   ),
                                 )
                               ]
@@ -517,7 +535,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                       if (_trackResults.isNotEmpty || _albumResults.isNotEmpty)
                         Expanded(
                           child: ListView.builder(
-                            itemCount: _trackResults.length + _albumResults.length,
+                            itemCount:
+                                _trackResults.length + _albumResults.length,
                             itemBuilder: (context, index) {
                               // Show tracks first, then albums
                               if (index < _trackResults.length) {
@@ -572,7 +591,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                         Expanded(
                                           child: Text(
                                             track.name ?? 'Unknown Track',
-                                            style: const TextStyle(color: Colors.white),
+                                            style: const TextStyle(
+                                                color: Colors.white),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -589,7 +609,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                     ),
                                     subtitle: Text(
                                       artistNames,
-                                      style: const TextStyle(color: Colors.white70),
+                                      style: const TextStyle(
+                                          color: Colors.white70),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -600,22 +621,26 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                 // Show albums (can be Album or AlbumSimple)
                                 final albumIndex = index - _trackResults.length;
                                 final album = _albumResults[albumIndex];
-                                
+
                                 // Handle both Album and AlbumSimple
                                 String? imageUrl;
                                 String artistNames = 'Unknown Artist';
                                 String albumName = 'Unknown Album';
                                 String releaseYear = '';
-                                
+
                                 if (album is spotify.Album) {
                                   albumName = album.name ?? 'Unknown Album';
                                   imageUrl = album.images?.isNotEmpty == true
                                       ? album.images!.first.url
                                       : null;
-                                  artistNames = album.artists?.map((a) => a.name).join(', ') ?? 'Unknown Artist';
+                                  artistNames = album.artists
+                                          ?.map((a) => a.name)
+                                          .join(', ') ??
+                                      'Unknown Artist';
                                   // Extract year from releaseDate
                                   if (album.releaseDate != null) {
-                                    final dateStr = album.releaseDate.toString();
+                                    final dateStr =
+                                        album.releaseDate.toString();
                                     if (dateStr.length >= 4) {
                                       releaseYear = dateStr.substring(0, 4);
                                     }
@@ -625,31 +650,41 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                   imageUrl = album.images?.isNotEmpty == true
                                       ? album.images!.first.url
                                       : null;
-                                  artistNames = album.artists?.map((a) => a.name ?? 'Unknown').join(', ') ?? 'Unknown Artist';
+                                  artistNames = album.artists
+                                          ?.map((a) => a.name ?? 'Unknown')
+                                          .join(', ') ??
+                                      'Unknown Artist';
                                   // Extract year from releaseDate
                                   if (album.releaseDate != null) {
-                                    final dateStr = album.releaseDate.toString();
+                                    final dateStr =
+                                        album.releaseDate.toString();
                                     if (dateStr.length >= 4) {
                                       releaseYear = dateStr.substring(0, 4);
                                     }
                                   }
                                 } else {
                                   // Fallback for dynamic type
-                                  albumName = album.name?.toString() ?? 'Unknown Album';
-                                  if (album.images != null && album.images is List && (album.images as List).isNotEmpty) {
-                                    final firstImage = (album.images as List).first;
+                                  albumName =
+                                      album.name?.toString() ?? 'Unknown Album';
+                                  if (album.images != null &&
+                                      album.images is List &&
+                                      (album.images as List).isNotEmpty) {
+                                    final firstImage =
+                                        (album.images as List).first;
                                     imageUrl = firstImage.url?.toString();
                                   }
                                   if (album.artists != null) {
                                     if (album.artists is List) {
                                       artistNames = (album.artists as List)
-                                          .map((a) => a.name?.toString() ?? 'Unknown')
+                                          .map((a) =>
+                                              a.name?.toString() ?? 'Unknown')
                                           .join(', ');
                                     }
                                   }
                                   // Try to extract year from releaseDate
                                   if (album.releaseDate != null) {
-                                    final dateStr = album.releaseDate.toString();
+                                    final dateStr =
+                                        album.releaseDate.toString();
                                     if (dateStr.length >= 4) {
                                       releaseYear = dateStr.substring(0, 4);
                                     }
@@ -697,7 +732,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                         Expanded(
                                           child: Text(
                                             albumName,
-                                            style: const TextStyle(color: Colors.white),
+                                            style: const TextStyle(
+                                                color: Colors.white),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -716,7 +752,8 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
                                       releaseYear.isNotEmpty
                                           ? '$artistNames • $releaseYear'
                                           : artistNames,
-                                      style: const TextStyle(color: Colors.white70),
+                                      style: const TextStyle(
+                                          color: Colors.white70),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),

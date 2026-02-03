@@ -18,10 +18,12 @@ class CommunityReviewsCollection extends ConsumerStatefulWidget {
   const CommunityReviewsCollection({super.key});
 
   @override
-  ConsumerState<CommunityReviewsCollection> createState() => _CommunityReviewsCollectionState();
+  ConsumerState<CommunityReviewsCollection> createState() =>
+      _CommunityReviewsCollectionState();
 }
 
-class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCollection> {
+class _CommunityReviewsCollectionState
+    extends ConsumerState<CommunityReviewsCollection> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   int _previousItemCount = 0;
@@ -43,36 +45,37 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
 
   void _onScroll() {
     // Load more when user scrolls near the bottom (80% of the way)
-    if (!_isLoadingMore && 
+    if (!_isLoadingMore &&
         _scrollController.hasClients &&
-        _scrollController.position.pixels >= 
-        _scrollController.position.maxScrollExtent * 0.8) {
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.8) {
       _loadMore();
     }
   }
 
   Future<void> _loadMore() async {
     if (_isLoadingMore) return;
-    
+
     // Save current scroll position and item count before loading
     if (_scrollController.hasClients) {
       _previousScrollPosition = _scrollController.position.pixels;
       // Get current item count from the provider
       final currentLimit = ref.read(communityReviewsLimitProvider);
-      final currentReviewsAsync = ref.read(communityReviewsProvider(currentLimit));
+      final currentReviewsAsync =
+          ref.read(communityReviewsProvider(currentLimit));
       _previousItemCount = currentReviewsAsync.value?.length ?? 0;
     }
-    
+
     setState(() {
       _isLoadingMore = true;
     });
 
     // Increase the limit to load more reviews
     ref.read(loadMoreCommunityReviewsProvider)();
-    
+
     // Wait a bit for the data to load
     await Future.delayed(const Duration(milliseconds: 300));
-    
+
     if (mounted) {
       setState(() {
         _isLoadingMore = false;
@@ -83,9 +86,9 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
   void _restoreScrollPosition(int newItemCount) {
     // Only restore if we actually loaded more items (lazy loading scenario)
     if (newItemCount > _previousItemCount && _scrollController.hasClients) {
-      final wasNearBottom = _previousScrollPosition >= 
+      final wasNearBottom = _previousScrollPosition >=
           (_scrollController.position.maxScrollExtent * 0.9);
-      
+
       // Use post-frame callback to restore position after rebuild completes
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients && mounted) {
@@ -116,7 +119,7 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
     final userId = ref.watch(currentUserIdProvider);
     final limit = ref.watch(communityReviewsLimitProvider);
     final reviewsAsync = ref.watch(communityReviewsProvider(limit));
-    
+
     // Check if user is authenticated
     if (userId == null) {
       return Center(
@@ -186,7 +189,7 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
         if (_isLoadingMore || reviews.length > _previousItemCount) {
           _restoreScrollPosition(reviews.length);
         }
-        
+
         if (reviews.isEmpty) {
           return Center(
             child: Column(
@@ -208,7 +211,8 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
                 ElevatedButton.icon(
                   onPressed: () {
                     // Navigate to discovery tab (index 1)
-                    final mainNavState = context.findAncestorStateOfType<MainNavState>();
+                    final mainNavState =
+                        context.findAncestorStateOfType<MainNavState>();
                     if (mainNavState != null) {
                       mainNavState.navigateToTab(1);
                     }
@@ -242,7 +246,8 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
                 const Gap(10),
                 Expanded(
                   child: CommunityReviewList(
-                    key: ValueKey('community_reviews_${reviews.length}'), // Key to help maintain state
+                    key: ValueKey(
+                        'community_reviews_${reviews.length}'), // Key to help maintain state
                     reviews: reviews,
                     scrollController: _scrollController,
                     isLoadingMore: _isLoadingMore,
@@ -311,7 +316,8 @@ class CommunityReviewList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView.builder(
-      key: const PageStorageKey('community_reviews_list'), // Preserve scroll position
+      key: const PageStorageKey(
+          'community_reviews_list'), // Preserve scroll position
       controller: scrollController,
       itemCount: reviews.length + (isLoadingMore ? 1 : 0),
       cacheExtent: 500, // Cache more items to prevent scroll jumps
@@ -320,7 +326,9 @@ class CommunityReviewList extends ConsumerWidget {
         if (index == reviews.length) {
           return const Padding(
             padding: EdgeInsets.all(16.0),
-            child: DiscoBallLoading(),
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
           );
         }
 
@@ -371,7 +379,8 @@ class CommunityReviewList extends ConsumerWidget {
     );
   }
 
-  void _showReviewOptionsDialog(BuildContext context, ReviewWithDocId review, WidgetRef ref) {
+  void _showReviewOptionsDialog(
+      BuildContext context, ReviewWithDocId review, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -451,15 +460,17 @@ class CommunityReviewList extends ConsumerWidget {
     );
   }
 
-  void _deleteReview(BuildContext context, ReviewWithDocId review, WidgetRef ref) {
+  void _deleteReview(
+      BuildContext context, ReviewWithDocId review, WidgetRef ref) {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be signed in to delete reviews')),
+        const SnackBar(
+            content: Text('You must be signed in to delete reviews')),
       );
       return;
     }
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -494,7 +505,7 @@ class CommunityReviewList extends ConsumerWidget {
                     .collection('reviews')
                     .doc(review.docId)
                     .delete();
-                
+
                 // Invalidate providers to refresh UI
                 final currentLimit = ref.read(communityReviewsLimitProvider);
                 ref.invalidate(communityReviewsProvider(currentLimit));

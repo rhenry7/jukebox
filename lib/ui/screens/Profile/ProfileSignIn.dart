@@ -26,7 +26,7 @@ class _SignInScreenState extends State<SignInScreen> {
     super.initState();
     // Check if user is already signed in
     _checkAuthState();
-    
+
     // Add listeners to focus nodes to update UI when focus changes
     _emailFocusNode.addListener(() {
       setState(() {}); // Rebuild when focus changes
@@ -98,7 +98,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
           // Navigate to home page after a short delay to show toast
           await Future.delayed(const Duration(milliseconds: 500));
-          
+
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
@@ -114,7 +114,8 @@ class _SignInScreenState extends State<SignInScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sign in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
+            content: Text(
+                'Sign in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -159,8 +160,8 @@ class _SignInScreenState extends State<SignInScreen> {
             // Email field with focus-aware styling
             Container(
               decoration: BoxDecoration(
-                color: _emailFocusNode.hasFocus 
-                    ? Colors.grey[900]?.withOpacity(0.3) 
+                color: _emailFocusNode.hasFocus
+                    ? Colors.grey[900]?.withOpacity(0.3)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -171,14 +172,14 @@ class _SignInScreenState extends State<SignInScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email',
                   labelStyle: TextStyle(
-                    color: _emailFocusNode.hasFocus 
-                        ? Colors.red[600] 
+                    color: _emailFocusNode.hasFocus
+                        ? Colors.red[600]
                         : Colors.grey,
                   ),
                   enabledBorder: UnderlineInputBorder(
                     borderSide: BorderSide(
-                      color: _emailFocusNode.hasFocus 
-                          ? Colors.red[600]! 
+                      color: _emailFocusNode.hasFocus
+                          ? Colors.red[600]!
                           : Colors.grey,
                       width: _emailFocusNode.hasFocus ? 2 : 1,
                     ),
@@ -198,8 +199,8 @@ class _SignInScreenState extends State<SignInScreen> {
             // Password field with focus-aware styling
             Container(
               decoration: BoxDecoration(
-                color: _passwordFocusNode.hasFocus 
-                    ? Colors.grey[900]?.withOpacity(0.3) 
+                color: _passwordFocusNode.hasFocus
+                    ? Colors.grey[900]?.withOpacity(0.3)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -210,14 +211,14 @@ class _SignInScreenState extends State<SignInScreen> {
                 decoration: InputDecoration(
                   labelText: 'Password',
                   labelStyle: TextStyle(
-                    color: _passwordFocusNode.hasFocus 
-                        ? Colors.red[600] 
+                    color: _passwordFocusNode.hasFocus
+                        ? Colors.red[600]
                         : Colors.grey,
                   ),
                   enabledBorder: UnderlineInputBorder(
                     borderSide: BorderSide(
-                      color: _passwordFocusNode.hasFocus 
-                          ? Colors.red[600]! 
+                      color: _passwordFocusNode.hasFocus
+                          ? Colors.red[600]!
                           : Colors.grey,
                       width: _passwordFocusNode.hasFocus ? 2 : 1,
                     ),
@@ -248,7 +249,11 @@ class _SignInScreenState extends State<SignInScreen> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: DiscoBallLoading(),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.red),
+                            ),
                           )
                         : const Text('Sign In'),
                   ),
