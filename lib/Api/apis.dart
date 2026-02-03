@@ -48,10 +48,10 @@ Future<List<Track>> fetchExploreTracks({
               .all()
               .timeout(const Duration(seconds: 5));
           
-          // Take first 5 tracks quickly
+          // Take first 10 tracks from featured playlist
           int count = 0;
           for (var track in tracksIterable) {
-            if (count >= 5) break;
+            if (count >= 10) break; // Increased from 5 to 10
             if (track is Track) {
               exploreTracks.add(track);
             }
@@ -135,7 +135,7 @@ Future<List<Track>> fetchExploreTracks({
     final queryFutures = exploreQueries.map((query) async {
       try {
         final searchFuture = spotify.search.get(query,
-            types: [SearchType.track]).first(3);
+            types: [SearchType.track]).first(10); // Increased from 3 to 10 for more results
         
         final searchResults = await searchFuture.timeout(
           const Duration(seconds: 5),
@@ -177,10 +177,10 @@ Future<List<Track>> fetchExploreTracks({
       }
     }
 
-    // Shuffle and return top 20
+    // Shuffle and return top 30 (increased from 20 for more results)
     final finalTracks = uniqueTracks.values.toList()..shuffle();
-    print('✅ [EXPLORE] Returning ${finalTracks.take(20).length} unique tracks');
-    return finalTracks.take(20).toList();
+    print('✅ [EXPLORE] Returning ${finalTracks.take(30).length} unique tracks');
+    return finalTracks.take(30).toList();
   } catch (e) {
     print('❌ Error fetching explore tracks: $e');
     return [];
