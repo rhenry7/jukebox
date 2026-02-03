@@ -1,4 +1,5 @@
 // User preference model
+import 'package:flutter/foundation.dart';
 import 'package:spotify/spotify.dart';
 
 class UserPreferences {
@@ -86,7 +87,7 @@ class PersonalizedPlaylistService {
             }
           }
         } catch (e) {
-          print(
+          debugPrint(
               'Error searching for recommendation "${recommendation.name}": $e');
           continue;
         }
@@ -110,7 +111,7 @@ class PersonalizedPlaylistService {
       });
       return finalPlaylists.take(10).toList();
     } catch (e) {
-      print('Error fetching personalized playlists: $e');
+      debugPrint('Error fetching personalized playlists: $e');
       return [];
     }
   }
@@ -291,7 +292,7 @@ class PersonalizedPlaylistService {
             }
           }
                 } catch (e) {
-          print('Error analyzing liked playlist $playlistId: $e');
+          debugPrint('Error analyzing liked playlist $playlistId: $e');
         }
       }
 
@@ -304,7 +305,7 @@ class PersonalizedPlaylistService {
         savedTracks: currentPreferences.savedTracks,
       );
     } catch (e) {
-      print('Error updating preferences: $e');
+      debugPrint('Error updating preferences: $e');
       return currentPreferences;
     }
   }

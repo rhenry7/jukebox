@@ -108,7 +108,7 @@ class UserProfileInteractionDialog extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         //Navigator.of(context).pop();
-                        print('Following user: $displayName as $currentUid');
+                        debugPrint('Following user: $displayName as $currentUid');
                         followUser(currentUid, displayName).then((_) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

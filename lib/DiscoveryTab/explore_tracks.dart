@@ -70,7 +70,7 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
             .catchError((e) {
               failureCount++;
               // Log errors in production for debugging
-              print('⚠️  Error fetching bio for $artistName: $e');
+              debugPrint('⚠️  Error fetching bio for $artistName: $e');
             }),
       );
     }
@@ -79,10 +79,10 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
     try {
       await Future.wait(bioFutures, eagerError: false);
     } catch (e) {
-      print('⚠️  Error in parallel bio fetching: $e');
+      debugPrint('⚠️  Error in parallel bio fetching: $e');
     }
     
-    print('📊 Bio fetch results: $successCount successful, $failureCount failed');
+    debugPrint('📊 Bio fetch results: $successCount successful, $failureCount failed');
     
     // FALLBACK: If we got some tracks but no bios, return empty map
     // The UI will show tracks without bios rather than showing "No tracks"
@@ -282,7 +282,7 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
                       },
                     );
                   } else if (snapshot.hasError) {
-                    print(snapshot);
+                    debugPrint('Tracks load error: ${snapshot.error}');
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(32.0),
@@ -348,7 +348,7 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
           (key, value) => MapEntry(key, (value as num).toDouble()),
         ) ?? <String, double>{};
         
-        print('🎵 [EXPLORE] Using taste profile: ${preferredGenres.take(5).join(", ")}');
+        debugPrint('🎵 [EXPLORE] Using taste profile: ${preferredGenres.take(5).join(", ")}');
         
         if (preferredGenres.isNotEmpty) {
           return fetchExploreTracks(
@@ -359,10 +359,10 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
       }
       
       // Fallback to defaults if no taste profile
-      print('🎵 [EXPLORE] No taste profile found, using defaults...');
+      debugPrint('🎵 [EXPLORE] No taste profile found, using defaults...');
       return fetchExploreTracks();
     } catch (e) {
-      print('⚠️ Error fetching taste profile for explore: $e');
+      debugPrint('⚠️ Error fetching taste profile for explore: $e');
       // Fallback to defaults on error
       return fetchExploreTracks();
     }

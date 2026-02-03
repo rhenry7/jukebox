@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 /// Service to cache album art URLs in Firestore to avoid repeated API calls
 class AlbumArtCacheService {
@@ -57,13 +58,13 @@ class AlbumArtCacheService {
         final data = doc.data()!;
         final imageUrl = data['imageUrl'] as String?;
         if (imageUrl != null && imageUrl.isNotEmpty) {
-          print('Found cached album art for $title by $artist');
+          debugPrint('Found cached album art for $title by $artist');
           return imageUrl;
         }
       }
       return null;
     } catch (e) {
-      print('Error getting cached album art: $e');
+      debugPrint('Error getting cached album art: $e');
       return null;
     }
   }
@@ -89,9 +90,9 @@ class AlbumArtCacheService {
         'source': 'spotify', // Track where image came from
       }, SetOptions(merge: true));
       
-      print('Cached album art for $title by $artist');
+      debugPrint('Cached album art for $title by $artist');
     } catch (e) {
-      print('Error caching album art: $e');
+      debugPrint('Error caching album art: $e');
     }
   }
 
@@ -117,7 +118,7 @@ class AlbumArtCacheService {
         return imageUrl;
       }
     } catch (e) {
-      print('Error fetching album art: $e');
+      debugPrint('Error fetching album art: $e');
     }
 
     // 4. Return null if nothing found
@@ -132,9 +133,9 @@ class AlbumArtCacheService {
           .collection(_collectionName)
           .doc(cacheKey)
           .delete();
-      print('Cleared album art cache for $title by $artist');
+      debugPrint('Cleared album art cache for $title by $artist');
     } catch (e) {
-      print('Error clearing album art cache: $e');
+      debugPrint('Error clearing album art cache: $e');
     }
   }
 }

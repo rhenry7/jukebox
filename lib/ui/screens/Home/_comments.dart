@@ -93,9 +93,9 @@ class UserReviewsCollection extends ConsumerWidget {
     return reviewsAsync.when(
       data: (reviews) {
         // Debug logging
-        print('✅ Reviews loaded: ${reviews.length} reviews');
+        debugPrint('✅ Reviews loaded: ${reviews.length} reviews');
         if (reviews.isEmpty) {
-          print('⚠️ No reviews found for user: $userId');
+          debugPrint('⚠️ No reviews found for user: $userId');
         }
         
         if (reviews.isEmpty) {
@@ -170,7 +170,7 @@ class UserReviewsCollection extends ConsumerWidget {
         },
       ),
       error: (error, stackTrace) {
-        print('❌ Error loading reviews: $error');
+        debugPrint('❌ Error loading reviews: $error');
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -706,7 +706,7 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
         return;
       }
     } catch (e) {
-      print('Error loading genres: $e');
+      debugPrint('Error loading genres: $e');
     }
 
     // If MusicBrainz fails, genres remain null/empty

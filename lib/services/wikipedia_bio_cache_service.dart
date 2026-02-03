@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 /// Service to cache Wikipedia artist bios in Firestore to avoid repeated API calls
 class WikipediaBioCacheService {
@@ -44,13 +45,13 @@ class WikipediaBioCacheService {
         final data = doc.data()!;
         final bio = data['bio'] as String?;
         if (bio != null && bio.isNotEmpty) {
-          print('💾 Found cached Wikipedia bio for: $artistName');
+          debugPrint('💾 Found cached Wikipedia bio for: $artistName');
           return bio;
         }
       }
       return null;
     } catch (e) {
-      print('⚠️  Error getting cached Wikipedia bio: $e');
+      debugPrint('⚠️  Error getting cached Wikipedia bio: $e');
       return null;
     }
   }
@@ -74,9 +75,9 @@ class WikipediaBioCacheService {
         'source': 'wikipedia', // Track where bio came from
       }, SetOptions(merge: true));
       
-      print('💾 Cached Wikipedia bio for: $artistName');
+      debugPrint('💾 Cached Wikipedia bio for: $artistName');
     } catch (e) {
-      print('⚠️  Error caching Wikipedia bio: $e');
+      debugPrint('⚠️  Error caching Wikipedia bio: $e');
     }
   }
 
@@ -101,7 +102,7 @@ class WikipediaBioCacheService {
         return bio;
       }
     } catch (e) {
-      print('⚠️  Error fetching Wikipedia bio: $e');
+      debugPrint('⚠️  Error fetching Wikipedia bio: $e');
     }
 
     // 4. Return null if nothing found
@@ -116,9 +117,9 @@ class WikipediaBioCacheService {
           .collection(_collectionName)
           .doc(cacheKey)
           .delete();
-      print('🗑️  Cleared Wikipedia bio cache for: $artistName');
+      debugPrint('🗑️  Cleared Wikipedia bio cache for: $artistName');
     } catch (e) {
-      print('⚠️  Error clearing Wikipedia bio cache: $e');
+      debugPrint('⚠️  Error clearing Wikipedia bio cache: $e');
     }
   }
 }

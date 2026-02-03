@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
@@ -78,7 +79,7 @@ class RecommendationEnhancements {
       
       return sortedUsers.take(10).map((e) => e.key).toList();
     } catch (e) {
-      print('Error finding similar users: $e');
+      debugPrint('Error finding similar users: $e');
       return [];
     }
   }
@@ -138,7 +139,7 @@ class RecommendationEnhancements {
 
       return sortedRecs.take(5).map((e) => e.key).toList();
     } catch (e) {
-      print('Error getting collaborative recommendations: $e');
+      debugPrint('Error getting collaborative recommendations: $e');
       return [];
     }
   }
@@ -208,10 +209,10 @@ class RecommendationEnhancements {
                       firstArtist,
                     );
                     if (genres.isNotEmpty) {
-                      print('Got ${genres.length} genres (from cache/API) for ${item.name}');
+                      debugPrint('Got ${genres.length} genres (from cache/API) for ${item.name}');
                     }
                   } catch (e) {
-                    print('Genre cache/API failed for ${item.name}: $e');
+                    debugPrint('Genre cache/API failed for ${item.name}: $e');
                   }
                   
                   // 2. Fallback to Spotify artist genres if cache/API didn't provide genres
@@ -220,10 +221,10 @@ class RecommendationEnhancements {
                       if (item.artists!.isNotEmpty && item.artists!.first.id != null) {
                         final artist = await spotify.artists.get(item.artists!.first.id!);
                         genres = artist.genres ?? [];
-                        print('Got ${genres.length} artist genres from Spotify for ${item.name}');
+                        debugPrint('Got ${genres.length} artist genres from Spotify for ${item.name}');
                       }
                     } catch (e) {
-                      print('Error getting Spotify artist genres: $e');
+                      debugPrint('Error getting Spotify artist genres: $e');
                     }
                   }
 
@@ -251,14 +252,14 @@ class RecommendationEnhancements {
           // Small delay to avoid rate limiting
           await Future.delayed(const Duration(milliseconds: 200));
         } catch (e) {
-          print('Error searching for artist $artistName: $e');
+          debugPrint('Error searching for artist $artistName: $e');
           continue;
         }
       }
 
       return musicRecs;
     } catch (e) {
-      print('Error getting Spotify recommendations: $e');
+      debugPrint('Error getting Spotify recommendations: $e');
       return [];
     }
   }

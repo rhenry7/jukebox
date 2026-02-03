@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/user_models.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
@@ -41,7 +42,7 @@ class UserServices {
         );
       }
     } catch (e) {
-      print('Error fetching user info: $e');
+      debugPrint('Error fetching user info: $e');
       return UserReviewInfo(
         displayName: 'Undefined',
         joinDate: null,
@@ -55,7 +56,7 @@ class UserServices {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('No user is currently signed in.');
+        debugPrint('No user is currently signed in.');
         return UserReviewInfo(
           displayName: 'Undefined',
           joinDate: null,
@@ -90,7 +91,7 @@ class UserServices {
         // use avatar image URL if available
       );
     } catch (e) {
-      print('Error fetching current user info: $e');
+      debugPrint('Error fetching current user info: $e');
       return UserReviewInfo(
         displayName: 'Undefined',
         joinDate: null,
@@ -113,7 +114,7 @@ class UserServices {
           .map((doc) => Review.fromFirestore(doc.data()))
           .toList();
     } catch (e) {
-      print('Error fetching user reviews: $e');
+      debugPrint('Error fetching user reviews: $e');
       return [];
     }
   }
@@ -127,7 +128,7 @@ class UserServices {
           .map((doc) => UserReviewInfo.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      print('Error fetching users: $e');
+      debugPrint('Error fetching users: $e');
       return [];
     }
   }

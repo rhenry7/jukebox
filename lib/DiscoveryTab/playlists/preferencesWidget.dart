@@ -70,7 +70,7 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
       // Optionally refresh recommendations
       _loadPersonalizedPlaylists();
     } catch (e) {
-      print('Error updating preferences: $e');
+      debugPrint('Error updating preferences: $e');
     }
   }
 

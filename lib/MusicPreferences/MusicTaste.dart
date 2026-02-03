@@ -26,7 +26,7 @@ Future<MusicPreferences?> fetchMusicPreferences() async {
     }
     return null;
   } catch (e) {
-    print('Error fetching music preferences: $e');
+    debugPrint('Error fetching music preferences: $e');
     return null;
   }
 }
@@ -207,7 +207,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
 
   Future<void> _uploadPreferences() async {
     if (userId.isEmpty) {
-      print('User not logged in, cannot upload preferences.');
+      debugPrint('User not logged in, cannot upload preferences.');
       return;
     }
 
@@ -224,7 +224,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
 
   Future<EnhancedUserPreferences> _fetchPreferences() async {
     if (userId.isEmpty) {
-      print('User not logged in, cannot fetch preferences.');
+      debugPrint('User not logged in, cannot fetch preferences.');
       return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
     }
 
@@ -244,7 +244,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
   }
 
   Future<void> handleSavePreferences() async {
-    print(EnhancedUserPreferences.fromJson(_preferences.toJson()));
+    debugPrint('Saving preferences: ${_preferences.toJson()}');
     try {
       await _uploadPreferences();
       ScaffoldMessenger.of(context).showSnackBar(

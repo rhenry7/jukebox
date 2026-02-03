@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
 
@@ -74,7 +75,7 @@ class MusicBrainzService {
     int limit = 10,
   }) async {
     await _rateLimit();
-    print('in search albums');
+    debugPrint('in search albums');
 
     String query = '$year';
     if (month != null) {
@@ -94,7 +95,7 @@ class MusicBrainzService {
     final response = await http.get(url, headers: {
       'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
     });
-    print('Status code: ${response.statusCode}');
+    debugPrint('Status code: ${response.statusCode}');
     try {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -109,7 +110,7 @@ class MusicBrainzService {
       }
       return [];
     } catch (e) {
-      print('Error: $e');
+      debugPrint('Error: $e');
       return [];
     }
   }
@@ -176,10 +177,10 @@ class MusicBrainzService {
           return _parseAlbum(items.first);
         }
       } catch (e) {
-        print('Parsing error: $e');
+        debugPrint('Parsing error: $e');
       }
     } else {
-      //print('MusicBrainz search failed: ${response.statusCode}');
+      //debugPrint('MusicBrainz search failed: ${response.statusCode}');
     }
 
     return null;
@@ -243,7 +244,7 @@ class MusicBrainzService {
         }
       }
     } catch (e) {
-      print('Error validating track in MusicBrainz: $e');
+      debugPrint('Error validating track in MusicBrainz: $e');
     }
 
     return false; // Track not found
@@ -263,16 +264,16 @@ class MusicBrainzService {
         final mbAlbum =
             await MusicBrainzService.searchByTitleAndArtist(title, artist);
         mbAlbum?.imageURL = imageURL;
-        // print(imageURL);
-        // print(mbAlbum);
+        // debugPrint(imageURL);
+        // debugPrint(mbAlbum);
         if (mbAlbum != null) {
           enriched.add(mbAlbum);
         } else {
-          print('No match found for "$title" by $artist');
+          debugPrint('No match found for "$title" by $artist');
         }
       }
     }
-    //print(enriched.toString());
+    //debugPrint(enriched.toString());
     return enriched;
   }
 

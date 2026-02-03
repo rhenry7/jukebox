@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
 
 /// Service to cache genres in Firestore to avoid repeated API calls
@@ -27,13 +28,13 @@ class GenreCacheService {
         final genres = data['genres'] as List<dynamic>?;
         if (genres != null && genres.isNotEmpty) {
           final genreList = genres.map((g) => g.toString()).toList();
-          print('Found cached genres for $title by $artist: $genreList');
+          debugPrint('Found cached genres for $title by $artist: $genreList');
           return genreList;
         }
       }
       return null;
     } catch (e) {
-      print('Error getting cached genres: $e');
+      debugPrint('Error getting cached genres: $e');
       return null;
     }
   }
@@ -59,9 +60,9 @@ class GenreCacheService {
         'source': 'musicbrainz', // Track where genres came from
       }, SetOptions(merge: true));
       
-      print('Cached ${genres.length} genres for $title by $artist');
+      debugPrint('Cached ${genres.length} genres for $title by $artist');
     } catch (e) {
-      print('Error caching genres: $e');
+      debugPrint('Error caching genres: $e');
     }
   }
 
@@ -89,7 +90,7 @@ class GenreCacheService {
         return genres;
       }
     } catch (e) {
-      print('Error fetching genres from MusicBrainz: $e');
+      debugPrint('Error fetching genres from MusicBrainz: $e');
     }
 
     // 4. Return empty if nothing found
@@ -104,9 +105,9 @@ class GenreCacheService {
           .collection(_collectionName)
           .doc(cacheKey)
           .delete();
-      print('Cleared genre cache for $title by $artist');
+      debugPrint('Cleared genre cache for $title by $artist');
     } catch (e) {
-      print('Error clearing cache: $e');
+      debugPrint('Error clearing cache: $e');
     }
   }
 
@@ -122,9 +123,9 @@ class GenreCacheService {
         batch.delete(doc.reference);
       }
       await batch.commit();
-      print('Cleared all genre caches');
+      debugPrint('Cleared all genre caches');
     } catch (e) {
-      print('Error clearing all caches: $e');
+      debugPrint('Error clearing all caches: $e');
     }
   }
 }

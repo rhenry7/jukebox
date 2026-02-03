@@ -37,7 +37,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
         : '';
 
     if (userId.isEmpty) {
-      print('User not logged in, cannot fetch preferences.');
+      debugPrint('User not logged in, cannot fetch preferences.');
       return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
     }
 
@@ -73,7 +73,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       final prefs = await SharedPreferences.getInstance();
       final List<String>? recsJsonList = prefs.getStringList('cached_recs');
       if (recsJsonList != null && recsJsonList.isNotEmpty) {
-        print('pull from cached');
+        debugPrint('pull from cached');
         final List<MusicRecommendation> cachedRecs = [];
         for (final jsonStr in recsJsonList) {
           try {
@@ -85,7 +85,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
               }
             }
           } catch (e) {
-            print('Error parsing cached music recommendation: $e');
+            debugPrint('Error parsing cached music recommendation: $e');
             // Continue to next item
           }
         }
@@ -95,13 +95,13 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
           return cachedRecs;
         } else {
           // Cache is corrupted, clear it and fetch fresh
-          print('Cache corrupted, clearing and fetching fresh');
+          debugPrint('Cache corrupted, clearing and fetching fresh');
           await prefs.remove('cached_recs');
         }
       }
       
       // Fetch new recommendations
-      print('Fetching new recommendations');
+      debugPrint('Fetching new recommendations');
       // OPTIMIZATION: Using spotify-only mode (default) - skips MusicBrainz for speed
       // MusicBrainz validation is skipped by default (saves ~1 second per recommendation)
       // Options:
@@ -120,13 +120,13 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       await prefs.setStringList('cached_recs', newRecsJsonList);
       return recommendations;
     } catch (error) {
-      print('Error fetching user preferences and or recommendations: $error');
+      debugPrint('Error fetching user preferences and or recommendations: $error');
       // Clear cache on error to prevent future issues
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('cached_recs');
       } catch (e) {
-        print('Error clearing cache: $e');
+        debugPrint('Error clearing cache: $e');
       }
       rethrow;
     }
@@ -148,7 +148,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       await prefs.setStringList('cached_recs', newRecsJsonList);
       return recommendations;
     } catch (error) {
-      print('Error in fetching new recommendations: $error');
+      debugPrint('Error in fetching new recommendations: $error');
       return [];
     }
   }
@@ -160,7 +160,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
         _isInitialized = true;
       });
     } catch (error) {
-      print('Error fetching user preferences: $error');
+      debugPrint('Error fetching user preferences: $error');
       setState(() {
         _albumsFuture = Future.value([]);
         _isInitialized = true;
@@ -186,7 +186,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
         setState(() {});
       }
     } catch (error) {
-      print('Error fetching user recs: $error');
+      debugPrint('Error fetching user recs: $error');
       if (mounted) {
         setState(() {
           _albumsFuture = Future.value([]);

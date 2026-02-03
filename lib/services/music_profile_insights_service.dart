@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 
@@ -45,7 +46,7 @@ class MusicProfileInsightsService {
         mostCommonAlbum: mostCommonAlbum,
       );
     } catch (e) {
-      print('Error getting profile insights: $e');
+      debugPrint('Error getting profile insights: $e');
       return MusicProfileInsights(
         favoriteArtists: [],
         favoriteGenres: [],
@@ -368,9 +369,9 @@ class MusicProfileInsightsService {
         await prefsDoc.reference.update(updatedData);
       }
 
-      print('✅ Updated music profile with insights');
+      debugPrint('✅ Updated music profile with insights');
     } catch (e) {
-      print('Error updating music profile: $e');
+      debugPrint('Error updating music profile: $e');
     }
   }
 }

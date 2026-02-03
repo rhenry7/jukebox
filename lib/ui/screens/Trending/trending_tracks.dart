@@ -37,14 +37,14 @@ class TrendingTracksService {
       final credentials = spotify.SpotifyApiCredentials(clientId, clientSecret);
       final spotifyApi = spotify.SpotifyApi(credentials);
 
-      print('🔥 [TRENDING] Fetching trending tracks from Global Top 50...');
+      debugPrint('🔥 [TRENDING] Fetching trending tracks from Global Top 50...');
 
       final List<TrendingTrack> trendingTracks = [];
       
       // Use "Today's Top Hits" - it's updated daily and reflects current trends
       // Alternative: Use search for recent popular tracks
       try {
-        print('   📋 Fetching trending tracks...');
+        debugPrint('   📋 Fetching trending tracks...');
         
         // Strategy: Search for recent popular tracks from current year
         final currentYear = DateTime.now().year;
@@ -62,7 +62,7 @@ class TrendingTracksService {
         // Search for trending tracks
         for (final query in searchQueries.take(3)) {
           try {
-            print('   🔍 Searching: $query');
+            debugPrint('   🔍 Searching: $query');
             final searchResults = await spotifyApi.search
                 .get(query, types: [spotify.SearchType.track])
                 .first(10);
@@ -97,14 +97,14 @@ class TrendingTracksService {
             
             await Future.delayed(const Duration(milliseconds: 200)); // Rate limiting
           } catch (e) {
-            print('   ⚠️  Error with query "$query": $e');
+            debugPrint('   ⚠️  Error with query "$query": $e');
             continue;
           }
         }
 
-        print('   ✅ Found ${trendingTracks.length} trending tracks');
+        debugPrint('   ✅ Found ${trendingTracks.length} trending tracks');
       } catch (e) {
-        print('   ⚠️  Error fetching trending tracks: $e');
+        debugPrint('   ⚠️  Error fetching trending tracks: $e');
         return [];
       }
 
@@ -116,16 +116,16 @@ class TrendingTracksService {
         return scoreB.compareTo(scoreA);
       });
 
-      print('   ✅ Processed ${trendingTracks.length} trending tracks');
-      print('   📊 Top 3 tracks:');
+      debugPrint('   ✅ Processed ${trendingTracks.length} trending tracks');
+      debugPrint('   📊 Top 3 tracks:');
       for (var i = 0; i < trendingTracks.length.clamp(0, 3); i++) {
         final track = trendingTracks[i];
-        print('      ${i + 1}. "${track.track.name}" by ${track.track.artists?.first.name ?? "Unknown"} (popularity: ${track.popularity}, relevance: ${track.relevanceScore.toStringAsFixed(2)})');
+        debugPrint('      ${i + 1}. "${track.track.name}" by ${track.track.artists?.first.name ?? "Unknown"} (popularity: ${track.popularity}, relevance: ${track.relevanceScore.toStringAsFixed(2)})');
       }
 
       return trendingTracks; // Return all (already limited to 30)
     } catch (e) {
-      print('❌ [TRENDING] Error fetching trending tracks: $e');
+      debugPrint('❌ [TRENDING] Error fetching trending tracks: $e');
       return [];
     }
   }

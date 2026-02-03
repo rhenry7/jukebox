@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
@@ -20,17 +21,17 @@ Future<List<Review>> fetchUserReviews() async {
 Future<void> submitReview(String review, double score, String artist,
     String title, bool liked, String albumImageUrl) async {
   // album display image url
-  print(artist);
+  debugPrint(artist);
   final User? user = FirebaseAuth.instance.currentUser;
   if (user != null) {
-    print(review.toString());
+    debugPrint(review.toString());
     final String userId = user.uid;
     
     // Fetch and cache genres for this track (in background, don't block)
     GenreCacheService.getGenresWithCache(title, artist).then((genres) {
-      print('Cached genres for review: $genres');
+      debugPrint('Cached genres for review: $genres');
     }).catchError((e) {
-      print('Error caching genres for review: $e');
+      debugPrint('Error caching genres for review: $e');
     });
     
     try {
@@ -55,8 +56,8 @@ Future<void> submitReview(String review, double score, String artist,
         if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
       });
       
-      print('✅ Review saved successfully! Document ID: ${docRef.id}');
-      print('📁 Path: users/$userId/reviews/${docRef.id}');
+      debugPrint('✅ Review saved successfully! Document ID: ${docRef.id}');
+      debugPrint('📁 Path: users/$userId/reviews/${docRef.id}');
       
       // Auto-update preferences and invalidate cache (run in background)
       Future(() async {
@@ -67,17 +68,17 @@ Future<void> submitReview(String review, double score, String artist,
           // Update preferences from reviews
           await _updatePreferencesFromReviews(userId);
         } catch (e) {
-          print('Error updating preferences/cache: $e');
+          debugPrint('Error updating preferences/cache: $e');
         }
       });
     } catch (e) {
-      print('❌ Could not post review');
-      print('Error: ${e.toString()}');
-      print('Error type: ${e.runtimeType}');
+      debugPrint('❌ Could not post review');
+      debugPrint('Error: ${e.toString()}');
+      debugPrint('Error type: ${e.runtimeType}');
       // Don't rethrow - let UI handle the error state
     }
   } else {
-    print('could not place review, user not signed in');
+    debugPrint('could not place review, user not signed in');
   }
 }
 
@@ -99,7 +100,7 @@ Future<void> deleteReview(String userId, String reviewDocId) async {
         .doc()
         .delete();
   } catch (e) {
-    print('Could not delete review: $e');
+    debugPrint('Could not delete review: $e');
   }
 }
 
@@ -117,7 +118,7 @@ Future<void> _updatePreferencesFromReviews(String userId) async {
         .get();
     
     if (!prefsDoc.exists) {
-      print('Preferences document does not exist, skipping update');
+      debugPrint('Preferences document does not exist, skipping update');
       return;
     }
     
@@ -166,9 +167,9 @@ Future<void> _updatePreferencesFromReviews(String userId) async {
       'lastUpdated': FieldValue.serverTimestamp(),
     });
     
-    print('Auto-updated preferences from reviews');
+    debugPrint('Auto-updated preferences from reviews');
   } catch (e) {
-    print('Error updating preferences from reviews: $e');
+    debugPrint('Error updating preferences from reviews: $e');
   }
 }
 
@@ -177,7 +178,7 @@ Future<void> updateSavedTracks(String artist, String title) async {
       ? FirebaseAuth.instance.currentUser!.uid
       : '';
   if (userId.isEmpty) {
-    print('User not logged in, cannot upload preferences.');
+    debugPrint('User not logged in, cannot upload preferences.');
     return;
   }
   final String saved = 'arist: $artist, song: $title';
@@ -197,7 +198,7 @@ Future<void> updateDislikedTracks(String artist, String title) async {
       ? FirebaseAuth.instance.currentUser!.uid
       : '';
   if (userId.isEmpty) {
-    print('User not logged in, cannot upload preferences.');
+    debugPrint('User not logged in, cannot upload preferences.');
     return;
   }
   final String disliked = 'arist: $artist, song: $title';
@@ -217,7 +218,7 @@ Future<void> updateRemovePreferences(String artist, String title) async {
       ? FirebaseAuth.instance.currentUser!.uid
       : '';
   if (userId.isEmpty) {
-    print('User not logged in, cannot upload preferences.');
+    debugPrint('User not logged in, cannot upload preferences.');
     return;
   }
   final String saved = 'arist: $artist, song: $title';
@@ -259,7 +260,7 @@ List<MusicRecommendation> removeDuplication(
       ? FirebaseAuth.instance.currentUser!.uid
       : '';
   if (userId.isEmpty) {
-    print('User not logged in, cannot upload preferences.');
+    debugPrint('User not logged in, cannot upload preferences.');
     return [];
   }
   final List<String> savedTracks = preferences.savedTracks;

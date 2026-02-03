@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
@@ -142,7 +144,7 @@ class PlaylistGenerationService {
             }
           }
         } catch (e) {
-          print('Error fetching image for $title by $artist: $e');
+          debugPrint('Error fetching image for $title by $artist: $e');
         }
         return null;
       },
@@ -154,7 +156,7 @@ class PlaylistGenerationService {
   static Future<List<PlaylistTrack>> enrichTracksWithImages(
     List<PlaylistTrack> tracks,
   ) async {
-    print('🎨 Enriching ${tracks.length} tracks with album art...');
+    debugPrint('🎨 Enriching ${tracks.length} tracks with album art...');
     final enrichedTracks = <PlaylistTrack>[];
     
     // First, try to load all from cache in parallel (fast)
@@ -163,7 +165,7 @@ class PlaylistGenerationService {
       final key = '${track.title}|${track.artist}';
       if (track.imageUrl != null && track.imageUrl!.isNotEmpty) {
         cacheResults[key] = track.imageUrl;
-        print('✅ Track already has image: ${track.title}');
+        debugPrint('✅ Track already has image: ${track.title}');
         return;
       }
       final cachedUrl = await AlbumArtCacheService.getCachedAlbumArt(
@@ -172,7 +174,7 @@ class PlaylistGenerationService {
       );
       cacheResults[key] = cachedUrl;
       if (cachedUrl != null) {
-        print('💾 Found cached image for: ${track.title}');
+        debugPrint('💾 Found cached image for: ${track.title}');
       }
     });
     
@@ -188,13 +190,13 @@ class PlaylistGenerationService {
       
       // If not in cache, fetch from API
       if (imageUrl == null || imageUrl.isEmpty) {
-        print('🔍 Fetching image for: ${track.title} by ${track.artist}');
+        debugPrint('🔍 Fetching image for: ${track.title} by ${track.artist}');
         imageUrl = await fetchAlbumArt(track.title, track.artist);
         if (imageUrl != null && imageUrl.isNotEmpty) {
           fetchedCount++;
-          print('✅ Fetched image for: ${track.title}');
+          debugPrint('✅ Fetched image for: ${track.title}');
         } else {
-          print('❌ No image found for: ${track.title}');
+          debugPrint('❌ No image found for: ${track.title}');
         }
         // Small delay to avoid rate limiting (only for API calls)
         await Future.delayed(const Duration(milliseconds: 100));
@@ -218,7 +220,7 @@ class PlaylistGenerationService {
       ));
     }
     
-    print('🎨 Image enrichment complete: $cachedCount from cache, $fetchedCount fetched, ${tracks.length - cachedCount - fetchedCount} without images');
+    debugPrint('🎨 Image enrichment complete: $cachedCount from cache, $fetchedCount fetched, ${tracks.length - cachedCount - fetchedCount} without images');
     return enrichedTracks;
   }
 
@@ -368,7 +370,7 @@ class PlaylistGenerationService {
             }
           }
         } catch (e) {
-          print('Error fetching tracks for genre $genre: $e');
+          debugPrint('Error fetching tracks for genre $genre: $e');
         }
       }
     }
@@ -400,7 +402,7 @@ class PlaylistGenerationService {
         }
       }
     } catch (e) {
-      print('Error finding artist ID for $artistName: $e');
+      debugPrint('Error finding artist ID for $artistName: $e');
     }
     return null;
   }
@@ -430,13 +432,13 @@ class PlaylistGenerationService {
         
         if (recordings != null) {
           return recordings
-              .map(_parseRecording)
+              .map((e) => _parseRecording(e as Map<String, dynamic>))
               .whereType<PlaylistTrack>()
               .toList();
         }
       }
     } catch (e) {
-      print('Error fetching artist recordings: $e');
+      debugPrint('Error fetching artist recordings: $e');
     }
     return [];
   }
@@ -490,7 +492,7 @@ class PlaylistGenerationService {
         releaseDate: releaseDate,
       );
     } catch (e) {
-      print('Error parsing recording: $e');
+      debugPrint('Error parsing recording: $e');
       return null;
     }
   }

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_test_project/services/wikipedia_bio_cache_service.dart';
 
@@ -96,7 +98,7 @@ class WikipediaService {
               !e.toString().contains('CORS') && 
               !e.toString().contains('XMLHttpRequest')) {
             // Only log non-CORS errors on last attempt
-            print('⚠️  Wikipedia page not found for: $artistName');
+            debugPrint('⚠️  Wikipedia page not found for: $artistName');
           }
           continue;
         }

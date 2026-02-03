@@ -140,18 +140,18 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                   ElevatedButton(
                     onPressed: () async {
                       // Action when the button is pressed
-                      print('🔵 [SIGNUP] Create Account button pressed');
+                      debugPrint('🔵 [SIGNUP] Create Account button pressed');
                       try {
                         // Read values directly from controllers
                         final userNameValue = _userNameController.text.trim();
                         final emailValue = _emailController.text.trim();
                         final passwordValue = _passwordController.text.trim();
                         
-                        print('🔵 [SIGNUP] Values: userName=$userNameValue, email=$emailValue, password=${passwordValue.isNotEmpty ? "***" : "empty"}');
+                        debugPrint('🔵 [SIGNUP] Values: userName=$userNameValue, email=$emailValue, password=${passwordValue.isNotEmpty ? "***" : "empty"}');
                         
                         // Validate inputs
                         if (userNameValue.isEmpty || emailValue.isEmpty || passwordValue.isEmpty) {
-                          print('⚠️ [SIGNUP] Validation failed: empty fields');
+                          debugPrint('⚠️ [SIGNUP] Validation failed: empty fields');
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Please fill in all fields'),
@@ -160,10 +160,10 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                           return;
                         }
 
-                        print('✅ [SIGNUP] Validation passed, calling signUp...');
+                        debugPrint('✅ [SIGNUP] Validation passed, calling signUp...');
                         // Send to Firebase
                         await signUp(userNameValue, emailValue, passwordValue);
-                        print('✅ [SIGNUP] signUp call completed');
+                        debugPrint('✅ [SIGNUP] signUp call completed');
 
                         // Wait a moment for Firebase to update
                         await Future.delayed(const Duration(milliseconds: 500));
@@ -230,7 +230,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         }
                       } catch (e) {
                         // Handle sign-up errors here
-                        print('❌ [SIGNUP] Error: $e');
+                        debugPrint('❌ [SIGNUP] Error: $e');
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

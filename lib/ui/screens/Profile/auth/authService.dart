@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -28,17 +29,17 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       // Handle different error codes from Firebase
       if (e.code == 'email-already-in-use') {
-        print('This email address is already in use.');
+        debugPrint('This email address is already in use.');
       } else if (e.code == 'weak-password') {
-        print('The password is too weak.');
+        debugPrint('The password is too weak.');
       } else if (e.code == 'invalid-email') {
-        print('The email address is not valid.');
+        debugPrint('The email address is not valid.');
       } else {
-        print('Sign-up failed: ${e.message}');
+        debugPrint('Sign-up failed: ${e.message}');
       }
       return null;
     } catch (e) {
-      print('An unexpected error occurred: $e');
+      debugPrint('An unexpected error occurred: $e');
       return null;
     }
   }
@@ -48,11 +49,11 @@ class AuthService {
   /// Throws exception with error message if failed
   Future<bool> signIn(String email, String password) async {
     try {
-      print(email);
+      debugPrint(email);
       // Attempt to sign in with Firebase
       await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-      print('successfully signed in!');
+      debugPrint('successfully signed in!');
       return true; // Sign-in successful
     } on FirebaseAuthException catch (e) {
       // Handle errors
@@ -76,10 +77,10 @@ class AuthService {
         default:
           errorMessage = 'An error occurred. Please try again.';
       }
-      print(errorMessage); // Print to console for debugging
+      debugPrint(errorMessage); // Print to console for debugging
       throw Exception(errorMessage); // Throw exception with error message
     } catch (e) {
-      print('Sign-in error: $e');
+      debugPrint('Sign-in error: $e');
       rethrow; // Re-throw to be handled by caller
     }
   }

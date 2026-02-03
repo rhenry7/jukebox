@@ -70,7 +70,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
       // Fetch personalized playlists based on preferences
       final List<Playlist> playlists =
           await _playlistService.fetchPersonalizedPlaylists(preferences);
-      print(
+      debugPrint(
           'Found playlists: $playlists, Found preferences: ${preferences.favoriteGenres}');
 
       setState(() {
@@ -107,7 +107,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
         savedTracks: List<String>.from(data['savedTracks'] ?? []),
       );
     } catch (e) {
-      print('Error loading user preferences: $e');
+      debugPrint('Error loading user preferences: $e');
       return null;
     }
   }
@@ -125,7 +125,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print('Error saving user preferences: $e');
+      debugPrint('Error saving user preferences: $e');
     }
   }
 
@@ -186,7 +186,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error recording playlist interaction: $e');
+      debugPrint('Error recording playlist interaction: $e');
     }
   }
 
@@ -404,7 +404,7 @@ class _PersonalizedPlaylistsListState extends State<PersonalizedPlaylistsList> {
     if (playlist.externalUrls?.spotify != null) {
       // You can implement navigation to a detailed playlist view
       // or open the Spotify URL
-      print('Opening playlist: ${playlist.name}');
+      debugPrint('Opening playlist: ${playlist.name}');
       // Navigator.push(context, MaterialPageRoute(builder: (context) => PlaylistDetailPage(playlist: playlist)));
     }
   }

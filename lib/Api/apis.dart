@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
@@ -58,7 +59,7 @@ Future<List<Track>> fetchExploreTracks({
           
           if (count > 0) {
             foundTracks = true;
-            print('   ✅ Found $count tracks from featured playlist');
+            debugPrint('   ✅ Found $count tracks from featured playlist');
             break; // Success, no need to try other playlists
           }
         } catch (e) {
@@ -86,7 +87,7 @@ Future<List<Track>> fetchExploreTracks({
     final List<String> exploreQueries = [];
     
     if (userGenres != null && userGenres.isNotEmpty) {
-      print('🎵 [EXPLORE] Using user preferences: ${userGenres.take(5).join(", ")}');
+      debugPrint('🎵 [EXPLORE] Using user preferences: ${userGenres.take(5).join(", ")}');
       
       // Use user's favorite genres (prioritize by weight if available)
       // OPTIMIZED: Reduced from 6 to 4 genres for faster loading
@@ -110,7 +111,7 @@ Future<List<Track>> fetchExploreTracks({
       }
     } else {
       // Fallback: Use randomized default genres if no user preferences
-      print('🎵 [EXPLORE] No user preferences, using randomized defaults...');
+      debugPrint('🎵 [EXPLORE] No user preferences, using randomized defaults...');
       final defaultGenres = [
         'indie', 'jazz', 'rock', 'electronic', 'folk', 'r&b',
         'hip hop', 'pop', 'country', 'blues', 'reggae', 'metal'
@@ -127,7 +128,7 @@ Future<List<Track>> fetchExploreTracks({
     }
 
     // Step 3: Fetch tracks from genre-based queries (OPTIMIZED: Parallel execution)
-    print('🎵 [EXPLORE] Fetching tracks from ${exploreQueries.length} genre queries (parallel)...');
+    debugPrint('🎵 [EXPLORE] Fetching tracks from ${exploreQueries.length} genre queries (parallel)...');
     
     // Execute queries in parallel for faster loading
     final queryFutures = exploreQueries.map((query) async {
@@ -153,10 +154,10 @@ Future<List<Track>> fetchExploreTracks({
         }
         return tracks;
       } on TimeoutException {
-        print('⚠️  Query "$query" timed out');
+        debugPrint('⚠️  Query "$query" timed out');
         return <Track>[];
       } catch (e) {
-        print('⚠️  Error with explore query "$query": $e');
+        debugPrint('⚠️  Error with explore query "$query": $e');
         return <Track>[];
       }
     }).toList();
@@ -177,10 +178,10 @@ Future<List<Track>> fetchExploreTracks({
 
     // Shuffle and return top 30 (increased from 20 for more results)
     final finalTracks = uniqueTracks.values.toList()..shuffle();
-    print('✅ [EXPLORE] Returning ${finalTracks.take(30).length} unique tracks');
+    debugPrint('✅ [EXPLORE] Returning ${finalTracks.take(30).length} unique tracks');
     return finalTracks.take(30).toList();
   } catch (e) {
-    print('❌ Error fetching explore tracks: $e');
+    debugPrint('❌ Error fetching explore tracks: $e');
     return [];
   }
 }
@@ -223,8 +224,8 @@ Future<Pages<Category>> fetchSpotifyCatgories() async {
   final credentials = SpotifyApiCredentials(clientId, clientSecret);
   final getFromSpotify = SpotifyApi(credentials);
   final category = getFromSpotify.categories.list();
-  print(category);
-  print(category.first(10).toString());
+  debugPrint('Categories: ${category.toString()}');
+  debugPrint(category.first(10).toString());
   return category;
 }
 
@@ -265,7 +266,7 @@ Future<List<Track>> fetchTrendingTracks() async {
 
         await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
-        print('Error with trending query "$query": $e');
+        debugPrint('Error with trending query "$query": $e');
         continue;
       }
     }
@@ -282,7 +283,7 @@ Future<List<Track>> fetchTrendingTracks() async {
     finalTracks.shuffle();
     return finalTracks.take(20).toList();
   } catch (e) {
-    print('Error fetching trending tracks: $e');
+    debugPrint('Error fetching trending tracks: $e');
     return [];
   }
 }
@@ -324,7 +325,7 @@ Future<List<Track>> fetchHiddenGemTracks() async {
 
         await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
-        print('Error with hidden gems query "$query": $e');
+        debugPrint('Error with hidden gems query "$query": $e');
         continue;
       }
     }
@@ -332,7 +333,7 @@ Future<List<Track>> fetchHiddenGemTracks() async {
     gemTracks.shuffle();
     return gemTracks.take(15).toList();
   } catch (e) {
-    print('Error fetching hidden gem tracks: $e');
+    debugPrint('Error fetching hidden gem tracks: $e');
     return [];
   }
 }
@@ -374,7 +375,7 @@ Future<List<Track>> fetchNewReleaseTracks() async {
 
         await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
-        print('Error with new release query "$query": $e');
+        debugPrint('Error with new release query "$query": $e');
         continue;
       }
     }
@@ -391,7 +392,7 @@ Future<List<Track>> fetchNewReleaseTracks() async {
     finalTracks.shuffle();
     return finalTracks.take(20).toList();
   } catch (e) {
-    print('Error fetching new release tracks: $e');
+    debugPrint('Error fetching new release tracks: $e');
     return [];
   }
 }
@@ -453,7 +454,7 @@ Future<List<Album>> fetchExploreAlbums() async {
         // Small delay to avoid rate limiting
         await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
-        print('Error with query "$query": $e');
+        debugPrint('Error with query "$query": $e');
         continue;
       }
     }
@@ -462,7 +463,7 @@ Future<List<Album>> fetchExploreAlbums() async {
     allAlbums.shuffle();
     return allAlbums.take(20).toList();
   } catch (e) {
-    print('Error fetching explore albums: $e');
+    debugPrint('Error fetching explore albums: $e');
     return [];
   }
 }
@@ -471,7 +472,7 @@ Future<List<MusicBrainzAlbum>> fetchAlbums({String query = 'year:2025'}) async {
   try {
     return MusicBrainzService.searchAlbums(year: 1995);
   } catch (e) {
-    print('Error fetching albums: $e');
+    debugPrint('Error fetching albums: $e');
     return throw Error();
   }
 }
@@ -500,7 +501,7 @@ Future<List<Album>> fetchPopularAlbums({String query = 'year:2019'}) async {
 
     return albums;
   } catch (e) {
-    print('Error fetching albums: $e');
+    debugPrint('Error fetching albums: $e');
     return [];
   }
 }
@@ -545,7 +546,7 @@ Future<List<Album>> fetchNewDiscoveries(
 
         await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
-        print('Error with new releases query "$query": $e');
+        debugPrint('Error with new releases query "$query": $e');
         continue;
       }
     }
@@ -563,7 +564,7 @@ Future<List<Album>> fetchNewDiscoveries(
 
     return sortedAlbums.take(20).toList();
   } catch (e) {
-    print('Error fetching new discoveries: $e');
+    debugPrint('Error fetching new discoveries: $e');
     return [];
   }
 }

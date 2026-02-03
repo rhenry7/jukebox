@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 /// User-created playlist model
 class UserPlaylist {
@@ -38,19 +39,19 @@ class UserPlaylist {
                 if (t is Map<String, dynamic>) {
                   return PlaylistTrack.fromMap(t);
                 }
-                print('⚠️ Track is not a Map: ${t.runtimeType}');
+                debugPrint('⚠️ Track is not a Map: ${t.runtimeType}');
                 return null;
               } catch (e) {
-                print('⚠️ Error parsing track: $e');
-                print('   Track data: $t');
+                debugPrint('⚠️ Error parsing track: $e');
+                debugPrint('   Track data: $t');
                 return null;
               }
             })
             .whereType<PlaylistTrack>()
             .toList();
       } catch (e) {
-        print('❌ Error parsing tracks array: $e');
-        print('   Tracks data: ${data['tracks']}');
+        debugPrint('❌ Error parsing tracks array: $e');
+        debugPrint('   Tracks data: ${data['tracks']}');
       }
     }
     
@@ -69,12 +70,12 @@ class UserPlaylist {
       updatedAt = DateTime.now();
     }
     
-    print('📦 [PLAYLIST] Parsing playlist: ${data['name']}');
-    print('   Playlist ID: ${doc.id}');
-    print('   Tracks count in data: ${data['tracks']?.length ?? 0}');
-    print('   Parsed tracks count: ${tracks.length}');
+    debugPrint('📦 [PLAYLIST] Parsing playlist: ${data['name']}');
+    debugPrint('   Playlist ID: ${doc.id}');
+    debugPrint('   Tracks count in data: ${data['tracks']?.length ?? 0}');
+    debugPrint('   Parsed tracks count: ${tracks.length}');
     if (tracks.isNotEmpty) {
-      print('   First track: ${tracks.first.title} by ${tracks.first.artist}');
+      debugPrint('   First track: ${tracks.first.title} by ${tracks.first.artist}');
     }
     
     return UserPlaylist(

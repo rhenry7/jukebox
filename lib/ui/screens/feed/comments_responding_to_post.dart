@@ -31,7 +31,7 @@ class CommentsRespondingToPost extends StatelessWidget {
                                  */
                           final comment = snapshot.data![
                               index]; // TODO: REPLACE WHEN WE HAVE ACTUAL USERS
-                          //print(track);
+                          //debugPrint(track);
                           return Card(
                             elevation: 0,
                             margin: const EdgeInsets.all(5),
@@ -115,7 +115,7 @@ class CommentsRespondingToPost extends StatelessWidget {
                                                       ),
                                                       InkWell(
                                                         onTap: () {
-                                                          print(
+                                                          debugPrint(
                                                               'tapped inkwell, should route');
                                                         },
                                                         child: Text(
@@ -241,7 +241,7 @@ class CommentsRespondingToPost extends StatelessWidget {
                       ),
                     );
                   } else if (snapshot.hasError) {
-                    print(snapshot);
+                    debugPrint('Comments load error: ${snapshot.error}');
                     return Text('Error: ${snapshot.error}');
                   }
                   return const DiscoBallLoading();

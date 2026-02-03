@@ -261,7 +261,7 @@ class _CommunityReviewsCollectionState extends ConsumerState<CommunityReviewsCol
         },
       ),
       error: (error, stackTrace) {
-        print('❌ Error loading community reviews: $error');
+        debugPrint('❌ Error loading community reviews: $error');
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

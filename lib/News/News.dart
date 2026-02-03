@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:http/http.dart' as http;
 
@@ -123,7 +125,7 @@ class NewsApiService {
       '$_baseUrl?q=$query&language=en&sortBy=publishedAt&from=$fromDateStr&pageSize=$maxResults&apiKey=$_apiKey',
     );
 
-    print('📰 [NEWS] Fetching articles with query: $query');
+    debugPrint('📰 [NEWS] Fetching articles with query: $query');
     
     try {
       final response = await http.get(uri);
@@ -132,7 +134,7 @@ class NewsApiService {
         final data = jsonDecode(response.body);
         final List articles = data['articles'] ?? [];
         
-        print('📰 [NEWS] Found ${articles.length} articles');
+        debugPrint('📰 [NEWS] Found ${articles.length} articles');
         
         // Filter out articles that are clearly not music-related
         final musicArticles = articles
@@ -140,15 +142,15 @@ class NewsApiService {
             .where(_isMusicRelated)
             .toList();
         
-        print('📰 [NEWS] Filtered to ${musicArticles.length} music-related articles');
+        debugPrint('📰 [NEWS] Filtered to ${musicArticles.length} music-related articles');
         
         return musicArticles;
       } else {
-        print('❌ [NEWS] API Error: ${response.statusCode} - ${response.body}');
+        debugPrint('❌ [NEWS] API Error: ${response.statusCode} - ${response.body}');
         throw Exception('Failed to load news articles: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ [NEWS] Error fetching articles: $e');
+      debugPrint('❌ [NEWS] Error fetching articles: $e');
       rethrow;
     }
   }

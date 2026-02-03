@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
@@ -26,7 +27,7 @@ final communityReviewsProvider = StreamProvider.family<List<ReviewWithDocId>, in
                 fullReviewId: fullReviewId, // Add full path for likes
               );
             } catch (e) {
-              print('Error parsing review ${doc.id}: $e');
+              debugPrint('Error parsing review ${doc.id}: $e');
               return null;
             }
           })

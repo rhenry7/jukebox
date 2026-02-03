@@ -205,10 +205,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           }
 
           // Debug: Print playlist info
-          print('🎵 [PLAYLIST DETAIL] Loaded playlist: ${playlist.name}');
-          print('   Track count: ${playlist.tracks.length}');
+          debugPrint('🎵 [PLAYLIST DETAIL] Loaded playlist: ${playlist.name}');
+          debugPrint('   Track count: ${playlist.tracks.length}');
           if (playlist.tracks.isNotEmpty) {
-            print('   First track: ${playlist.tracks.first.title} by ${playlist.tracks.first.artist}');
+            debugPrint('   First track: ${playlist.tracks.first.title} by ${playlist.tracks.first.artist}');
           }
 
           return RefreshIndicator(

@@ -21,20 +21,20 @@ Future<List<MusicBrainzAlbum>> processAlbums() async {
     final List<String>? albumJsonList = prefs.getStringList('cachedAlbums');
 
     if (albumJsonList != null && albumJsonList.isNotEmpty) {
-      print('Loading cached albums');
+      debugPrint('Loading cached albums');
       return albumJsonList
           .map((jsonStr) {
             try {
               return MusicBrainzAlbum.fromJson(jsonDecode(jsonStr));
             } catch (e) {
-              print('Error parsing cached album: $e');
+              debugPrint('Error parsing cached album: $e');
               return null;
             }
           })
           .whereType<MusicBrainzAlbum>()
           .toList();
     } else {
-      print('Fetching fresh album data');
+      debugPrint('Fetching fresh album data');
       final spotifyAlbums = await fetchPopularAlbums();
       final enrichedAlbums =
           await MusicBrainzService().enrichAlbumsWithMusicBrainz(spotifyAlbums);
@@ -46,7 +46,7 @@ Future<List<MusicBrainzAlbum>> processAlbums() async {
       return enrichedAlbums;
     }
   } catch (e) {
-    print('Error in processAlbums: $e');
+    debugPrint('Error in processAlbums: $e');
     rethrow;
   }
 }
@@ -56,7 +56,7 @@ class _AlbumGrid extends State<AlbumGrid> {
   @override
   void initState() {
     super.initState();
-    print('initState called'); // Add this line
+    debugPrint('initState called'); // Add this line
     albums = processAlbums();
   }
 
@@ -206,7 +206,7 @@ class _AlbumGrid extends State<AlbumGrid> {
               },
             );
           } else if (snapshot.hasError) {
-            print(snapshot);
+            debugPrint('Album load error: ${snapshot.error}');
             return Text('Error: ${snapshot.error}');
           }
           return const DiscoBallLoading();

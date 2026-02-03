@@ -69,7 +69,7 @@ class UnsplashService {
 
       return null;
     } catch (e) {
-      print('Error fetching Unsplash image: $e');
+      debugPrint('Error fetching Unsplash image: $e');
       return null;
     }
   }
@@ -86,23 +86,23 @@ class UnsplashService {
       });
 
       final response = await http.get(url);
-      print('response: ${response.body}');
+      debugPrint('response: ${response.body}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final results = data['results'] as List;
-        print(results[0]);
+        debugPrint(results[0]);
 
         if (results.isNotEmpty) {
           final randomIndex =
               DateTime.now().millisecondsSinceEpoch % results.length;
-          print("found: ${results[randomIndex]['urls']['small']}");
+          debugPrint("found: ${results[randomIndex]['urls']['small']}");
           return results[randomIndex]['urls']['small'];
         }
       }
 
       return null;
     } catch (e) {
-      print('Error fetching generic vinyl image: $e');
+      debugPrint('Error fetching generic vinyl image: $e');
       return null;
     }
   }

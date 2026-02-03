@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
@@ -25,7 +26,7 @@ final userPreferencesProvider = FutureProvider<EnhancedUserPreferences>((ref) as
   try {
     return EnhancedUserPreferences.fromJson(doc.data()!);
   } catch (e) {
-    print('Error parsing preferences: $e');
+    debugPrint('Error parsing preferences: $e');
     return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
   }
 });
@@ -51,7 +52,7 @@ final userPreferencesStreamProvider = StreamProvider<EnhancedUserPreferences>((r
         try {
           return EnhancedUserPreferences.fromJson(doc.data()!);
         } catch (e) {
-          print('Error parsing preferences: $e');
+          debugPrint('Error parsing preferences: $e');
           return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
         }
       });

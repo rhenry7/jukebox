@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 /// Service for managing review likes
 /// Structure: reviewLikes/{reviewId}/likes/{userId}
@@ -49,7 +50,7 @@ class ReviewLikesService {
 
       return true;
     } catch (e) {
-      print('Error liking review: $e');
+      debugPrint('Error liking review: $e');
       rethrow;
     }
   }
@@ -79,7 +80,7 @@ class ReviewLikesService {
 
       return true;
     } catch (e) {
-      print('Error unliking review: $e');
+      debugPrint('Error unliking review: $e');
       rethrow;
     }
   }
@@ -94,7 +95,7 @@ class ReviewLikesService {
         return await likeReview(reviewId, userId);
       }
     } catch (e) {
-      print('Error toggling like: $e');
+      debugPrint('Error toggling like: $e');
       rethrow;
     }
   }
@@ -106,7 +107,7 @@ class ReviewLikesService {
       final likeDoc = await likeRef.get();
       return likeDoc.exists;
     } catch (e) {
-      print('Error checking if review is liked: $e');
+      debugPrint('Error checking if review is liked: $e');
       return false;
     }
   }
@@ -121,7 +122,7 @@ class ReviewLikesService {
       }
       return 0;
     } catch (e) {
-      print('Error getting like count: $e');
+      debugPrint('Error getting like count: $e');
       return 0;
     }
   }

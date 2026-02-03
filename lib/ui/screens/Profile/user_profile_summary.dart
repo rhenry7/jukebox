@@ -45,7 +45,7 @@ class _UserProfileSummaryState extends State<UserProfileSummary> {
                   final UserReviewInfo? userInfo = snapshot.data;
                   final reviews =
                       userInfo?.reviews ?? []; // Provide empty list fallback
-                  print(snapshot.data?.reviews);
+                  debugPrint('User reviews count: ${snapshot.data?.reviews?.length ?? 0}');
                   if (userInfo == null) {
                     return const Center(child: Text('no data from user info'));
                   }

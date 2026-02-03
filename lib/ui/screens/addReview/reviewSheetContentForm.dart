@@ -77,17 +77,17 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
     _searchDebounce?.cancel();
 
     final query = searchParams.text.trim();
-    print('⌨️  [INPUT] Search input changed: "$query" (length: ${query.length})');
+    debugPrint('⌨️  [INPUT] Search input changed: "$query" (length: ${query.length})');
     
     if (query.length >= 2) {
-      print('   ✅ Query length sufficient, starting debounce timer (500ms)');
+      debugPrint('   ✅ Query length sufficient, starting debounce timer (500ms)');
       // Debounce search by 500ms
       _searchDebounce = Timer(const Duration(milliseconds: 500), () {
-        print('   ⏰ Debounce timer completed, executing search');
+        debugPrint('   ⏰ Debounce timer completed, executing search');
         _performSearch(query);
       });
     } else {
-      print('   ⚠️  Query too short, clearing results');
+      debugPrint('   ⚠️  Query too short, clearing results');
       setState(() {
         _trackResults = [];
         _albumResults = [];
@@ -99,9 +99,9 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
   Future<void> _performSearch(String query) async {
     if (_isSearching) return;
 
-    print('🔍 [SEARCH] Starting search...');
-    print('   Query: "$query"');
-    print('   Filter: $_searchFilter');
+    debugPrint('🔍 [SEARCH] Starting search...');
+    debugPrint('   Query: "$query"');
+    debugPrint('   Filter: $_searchFilter');
 
     setState(() {
       _isSearching = true;
@@ -115,27 +115,27 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       List<spotify.SearchType> searchTypes = [];
       if (_searchFilter == 'all') {
         searchTypes = [spotify.SearchType.track, spotify.SearchType.album];
-        print('   Search types: [track, album]');
+        debugPrint('   Search types: [track, album]');
       } else if (_searchFilter == 'song') {
         searchTypes = [spotify.SearchType.track];
-        print('   Search types: [track]');
+        debugPrint('   Search types: [track]');
       } else if (_searchFilter == 'album') {
         searchTypes = [spotify.SearchType.album];
-        print('   Search types: [album]');
+        debugPrint('   Search types: [album]');
       }
 
       // Search based on selected filter
       // Increase limit to get more results, especially for albums
       final limit = _searchFilter == 'album' ? 20 : 10;
-      print('   Limit: $limit');
-      print('   Making API request to Spotify...');
+      debugPrint('   Limit: $limit');
+      debugPrint('   Making API request to Spotify...');
 
       final searchResults = await spotifyApi.search
           .get(query, types: searchTypes)
           .first(limit);
 
-      print('   ✅ API request successful');
-      print('   Processing results...');
+      debugPrint('   ✅ API request successful');
+      debugPrint('   Processing results...');
 
       final List<spotify.Track> tracks = [];
       final List<dynamic> albums = []; // Use dynamic to handle both Album and AlbumSimple
@@ -143,53 +143,53 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       
       for (final page in searchResults) {
         if (page.items != null) {
-          print('   📄 Processing page with ${page.items!.length} items');
+          debugPrint('   📄 Processing page with ${page.items!.length} items');
           for (final item in page.items!) {
             totalItemsProcessed++;
             if (item is spotify.Track) {
               tracks.add(item);
-              print('   🎵 Track found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+              debugPrint('   🎵 Track found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
             } else if (item is spotify.Album) {
               albums.add(item);
-              print('   💿 Album found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+              debugPrint('   💿 Album found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
             } else if (item is spotify.AlbumSimple) {
               // Handle AlbumSimple - it has the same properties we need
               albums.add(item);
               final artistNames = item.artists != null
                   ? item.artists!.map((a) => a.name ?? 'Unknown').join(', ')
                   : 'Unknown';
-              print('   💿 AlbumSimple found: "${item.name}" by $artistNames');
+              debugPrint('   💿 AlbumSimple found: "${item.name}" by $artistNames');
             } else {
-              print('   ⚠️  Unknown item type: ${item.runtimeType}');
+              debugPrint('   ⚠️  Unknown item type: ${item.runtimeType}');
             }
           }
         } else {
-          print('   ⚠️  Page has no items');
+          debugPrint('   ⚠️  Page has no items');
         }
       }
 
-      print('   📊 Search Summary:');
-      print('      Total items processed: $totalItemsProcessed');
-      print('      Tracks found: ${tracks.length}');
-      print('      Albums found: ${albums.length}');
+      debugPrint('   📊 Search Summary:');
+      debugPrint('      Total items processed: $totalItemsProcessed');
+      debugPrint('      Tracks found: ${tracks.length}');
+      debugPrint('      Albums found: ${albums.length}');
 
       if (tracks.isNotEmpty) {
-        print('   🎵 Tracks:');
+        debugPrint('   🎵 Tracks:');
         for (final track in tracks.take(5)) {
-          print('      - "${track.name}" by ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+          debugPrint('      - "${track.name}" by ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
         }
         if (tracks.length > 5) {
-          print('      ... and ${tracks.length - 5} more tracks');
+          debugPrint('      ... and ${tracks.length - 5} more tracks');
         }
       }
 
       if (albums.isNotEmpty) {
-        print('   💿 Albums:');
+        debugPrint('   💿 Albums:');
         for (final album in albums.take(5)) {
-          print('      - "${album.name}" by ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+          debugPrint('      - "${album.name}" by ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
         }
         if (albums.length > 5) {
-          print('      ... and ${albums.length - 5} more albums');
+          debugPrint('      ... and ${albums.length - 5} more albums');
         }
       }
 
@@ -199,31 +199,31 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
           _albumResults = albums;
           _isSearching = false;
         });
-        print('   ✅ State updated successfully');
+        debugPrint('   ✅ State updated successfully');
       }
     } catch (e, stackTrace) {
-      print('❌ [SEARCH ERROR]');
-      print('   Query: "$query"');
-      print('   Filter: $_searchFilter');
-      print('   Error: $e');
-      print('   Stack trace: $stackTrace');
+      debugPrint('❌ [SEARCH ERROR]');
+      debugPrint('   Query: "$query"');
+      debugPrint('   Filter: $_searchFilter');
+      debugPrint('   Error: $e');
+      debugPrint('   Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _trackResults = [];
           _albumResults = [];
           _isSearching = false;
         });
-        print('   ✅ Error state handled, search cleared');
+        debugPrint('   ✅ Error state handled, search cleared');
       }
     }
   }
 
   void _selectTrack(spotify.Track track) {
-    print('🎵 [SELECT] Track selected:');
-    print('   Title: "${track.name}"');
-    print('   Artist: ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
-    print('   Album: ${track.album?.name ?? 'Unknown'}');
-    print('   Image URL: ${track.album?.images?.isNotEmpty == true ? track.album!.images!.first.url ?? 'None' : 'None'}');
+    debugPrint('🎵 [SELECT] Track selected:');
+    debugPrint('   Title: "${track.name}"');
+    debugPrint('   Artist: ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+    debugPrint('   Album: ${track.album?.name ?? 'Unknown'}');
+    debugPrint('   Image URL: ${track.album?.images?.isNotEmpty == true ? track.album!.images!.first.url ?? 'None' : 'None'}');
     
     setState(() {
       _selectedTrackTitle = track.name ?? '';
@@ -235,16 +235,16 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       _albumResults = [];
       searchParams.clear();
     });
-    print('   ✅ Track selection complete');
+    debugPrint('   ✅ Track selection complete');
   }
 
   void _selectAlbum(spotify.Album album) {
-    print('💿 [SELECT] Album selected:');
-    print('   Title: "${album.name}"');
-    print('   Artist: ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
-    print('   Image URL: ${album.images?.isNotEmpty == true ? album.images!.first.url ?? 'None' : 'None'}');
-    print('   Release Date: ${album.releaseDate ?? 'Unknown'}');
-    print('   Album Type: ${album.albumType ?? 'Unknown'}');
+    debugPrint('💿 [SELECT] Album selected:');
+    debugPrint('   Title: "${album.name}"');
+    debugPrint('   Artist: ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+    debugPrint('   Image URL: ${album.images?.isNotEmpty == true ? album.images!.first.url ?? 'None' : 'None'}');
+    debugPrint('   Release Date: ${album.releaseDate ?? 'Unknown'}');
+    debugPrint('   Album Type: ${album.albumType ?? 'Unknown'}');
     
     setState(() {
       _selectedTrackTitle = album.name ?? '';
@@ -256,22 +256,22 @@ class _MyReviewSheetContentFormState extends ConsumerState<MyReviewSheetContentF
       _albumResults = [];
       searchParams.clear();
     });
-    print('   ✅ Album selection complete');
+    debugPrint('   ✅ Album selection complete');
   }
 
   Widget _buildFilterPill(String filter, String label, IconData icon) {
     final isSelected = _searchFilter == filter;
     return GestureDetector(
       onTap: () {
-        print('🏷️  [FILTER] Changed filter from "$_searchFilter" to "$filter"');
+        debugPrint('🏷️  [FILTER] Changed filter from "$_searchFilter" to "$filter"');
         setState(() {
           _searchFilter = filter;
           // Trigger new search if there's a query
           if (searchParams.text.trim().length >= 2) {
-            print('   Triggering new search with filter "$filter"');
+            debugPrint('   Triggering new search with filter "$filter"');
             _performSearch(searchParams.text.trim());
           } else {
-            print('   No active query, filter changed but no search triggered');
+            debugPrint('   No active query, filter changed but no search triggered');
           }
         });
       },

@@ -21,25 +21,25 @@ Future<Map<String, dynamic>> getCurrentUser() async {
 
       if (documentSnapshot.exists) {
         final Map<String, dynamic> userData = documentSnapshot.data()!;
-        print('User data: $userData');
+        debugPrint('User data: $userData');
         return userData; // Return the user data
         // Access specific data: userData['fieldName']
       } else {
-        print('User document does not exist.');
+        debugPrint('User document does not exist.');
       }
     } catch (e) {
-      print('Error getting user data: $e');
+      debugPrint('Error getting user data: $e');
     }
   } else {
-    print('No user is signed in.');
+    debugPrint('No user is signed in.');
   }
   throw Exception('Failed to get user data.');
 }
 
 Widget profileRoute(String route) {
   final FirebaseAuth auth = FirebaseAuth.instance;
-  print(route);
-  print(auth.currentUser?.email ?? '');
+  debugPrint(route);
+  debugPrint(auth.currentUser?.email ?? '');
   switch (route) {
     case 'Reviews':
       return const CommentWidget();
@@ -54,10 +54,10 @@ Widget profileRoute(String route) {
       );
     default:
       if (auth.currentUser != null) {
-        print('user signed in');
+        debugPrint('user signed in');
         return const UserProfileSummary();
       } else {
-        print('user NOT signed in');
+        debugPrint('user NOT signed in');
         return const SignInScreen();
       }
   }
@@ -66,9 +66,9 @@ Widget profileRoute(String route) {
 void signOut() async {
   try {
     FirebaseAuth.instance.signOut();
-    print('user signed out');
+    debugPrint('user signed out');
   } catch (e) {
-    print('Error signing out: $e');
+    debugPrint('Error signing out: $e');
   }
 }
 
@@ -77,9 +77,9 @@ void signOut() async {
 // TODO: Migrate MainNavigation to ConsumerWidget and use currentUserProvider
 Widget profileRouter() {
   final FirebaseAuth auth = FirebaseAuth.instance;
-  print(auth.currentUser);
-  print(auth.currentUser?.displayName ?? '');
-  print(auth.currentUser?.email ?? '');
+  debugPrint('Current user: ${auth.currentUser?.uid ?? 'null'}');
+  debugPrint(auth.currentUser?.displayName ?? '');
+  debugPrint(auth.currentUser?.email ?? '');
   if (auth.currentUser != null) {
     return const ProfilePage();
   } else {
@@ -113,7 +113,7 @@ Future<bool> hasUserPreferences(String userId) async {
     return (favoriteGenres != null && favoriteGenres.isNotEmpty) ||
            (favoriteArtists != null && favoriteArtists.isNotEmpty);
   } catch (e) {
-    print('Error checking user preferences: $e');
+    debugPrint('Error checking user preferences: $e');
     return false;
   }
 }
@@ -135,8 +135,8 @@ Future<void> signUp(String userName, String email, String password) async {
       //'friends': [],
       //'reviews': []
     });
-    print('Sign-up successful! User ID: ${user.uid}');
+    debugPrint('Sign-up successful! User ID: ${user.uid}');
   } else {
-    print('Sign-up failed.');
+    debugPrint('Sign-up failed.');
   }
 }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/review.dart';
 
 /// Service to analyze user reviews and extract preferences for personalized recommendations
@@ -16,20 +17,20 @@ class ReviewAnalysisService {
         
         // If no new reviews, return cached profile
         if (reviewCount == cachedCount) {
-          print('Using cached review profile ($cachedCount reviews)');
+          debugPrint('Using cached review profile ($cachedCount reviews)');
           return cachedProfile.profile;
         }
         
         // If only a few new reviews, do incremental update
         if (reviewCount > cachedCount && (reviewCount - cachedCount) <= 10) {
-          print('Incremental update: ${reviewCount - cachedCount} new reviews');
+          debugPrint('Incremental update: ${reviewCount - cachedCount} new reviews');
           return _incrementalUpdate(userId, cachedProfile.profile, cachedCount);
         }
       }
     }
     
     // Full analysis (cache miss or many new reviews)
-    print('Performing full review analysis...');
+    debugPrint('Performing full review analysis...');
     final reviews = await _fetchAllUserReviews(userId);
     final profile = UserReviewProfile(
       ratingPattern: _analyzeRatingPattern(reviews),
@@ -68,7 +69,7 @@ class ReviewAnalysisService {
     
     if (limit != null) {
       query = query.limit(limit);
-      print('Limiting to recent $limit reviews (user has $totalCount total)');
+      debugPrint('Limiting to recent $limit reviews (user has $totalCount total)');
     }
     
     final snapshot = await query.get();
@@ -112,7 +113,7 @@ class ReviewAnalysisService {
       if (lastUpdated != null) {
         final daysSinceUpdate = DateTime.now().difference(lastUpdated).inDays;
         if (daysSinceUpdate > 7) {
-          print('Cache is $daysSinceUpdate days old, refreshing...');
+          debugPrint('Cache is $daysSinceUpdate days old, refreshing...');
           return null;
         }
       }
@@ -123,7 +124,7 @@ class ReviewAnalysisService {
         lastUpdated: lastUpdated,
       );
     } catch (e) {
-      print('Error getting cached profile: $e');
+      debugPrint('Error getting cached profile: $e');
       return null;
     }
   }
@@ -146,9 +147,9 @@ class ReviewAnalysisService {
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       
-      print('Cached review profile ($reviewCount reviews)');
+      debugPrint('Cached review profile ($reviewCount reviews)');
     } catch (e) {
-      print('Error caching profile: $e');
+      debugPrint('Error caching profile: $e');
     }
   }
   
@@ -340,9 +341,9 @@ class ReviewAnalysisService {
           .collection('reviewAnalysis')
           .doc('profile')
           .delete();
-      print('Cleared review analysis cache');
+      debugPrint('Cleared review analysis cache');
     } catch (e) {
-      print('Error clearing cache: $e');
+      debugPrint('Error clearing cache: $e');
     }
   }
   

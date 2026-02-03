@@ -88,6 +88,8 @@ flutter:
   assets:
     - lib/assets/images/discoball_loading.png
     - lib/assets/images/walking_music_man.png
+    - .env
+
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

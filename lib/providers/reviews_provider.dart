@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
@@ -36,7 +37,7 @@ final userReviewsProvider = StreamProvider<List<ReviewWithDocId>>((ref) {
               final review = Review.fromFirestore(doc.data());
               return ReviewWithDocId(review: review, docId: doc.id);
             } catch (e) {
-              print('Error parsing review ${doc.id}: $e');
+              debugPrint('Error parsing review ${doc.id}: $e');
               return null;
             }
           })
@@ -64,7 +65,7 @@ final userReviewsByIdProvider = StreamProvider.family<List<Review>, String>((ref
             try {
               return Review.fromFirestore(doc.data());
             } catch (e) {
-              print('Error parsing review ${doc.id}: $e');
+              debugPrint('Error parsing review ${doc.id}: $e');
               return null;
             }
           })

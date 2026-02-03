@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Helper to initialize Firebase for tests
@@ -40,8 +41,8 @@ Future<void> setupFirebaseForTests() async {
     } catch (e2) {
       // If still fails, log but don't throw - some tests might still work
       // if they don't actually use Firebase operations
-      print('⚠️ Firebase initialization in test failed: $e2');
-      print('   Some tests may fail if they require Firebase');
+      debugPrint('⚠️ Firebase initialization in test failed: $e2');
+      debugPrint('   Some tests may fail if they require Firebase');
     }
   }
 }

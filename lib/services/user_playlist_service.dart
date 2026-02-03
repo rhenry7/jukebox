@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/user_playlist.dart';
 
 /// Service for managing user-created playlists in Firestore
@@ -30,7 +31,7 @@ class UserPlaylistService {
       }
       return null;
     } catch (e) {
-      print('Error getting playlist: $e');
+      debugPrint('Error getting playlist: $e');
       return null;
     }
   }
@@ -46,8 +47,8 @@ class UserPlaylistService {
         try {
           return UserPlaylist.fromFirestore(doc);
         } catch (e) {
-          print('❌ Error parsing playlist from Firestore: $e');
-          print('   Document data: ${doc.data()}');
+          debugPrint('❌ Error parsing playlist from Firestore: $e');
+          debugPrint('   Document data: ${doc.data()}');
           return null;
         }
       }
@@ -89,22 +90,22 @@ class UserPlaylistService {
       // Only add coverImageUrl if we have tracks (which we don't at creation)
       // So we'll omit it for now
 
-      print('📝 [PLAYLIST SERVICE] Creating playlist with data:');
-      print('   userId: $userId');
-      print('   userId type: ${userId.runtimeType}');
-      print('   name: ${playlistData['name']}');
-      print('   collection: $_collectionName');
-      print('   data keys: ${playlistData.keys.toList()}');
-      print('   data: $playlistData');
+      debugPrint('📝 [PLAYLIST SERVICE] Creating playlist with data:');
+      debugPrint('   userId: $userId');
+      debugPrint('   userId type: ${userId.runtimeType}');
+      debugPrint('   name: ${playlistData['name']}');
+      debugPrint('   collection: $_collectionName');
+      debugPrint('   data keys: ${playlistData.keys.toList()}');
+      debugPrint('   data: $playlistData');
 
       final docRef = await FirebaseFirestore.instance
           .collection(_collectionName)
           .add(playlistData);
 
-      print('✅ Playlist created with ID: ${docRef.id}');
+      debugPrint('✅ Playlist created with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
-      print('❌ Error creating playlist: $e');
+      debugPrint('❌ Error creating playlist: $e');
       rethrow;
     }
   }
@@ -130,7 +131,7 @@ class UserPlaylistService {
           .doc(playlistId)
           .update(updates);
     } catch (e) {
-      print('Error updating playlist metadata: $e');
+      debugPrint('Error updating playlist metadata: $e');
       rethrow;
     }
   }
@@ -168,13 +169,13 @@ class UserPlaylistService {
       // Convert tracks to maps for Firestore
       final tracksData = updatedTracks.map((t) {
         final map = t.toMap();
-        print('📝 Saving track: ${map['title']} by ${map['artist']}');
-        print('   trackId: ${map['trackId']}');
-        print('   imageUrl: ${map['imageUrl']}');
+        debugPrint('📝 Saving track: ${map['title']} by ${map['artist']}');
+        debugPrint('   trackId: ${map['trackId']}');
+        debugPrint('   imageUrl: ${map['imageUrl']}');
         return map;
       }).toList();
 
-      print('💾 Updating playlist with ${tracksData.length} tracks');
+      debugPrint('💾 Updating playlist with ${tracksData.length} tracks');
       
       await playlistRef.update({
         'tracks': tracksData,
@@ -182,9 +183,9 @@ class UserPlaylistService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       
-      print('✅ Playlist updated successfully');
+      debugPrint('✅ Playlist updated successfully');
     } catch (e) {
-      print('Error adding track to playlist: $e');
+      debugPrint('Error adding track to playlist: $e');
       rethrow;
     }
   }
@@ -216,7 +217,7 @@ class UserPlaylistService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error removing track from playlist: $e');
+      debugPrint('Error removing track from playlist: $e');
       rethrow;
     }
   }
@@ -235,7 +236,7 @@ class UserPlaylistService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error reordering tracks: $e');
+      debugPrint('Error reordering tracks: $e');
       rethrow;
     }
   }
@@ -248,7 +249,7 @@ class UserPlaylistService {
           .doc(playlistId)
           .delete();
     } catch (e) {
-      print('Error deleting playlist: $e');
+      debugPrint('Error deleting playlist: $e');
       rethrow;
     }
   }

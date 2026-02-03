@@ -53,11 +53,11 @@ class _CreatePlaylistScreenState extends ConsumerState<CreatePlaylistScreen> {
           .where((t) => t.isNotEmpty)
           .toList();
 
-      print('📝 [CREATE PLAYLIST] Starting creation...');
-      print('   userId: $userId');
-      print('   userId type: ${userId.runtimeType}');
-      print('   userId length: ${userId.length}');
-      print('   name: ${_nameController.text.trim()}');
+      debugPrint('📝 [CREATE PLAYLIST] Starting creation...');
+      debugPrint('   userId: $userId');
+      debugPrint('   userId type: ${userId.runtimeType}');
+      debugPrint('   userId length: ${userId.length}');
+      debugPrint('   name: ${_nameController.text.trim()}');
 
       final playlistId = await UserPlaylistService.createPlaylist(
         userId: userId,

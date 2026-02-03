@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
@@ -50,12 +51,12 @@ class MusicRecommendationService {
       // NEW: Analyze all user reviews for deep personalization (with caching)
       UserReviewProfile? reviewProfile;
       try {
-        print('Analyzing user reviews for personalized recommendations...');
+        debugPrint('Analyzing user reviews for personalized recommendations...');
         // Use cached version if available (faster)
         reviewProfile = await ReviewAnalysisService.analyzeUserReviews(userId, forceRefresh: false);
-        print('Review analysis complete: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} avg rating');
+        debugPrint('Review analysis complete: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} avg rating');
       } catch (e) {
-        print('Error analyzing reviews (will use basic method): $e');
+        debugPrint('Error analyzing reviews (will use basic method): $e');
       }
 
       // Get recent reviews for AI prompt (still include some recent context)
@@ -105,14 +106,14 @@ class MusicRecommendationService {
           reviewList,
           reviewProfile,  // Pass review analysis
         );
-        print('Fetching AI recommendations with review analysis...');
+        debugPrint('Fetching AI recommendations with review analysis...');
         final response = await _makeApiRequest(prompt);
         final aiRecommendations = _parseRecommendations(response);
         
         // OPTIMIZATION: Only validate AI recommendations (Spotify recs are already validated)
         if (skipValidation || validationMode == 'none') {
           // Skip validation for faster results
-          print('Skipping validation for faster results (${aiRecommendations.length} AI recommendations)');
+          debugPrint('Skipping validation for faster results (${aiRecommendations.length} AI recommendations)');
           allRecommendations.addAll(aiRecommendations);
         } else {
           // Determine which recommendations to validate
@@ -125,53 +126,53 @@ class MusicRecommendationService {
               : <MusicRecommendation>[];
           
           if (recsToValidate.isNotEmpty) {
-            print('Validating ${recsToValidate.length} AI recommendations (mode: $validationMode)...');
+            debugPrint('Validating ${recsToValidate.length} AI recommendations (mode: $validationMode)...');
             final validatedRecommendations = await _validateRecommendationsOptimized(
               recsToValidate,
               validationMode: validationMode,
               skipMetadataEnrichment: skipMetadataEnrichment,
             );
             allRecommendations.addAll(validatedRecommendations);
-            print('Got ${validatedRecommendations.length} validated AI recommendations (${recsToValidate.length - validatedRecommendations.length} filtered out)');
+            debugPrint('Got ${validatedRecommendations.length} validated AI recommendations (${recsToValidate.length - validatedRecommendations.length} filtered out)');
           }
           
           // Add unvalidated recommendations if validating only top N
           if (recsToSkip.isNotEmpty) {
-            print('Skipping validation for ${recsToSkip.length} lower-priority recommendations');
+            debugPrint('Skipping validation for ${recsToSkip.length} lower-priority recommendations');
             allRecommendations.addAll(recsToSkip);
           }
         }
       } catch (e) {
-        print('Error getting AI recommendations: $e');
+        debugPrint('Error getting AI recommendations: $e');
       }
 
       // 2. Get collaborative filtering recommendations (if enabled)
       if (useEnhancedAlgorithm) {
         try {
-          print('Finding similar users...');
+          debugPrint('Finding similar users...');
           final similarUsers = await RecommendationEnhancements.findSimilarUsers(userId);
           if (similarUsers.isNotEmpty) {
-            print('Found ${similarUsers.length} similar users');
+            debugPrint('Found ${similarUsers.length} similar users');
             final collaborativeRecs = await RecommendationEnhancements
                 .getCollaborativeRecommendations(userId, similarUsers);
             allRecommendations.addAll(collaborativeRecs);
-            print('Got ${collaborativeRecs.length} collaborative recommendations');
+            debugPrint('Got ${collaborativeRecs.length} collaborative recommendations');
           }
         } catch (e) {
-          print('Error getting collaborative recommendations: $e');
+          debugPrint('Error getting collaborative recommendations: $e');
         }
 
         // 3. Get Spotify API recommendations (if user has saved tracks/artists)
         try {
           if (preferences.savedTracks.isNotEmpty || preferences.favoriteArtists.isNotEmpty) {
-            print('Fetching Spotify recommendations...');
+            debugPrint('Fetching Spotify recommendations...');
             final spotifyRecs = await RecommendationEnhancements
                 .getSpotifyRecommendations(preferences, count ~/ 2);
             allRecommendations.addAll(spotifyRecs);
-            print('Got ${spotifyRecs.length} Spotify recommendations');
+            debugPrint('Got ${spotifyRecs.length} Spotify recommendations');
           }
         } catch (e) {
-          print('Error getting Spotify recommendations: $e');
+          debugPrint('Error getting Spotify recommendations: $e');
         }
       }
 
@@ -235,13 +236,13 @@ class MusicRecommendationService {
       filteredRecs = filteredRecs.take(count).toList();
       
       // 5. Enrich recommendations with MusicBrainz genres (hybrid approach)
-      print('Enriching recommendations with MusicBrainz genres...');
+      debugPrint('Enriching recommendations with MusicBrainz genres...');
       filteredRecs = await _enrichRecommendationsWithGenres(filteredRecs);
       
       // Start fetching album images in the background (non-blocking)
       _fetchAlbumImagesInBackground(filteredRecs);
 
-      print('Returning ${filteredRecs.length} final recommendations with genres');
+      debugPrint('Returning ${filteredRecs.length} final recommendations with genres');
       return filteredRecs;
     } catch (e) {
       throw MusicRecommendationException('Failed to get recommendations: $e');
@@ -429,7 +430,7 @@ Format:
         final response = await http
             .post(Uri.parse(_openAiEndpoint), headers: headers, body: body)
             .timeout(_timeoutDuration);
-        print('Response status: ${response.body}');
+        debugPrint('Response status: ${response.body}');
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
@@ -474,11 +475,11 @@ Format:
               if (item is Map<String, dynamic>) {
                 return MusicRecommendation.fromJson(item);
               } else {
-                print('Skipping invalid item: $item');
+                debugPrint('Skipping invalid item: $item');
                 return null;
               }
             } catch (e) {
-              print('Error parsing item $item: $e');
+              debugPrint('Error parsing item $item: $e');
               return null;
             }
           })
@@ -542,7 +543,7 @@ Format:
         }
       }
       
-      print('Validation cache hit: ${recommendations.length - uncachedRecs.length}/${recommendations.length}');
+      debugPrint('Validation cache hit: ${recommendations.length - uncachedRecs.length}/${recommendations.length}');
       
       // Only validate uncached recommendations
       if (uncachedRecs.isNotEmpty) {
@@ -579,7 +580,7 @@ Format:
 
       return validatedRecs;
     } catch (e) {
-      print('Error validating recommendations: $e');
+      debugPrint('Error validating recommendations: $e');
       return [];
     }
   }
@@ -666,10 +667,10 @@ Format:
       }
       
       // Not found on Spotify - reject (might be hallucination)
-      print('⚠️  Track not found on Spotify: "${recommendation.song}" by "${recommendation.artist}"');
+      debugPrint('⚠️  Track not found on Spotify: "${recommendation.song}" by "${recommendation.artist}"');
       return null;
     } catch (e) {
-      print('Error validating with Spotify: $e');
+      debugPrint('Error validating with Spotify: $e');
       return null;
     }
   }
@@ -705,7 +706,7 @@ Format:
   }) async {
     try {
       // Step 1: Check MusicBrainz first (broader coverage, free, no rate limits)
-      print('Checking MusicBrainz for "${recommendation.song}" by "${recommendation.artist}"...');
+      debugPrint('Checking MusicBrainz for "${recommendation.song}" by "${recommendation.artist}"...');
       final existsInMusicBrainz = await MusicBrainzService.validateTrackExists(
         recommendation.song,
         recommendation.artist,
@@ -713,12 +714,12 @@ Format:
       
       if (!existsInMusicBrainz) {
         // Track doesn't exist in MusicBrainz - likely a hallucination
-        print('⚠️  AI hallucination detected: "${recommendation.song}" by "${recommendation.artist}" not found in MusicBrainz');
+        debugPrint('⚠️  AI hallucination detected: "${recommendation.song}" by "${recommendation.artist}" not found in MusicBrainz');
         return null;
       }
       
       // Step 2: Track exists in MusicBrainz, now try Spotify to get metadata (images, etc.)
-      print('Track found in MusicBrainz, checking Spotify for metadata...');
+      debugPrint('Track found in MusicBrainz, checking Spotify for metadata...');
       try {
         // Try searching for the track on Spotify (most accurate)
         final trackQuery = 'track:"${recommendation.song}" artist:"${recommendation.artist.split(',').first.trim()}"';
@@ -741,7 +742,7 @@ Format:
                     ? (item.album!.images!.first.url ?? recommendation.imageUrl)
                     : recommendation.imageUrl;
 
-                print('✓ Track found on Spotify with metadata: "${recommendation.song}" by "${recommendation.artist}"');
+                debugPrint('✓ Track found on Spotify with metadata: "${recommendation.song}" by "${recommendation.artist}"');
                 
                 if (skipMetadataEnrichment) {
                   // Just return original (validated existence, skip metadata)
@@ -798,7 +799,7 @@ Format:
                       ? (item.album!.images!.first.url ?? recommendation.imageUrl)
                       : recommendation.imageUrl;
 
-                  print('✓ Track found on Spotify (fuzzy match) with metadata: "${recommendation.song}" by "${recommendation.artist}"');
+                  debugPrint('✓ Track found on Spotify (fuzzy match) with metadata: "${recommendation.song}" by "${recommendation.artist}"');
                   
                   if (skipMetadataEnrichment) {
                     // Just return original (validated existence, skip metadata)
@@ -819,16 +820,16 @@ Format:
         }
         
         // Track exists in MusicBrainz but not on Spotify - still valid, return as-is
-        print('✓ Track exists in MusicBrainz but not on Spotify (may not be playable): "${recommendation.song}" by "${recommendation.artist}"');
+        debugPrint('✓ Track exists in MusicBrainz but not on Spotify (may not be playable): "${recommendation.song}" by "${recommendation.artist}"');
         return recommendation; // Return as-is since we can't get Spotify metadata
       } catch (e) {
-        print('Error checking Spotify (but track exists in MusicBrainz): $e');
+        debugPrint('Error checking Spotify (but track exists in MusicBrainz): $e');
         // Track exists in MusicBrainz, so it's valid even if Spotify check fails
-        print('✓ Track validated in MusicBrainz (Spotify check failed): "${recommendation.song}" by "${recommendation.artist}"');
+        debugPrint('✓ Track validated in MusicBrainz (Spotify check failed): "${recommendation.song}" by "${recommendation.artist}"');
         return recommendation;
       }
     } catch (e) {
-      print('Error validating "${recommendation.song}" by "${recommendation.artist}": $e');
+      debugPrint('Error validating "${recommendation.song}" by "${recommendation.artist}": $e');
       // If validation fails for this specific track, exclude it to be safe
       return null;
     }
@@ -867,10 +868,10 @@ Format:
               }
             }
             
-            print('Enriched ${rec.song} with ${genres.length} genres (from cache/API)');
+            debugPrint('Enriched ${rec.song} with ${genres.length} genres (from cache/API)');
           }
         } catch (e) {
-          print('Error enriching ${rec.song} with genres: $e');
+          debugPrint('Error enriching ${rec.song} with genres: $e');
           // Continue with existing genres if enrichment fails
         }
       }
@@ -892,7 +893,7 @@ Format:
               for (final item in page.items!) {
                 if (item is Artist && item.genres != null && item.genres!.isNotEmpty) {
                   genres = item.genres!.toList();
-                  print('Got ${genres.length} artist genres from Spotify for ${rec.song}');
+                  debugPrint('Got ${genres.length} artist genres from Spotify for ${rec.song}');
                   break;
                 }
               }
@@ -900,7 +901,7 @@ Format:
             if (genres.isNotEmpty) break;
           }
         } catch (e) {
-          print('Error getting Spotify artist genres for ${rec.song}: $e');
+          debugPrint('Error getting Spotify artist genres for ${rec.song}: $e');
         }
       }
       
@@ -990,7 +991,7 @@ Format:
               genres: rec.genres,
             );
           } catch (e) {
-            print('Error fetching image for ${rec.song} by ${rec.artist}: $e');
+            debugPrint('Error fetching image for ${rec.song} by ${rec.artist}: $e');
             // Return original recommendation if fetch fails
             return rec;
           }
@@ -1001,9 +1002,9 @@ Format:
 
         // Update cache with images (this would require modifying the cache structure)
         // For now, images will be fetched on next load or we could emit an event
-        print('Fetched ${updatedRecommendations.length} album images');
+        debugPrint('Fetched ${updatedRecommendations.length} album images');
       } catch (e) {
-        print('Error in _fetchAlbumImagesInBackground: $e');
+        debugPrint('Error in _fetchAlbumImagesInBackground: $e');
       }
     });
   }
@@ -1068,7 +1069,7 @@ Format:
 
       return imageUrl ?? '';
     } catch (e) {
-      print('Error fetching image for ${recommendation.song}: $e');
+      debugPrint('Error fetching image for ${recommendation.song}: $e');
       return '';
     }
   }

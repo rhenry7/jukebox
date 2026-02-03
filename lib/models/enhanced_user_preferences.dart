@@ -163,7 +163,7 @@ class EnhancedUserPreferences {
       dislikedGenres: safeStringList(json['dislikedGenres']),
       genreWeights: safeDoubleMap(json['genreWeights']),
       recentlyPlayed: (json['recentlyPlayed'] as List<dynamic>?)
-              ?.map(TrackHistory.fromJson)
+              ?.map((e) => TrackHistory.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       savedTracks: safeStringList(json['savedTracks']),

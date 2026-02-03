@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 /// Service for analyzing music profiles and generating recommendation prompts
 class MusicProfileService {
@@ -24,7 +25,7 @@ class MusicProfileService {
       }
       return null;
     } catch (e) {
-      print('Error fetching music profile: $e');
+      debugPrint('Error fetching music profile: $e');
       return null;
     }
   }
@@ -241,7 +242,7 @@ class MusicProfileService {
         'lastUpdated': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error updating music profile: $e');
+      debugPrint('Error updating music profile: $e');
       rethrow;
     }
   }
@@ -261,7 +262,7 @@ class MusicProfileService {
         'lastUpdated': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error creating music profile: $e');
+      debugPrint('Error creating music profile: $e');
       rethrow;
     }
   }
@@ -288,7 +289,7 @@ class MusicProfileService {
           .doc('profile')
           .update(updates);
     } catch (e) {
-      print('Error tracking listening activity: $e');
+      debugPrint('Error tracking listening activity: $e');
       rethrow;
     }
   }
@@ -306,7 +307,7 @@ class MusicProfileService {
         'recentlyPlayed': FieldValue.arrayUnion([trackId]),
       });
     } catch (e) {
-      print('Error adding to recently played: $e');
+      debugPrint('Error adding to recently played: $e');
       rethrow;
     }
   }
