@@ -43,15 +43,12 @@ class ProfileView extends State<ProfilePage> {
                         // SETTINGS
                         ProfileButton(
                             name: userName, icon: Ionicons.person_circle),
-                        const ProfileButton(
-                            name: 'Reviews',
-                            icon: Ionicons.musical_notes_outline),
+                        // const ProfileButton(
+                        //     name: 'Reviews',
+                        //     icon: Ionicons.musical_notes_outline),
                         const ProfileButton(
                             name: 'Preferences',
                             icon: Ionicons.analytics_outline),
-                        const ProfileButton(
-                            name: 'Notifications',
-                            icon: Ionicons.notifications_outline),
                         const ProfileButton(
                             name: 'LogOut', icon: Ionicons.exit_outline),
                       ],

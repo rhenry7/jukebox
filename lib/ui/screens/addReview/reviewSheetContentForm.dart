@@ -249,21 +249,42 @@ class _MyReviewSheetContentFormState
     debugPrint('   ✅ Track selection complete');
   }
 
-  void _selectAlbum(spotify.Album album) {
-    debugPrint('💿 [SELECT] Album selected:');
-    debugPrint('   Title: "${album.name}"');
-    debugPrint(
-        '   Artist: ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
-    debugPrint(
-        '   Image URL: ${album.images?.isNotEmpty == true ? album.images!.first.url ?? 'None' : 'None'}');
-    debugPrint('   Release Date: ${album.releaseDate ?? 'Unknown'}');
-    debugPrint('   Album Type: ${album.albumType ?? 'Unknown'}');
+  /// Accepts both [spotify.Album] and [spotify.AlbumSimple] from search results.
+  void _selectAlbum(dynamic album) {
+    String name = '';
+    String artistStr = '';
+    String imageUrl = '';
+
+    if (album is spotify.Album) {
+      name = album.name ?? '';
+      artistStr = album.artists?.map((a) => a.name).join(', ') ?? '';
+      imageUrl = album.images?.isNotEmpty == true
+          ? album.images!.first.url ?? ''
+          : '';
+      debugPrint('💿 [SELECT] Album selected: ${album.name}');
+    } else if (album is spotify.AlbumSimple) {
+      name = album.name ?? '';
+      artistStr = album.artists
+              ?.map((a) => a.name ?? 'Unknown')
+              .join(', ') ??
+          '';
+      imageUrl = album.images?.isNotEmpty == true
+          ? album.images!.first.url ?? ''
+          : '';
+      debugPrint('💿 [SELECT] AlbumSimple selected: ${album.name}');
+    } else {
+      debugPrint('   ⚠️ Unknown album type: ${album.runtimeType}');
+      return;
+    }
+
+    debugPrint('   Title: "$name"');
+    debugPrint('   Artist: $artistStr');
+    debugPrint('   Image URL: ${imageUrl.isEmpty ? "None" : imageUrl}');
 
     setState(() {
-      _selectedTrackTitle = album.name ?? '';
-      _selectedTrackArtist = album.artists?.map((a) => a.name).join(', ') ?? '';
-      _selectedTrackImageUrl =
-          album.images?.isNotEmpty == true ? album.images!.first.url ?? '' : '';
+      _selectedTrackTitle = name;
+      _selectedTrackArtist = artistStr;
+      _selectedTrackImageUrl = imageUrl;
       _trackResults = [];
       _albumResults = [];
       searchParams.clear();

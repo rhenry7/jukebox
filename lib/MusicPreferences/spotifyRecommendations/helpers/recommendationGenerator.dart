@@ -89,7 +89,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
             // Continue to next item
           }
         }
-        
+
         // If we got valid recommendations from cache, return them
         if (cachedRecs.isNotEmpty) {
           return cachedRecs;
@@ -99,7 +99,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
           await prefs.remove('cached_recs');
         }
       }
-      
+
       // Fetch new recommendations
       debugPrint('Fetching new recommendations');
       // OPTIMIZATION: Using spotify-only mode (default) - skips MusicBrainz for speed
@@ -112,7 +112,8 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
           await MusicRecommendationService.getRecommendations(
         preferences,
         // validationMode defaults to 'spotify-only' (skips MusicBrainz)
-        validateTopN: 10, // Only validate top 10 (rest shown without validation)
+        validateTopN:
+            10, // Only validate top 10 (rest shown without validation)
         skipMetadataEnrichment: false, // Keep metadata for better UX
       );
       final newRecsJsonList =
@@ -120,7 +121,8 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       await prefs.setStringList('cached_recs', newRecsJsonList);
       return recommendations;
     } catch (error) {
-      debugPrint('Error fetching user preferences and or recommendations: $error');
+      debugPrint(
+          'Error fetching user preferences and or recommendations: $error');
       // Clear cache on error to prevent future issues
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -172,15 +174,15 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
     try {
       // Create a new future for the refresh
       final newFuture = fetchNewRecommendations();
-      
+
       setState(() {
         _albumsFuture = newFuture;
         _isInitialized = true;
       });
-      
+
       // Wait for the future to complete to ensure UI updates
       await newFuture;
-      
+
       // Force a rebuild after the future completes
       if (mounted) {
         setState(() {});
@@ -216,16 +218,17 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                         child: FutureBuilder<List<MusicRecommendation>>(
                           future: _albumsFuture,
                           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const DiscoBallLoading();
-            }
-                            
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const DiscoBallLoading();
+                            }
+
                             if (snapshot.hasError) {
                               return Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.error_outline, 
+                                    const Icon(Icons.error_outline,
                                         color: Colors.red, size: 48),
                                     const SizedBox(height: 16),
                                     const Text(
@@ -236,7 +239,8 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       '${snapshot.error}',
-                                      style: const TextStyle(color: Colors.white70),
+                                      style: const TextStyle(
+                                          color: Colors.white70),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 16),
@@ -248,46 +252,52 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                 ),
                               );
                             }
-                            
+
                             if (snapshot.hasData) {
                               if (snapshot.data!.isEmpty) {
                                 // Check if user has preferences set up
                                 return FutureBuilder<bool>(
                                   future: _checkIfUserHasPreferences(),
                                   builder: (context, prefsSnapshot) {
-                                    final hasPreferences = prefsSnapshot.data ?? false;
-                                    
+                                    final hasPreferences =
+                                        prefsSnapshot.data ?? false;
+
                                     return Center(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.music_off, 
+                                          const Icon(Icons.music_off,
                                               size: 64, color: Colors.grey),
                                           const SizedBox(height: 16),
                                           Text(
-                                            hasPreferences 
+                                            hasPreferences
                                                 ? 'No recommendations yet'
                                                 : 'Set your preferences to start getting recommendations',
                                             style: const TextStyle(
-                                                color: Colors.white, fontSize: 20),
+                                                color: Colors.white,
+                                                fontSize: 20),
                                             textAlign: TextAlign.center,
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
                                             hasPreferences
-                                                ? 'Update your music preferences to get personalized recommendations!'
-                                                : 'Tell us about your music taste to receive personalized recommendations.',
-                                            style: const TextStyle(color: Colors.white70),
+                                                ? 'Update your music preferences or leave more reviews to get personalized recommendations!'
+                                                : 'Leave more reviews to get personalized recommendations.',
+                                            style: const TextStyle(
+                                                color: Colors.white70),
                                             textAlign: TextAlign.center,
                                           ),
                                           const SizedBox(height: 24),
                                           if (hasPreferences)
                                             ElevatedButton.icon(
-                                              onPressed: _refreshRecommendations,
+                                              onPressed:
+                                                  _refreshRecommendations,
                                               icon: const Icon(Icons.refresh),
                                               label: const Text('Refresh'),
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.red[600],
+                                                backgroundColor:
+                                                    Colors.red[600],
                                                 foregroundColor: Colors.white,
                                               ),
                                             )
@@ -297,20 +307,26 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                                 // Navigate to preferences
                                                 Navigator.of(context).push(
                                                   MaterialPageRoute(
-                                                    builder: (context) => Scaffold(
+                                                    builder: (context) =>
+                                                        Scaffold(
                                                       appBar: AppBar(
-                                                        title: const Text('Set Up Preferences'),
-                                                        backgroundColor: Colors.black,
+                                                        title: const Text(
+                                                            'Set Up Preferences'),
+                                                        backgroundColor:
+                                                            Colors.black,
                                                       ),
-                                                      body: profileRoute('Preferences'),
+                                                      body: profileRoute(
+                                                          'Preferences'),
                                                     ),
                                                   ),
                                                 );
                                               },
                                               icon: const Icon(Icons.settings),
-                                              label: const Text('Set Preferences'),
+                                              label:
+                                                  const Text('Set Preferences'),
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.red[600],
+                                                backgroundColor:
+                                                    Colors.red[600],
                                                 foregroundColor: Colors.white,
                                               ),
                                             ),
@@ -350,7 +366,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                                 ],
                               );
                             }
-                            
+
                             return const DiscoBallLoading();
                           },
                         ),
