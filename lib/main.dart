@@ -73,7 +73,8 @@ void main() async {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const Icon(Icons.error_outline,
+                        color: Colors.red, size: 48),
                     const SizedBox(height: 16),
                     const Text(
                       'Firebase configuration error',
@@ -92,15 +93,16 @@ void main() async {
             ),
           ),
         ),
-      ),
-    );
-    return;
+      );
+      return;
+    }
   }
 
   // Firebase Auth automatically uses localStorage on web to persist auth state
   // No need to explicitly set persistence - it's handled automatically
   if (kIsWeb) {
-    debugPrint('🌐 Web platform detected - auth state will persist in localStorage');
+    debugPrint(
+        '🌐 Web platform detected - auth state will persist in localStorage');
   }
 
   runApp(
@@ -117,7 +119,7 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch auth state - automatically handles initialization
     final authState = ref.watch(authStateProvider);
-    
+
     // Show loading screen while checking auth state
     if (authState.isLoading) {
       return MaterialApp(
@@ -133,7 +135,7 @@ class MyApp extends ConsumerWidget {
         ),
       );
     }
-    
+
     // Log auth state for debugging
     final user = authState.value;
     if (user != null) {
