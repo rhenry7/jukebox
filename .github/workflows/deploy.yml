@@ -57,4 +57,13 @@ jobs:
             --dart-define=UNSPLASH_SECRET="$UNSPLASH_SECRET"
 
       - name: Deploy to Firebase Hosting
-        run: npx firebase-tools deploy --only hosting --non-interactive --token "${{ secrets.FIREBASE_TOKEN }}"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "❌ Error: FIREBASE_TOKEN secret is not set in GitHub Secrets"
+            echo "To get a token, run: firebase login:ci"
+            echo "Then add it as a repository secret: Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+          npx firebase-tools deploy --only hosting --non-interactive --token "$FIREBASE_TOKEN"
