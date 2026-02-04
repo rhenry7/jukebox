@@ -1,0 +1,60 @@
+# Deploy Flutter web app to Firebase Hosting.
+# Environment: API keys loaded at runtime from .env locally; in CI keys come from GitHub Secrets
+# via --dart-define at build time.
+#
+# Required GitHub Secrets:
+#   FIREBASE_OPTIONS_KEY, FIREBASE_APP_ID  - Firebase web config
+#   FIREBASE_TOKEN                         - From: firebase login:ci (for deploy)
+#   Spotify:     CLIENT_ID, CLIENT_SECRET  (or SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET)
+#   News:        NEWS_API_KEY
+#   OpenAI:      OPENAI_KEY
+#   Unsplash:    UNSPLASH_ACCESS_KEY, UNSPLASH_SECRET
+
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build web (release) with API keys from secrets
+        env:
+          FIREBASE_OPTIONS_KEY: ${{ secrets.FIREBASE_OPTIONS_KEY }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          UNSPLASH_SECRET: ${{ secrets.UNSPLASH_SECRET }}
+        run: |
+          flutter build web --release \
+            --dart-define=FIREBASE_OPTIONS_KEY="$FIREBASE_OPTIONS_KEY" \
+            --dart-define=FIREBASE_APP_ID="$FIREBASE_APP_ID" \
+            --dart-define=CLIENT_ID="$CLIENT_ID" \
+            --dart-define=CLIENT_SECRET="$CLIENT_SECRET" \
+            --dart-define=NEWS_API_KEY="$NEWS_API_KEY" \
+            --dart-define=OPENAI_KEY="$OPENAI_KEY" \
+            --dart-define=UNSPLASH_ACCESS_KEY="$UNSPLASH_ACCESS_KEY" \
+            --dart-define=UNSPLASH_SECRET="$UNSPLASH_SECRET"
+
+      - name: Deploy to Firebase Hosting
+        run: npx firebase-tools deploy --only hosting --non-interactive --token "${{ secrets.FIREBASE_TOKEN }}"

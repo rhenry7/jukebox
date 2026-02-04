@@ -51,6 +51,20 @@ void loadApiKeysFromDotenv() {
   _runtime.unsplashSecret = dotenv.env['UNSPLASH_SECRET'] ?? '';
 }
 
+/// Populate runtime keys from a map (e.g. parsed .env on web or CI). Used when dotenv isn't available.
+void loadApiKeysFromMap(Map<String, String> env) {
+  if (env.isEmpty) return;
+  final m = env.map((k, v) => MapEntry(k.toUpperCase(), v));
+  if (_runtime.clientId.isEmpty) _runtime.clientId = m['SPOTIFY_CLIENT_ID'] ?? m['CLIENT_ID'] ?? '';
+  if (_runtime.clientSecret.isEmpty) _runtime.clientSecret = m['SPOTIFY_CLIENT_SECRET'] ?? m['CLIENT_SECRET'] ?? '';
+  if (_runtime.newsAPIKey.isEmpty) _runtime.newsAPIKey = m['NEWS_API_KEY'] ?? '';
+  if (_runtime.openAIKey.isEmpty) _runtime.openAIKey = m['OPENAI_API_KEY'] ?? m['OPENAI_KEY'] ?? '';
+  if (_runtime.firebaseOptionsKey.isEmpty) _runtime.firebaseOptionsKey = m['FIREBASE_OPTIONS_KEY'] ?? '';
+  if (_runtime.firebaseAppId.isEmpty) _runtime.firebaseAppId = m['FIREBASE_APP_ID'] ?? '';
+  if (_runtime.unsplashAccessKey.isEmpty) _runtime.unsplashAccessKey = m['UNSPLASH_ACCESS_KEY'] ?? '';
+  if (_runtime.unsplashSecret.isEmpty) _runtime.unsplashSecret = m['UNSPLASH_SECRET'] ?? '';
+}
+
 String get clientId => _clientId.isNotEmpty ? _clientId : _runtime.clientId;
 String get clientSecret =>
     _clientSecret.isNotEmpty ? _clientSecret : _runtime.clientSecret;
