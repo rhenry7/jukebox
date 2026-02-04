@@ -1,8 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 
-/// Load .env from bundled asset (web only).
+/// Load environment variables for web.
+/// Note: .env is not bundled as an asset (gitignored, not in CI).
+/// For web builds, keys come from --dart-define at build time.
+/// This function is kept for potential future use but will gracefully fail if .env doesn't exist.
 Future<void> loadEnvVariables() async {
+  // .env is no longer bundled as an asset, so this will always fail gracefully
+  // Keys come from --dart-define for web builds (see deploy.sh)
+  // This try-catch ensures the app doesn't crash if someone tries to load .env
   try {
     final String envString = await rootBundle.loadString('.env');
     final Map<String, String> env = {};

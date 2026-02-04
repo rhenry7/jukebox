@@ -23,9 +23,6 @@ jobs:
     - name: Get dependencies
       run: flutter pub get
 
-    - name: Create empty .env file for asset check
-      run: touch .env
-
     - name: Analyze code
       run: flutter analyze
 
