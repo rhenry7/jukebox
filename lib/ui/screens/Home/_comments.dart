@@ -403,6 +403,25 @@ class FriendsReviewList extends ConsumerWidget {
   }
 }
 
+/// Merges MusicBrainz genres and user-created tags, deduped by lowercase.
+List<String> _allTagsForReview(Review review) {
+  final combined = <String>[
+    ...(review.genres ?? <String>[]),
+    ...(review.tags ?? <String>[]),
+  ];
+  final seen = <String>{};
+  return combined
+      .map((t) => t.trim())
+      .where((t) => t.isNotEmpty)
+      .where((t) {
+        final lower = t.toLowerCase();
+        if (seen.contains(lower)) return false;
+        seen.add(lower);
+        return true;
+      })
+      .toList();
+}
+
 class ReviewCardWidget extends ConsumerWidget {
   final Review review;
   final String? reviewId; // Full review ID for likes: users/{userId}/reviews/{docId}
@@ -545,16 +564,19 @@ class ReviewCardWidget extends ConsumerWidget {
               ],
             ),
           ],
-          // Genre Tags (pills at the bottom)
-          if (review.genres != null && review.genres!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
-              children: review.genres!.take(5).map((genre) {
+          // Tags: MusicBrainz genres + user-created tags (pills at the bottom)
+          ...(){
+            final allTags = _allTagsForReview(review);
+            if (allTags.isEmpty) return <Widget>[];
+            return [
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: allTags.take(10).map((tag) {
                 return Chip(
                   label: Text(
-                    genre,
+                    tag,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -574,8 +596,9 @@ class ReviewCardWidget extends ConsumerWidget {
                   ),
                 );
               }).toList(),
-            ),
-          ],
+              ),
+            ];
+          }(),
         ],
       ),
     );
@@ -746,6 +769,7 @@ extension ReviewCopyWith on Review {
     int? reposts,
     String? title,
     List<String>? genres,
+    List<String>? tags,
   }) {
     return Review(
       displayName: displayName ?? this.displayName,
@@ -761,6 +785,7 @@ extension ReviewCopyWith on Review {
       reposts: reposts ?? this.reposts,
       title: title ?? this.title,
       genres: genres ?? this.genres,
+      tags: tags ?? this.tags,
     );
   }
 }

@@ -39,6 +39,7 @@ class _MyReviewSheetContentFormState
   final Color background = Colors.white10;
   final TextEditingController reviewController = TextEditingController();
   final TextEditingController searchParams = TextEditingController();
+  final TextEditingController _tagsController = TextEditingController();
 
   // Search state
   List<spotify.Track> _trackResults = [];
@@ -71,8 +72,15 @@ class _MyReviewSheetContentFormState
     _searchDebounce?.cancel();
     reviewController.dispose();
     searchParams.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
+
+  List<String> get _tagsFromController => _tagsController.text
+      .split(',')
+      .map((t) => t.trim())
+      .where((t) => t.isNotEmpty)
+      .toList();
 
   void _onSearchChanged() {
     // Cancel previous debounce timer
@@ -258,19 +266,15 @@ class _MyReviewSheetContentFormState
     if (album is spotify.Album) {
       name = album.name ?? '';
       artistStr = album.artists?.map((a) => a.name).join(', ') ?? '';
-      imageUrl = album.images?.isNotEmpty == true
-          ? album.images!.first.url ?? ''
-          : '';
+      imageUrl =
+          album.images?.isNotEmpty == true ? album.images!.first.url ?? '' : '';
       debugPrint('💿 [SELECT] Album selected: ${album.name}');
     } else if (album is spotify.AlbumSimple) {
       name = album.name ?? '';
-      artistStr = album.artists
-              ?.map((a) => a.name ?? 'Unknown')
-              .join(', ') ??
-          '';
-      imageUrl = album.images?.isNotEmpty == true
-          ? album.images!.first.url ?? ''
-          : '';
+      artistStr =
+          album.artists?.map((a) => a.name ?? 'Unknown').join(', ') ?? '';
+      imageUrl =
+          album.images?.isNotEmpty == true ? album.images!.first.url ?? '' : '';
       debugPrint('💿 [SELECT] AlbumSimple selected: ${album.name}');
     } else {
       debugPrint('   ⚠️ Unknown album type: ${album.runtimeType}');
@@ -421,6 +425,7 @@ class _MyReviewSheetContentFormState
         _selectedTrackImageUrl.isNotEmpty
             ? _selectedTrackImageUrl
             : widget.albumImageUrl,
+        _tagsFromController.isEmpty ? null : _tagsFromController,
       );
 
       // Invalidate reviews provider to refresh all screens automatically
@@ -903,6 +908,40 @@ class _MyReviewSheetContentFormState
                             liked ? Ionicons.heart : Ionicons.heart_outline,
                             color: liked ? Colors.red : Colors.grey,
                             size: 28,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const Gap(16),
+
+                    // Tags bar (genre, mood, etc.)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextFormField(
+                          controller: _tagsController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'Tags',
+                            labelStyle: const TextStyle(color: Colors.white70),
+                            hintText: 'rock, indie, workout (comma-separated)',
+                            hintStyle: const TextStyle(color: Colors.white30),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Colors.white30),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Colors.white30),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Colors.red, width: 2),
+                            ),
                           ),
                         ),
                       ],

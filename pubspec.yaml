@@ -88,10 +88,9 @@ flutter:
   assets:
     - lib/assets/images/discoball_loading.png
     - lib/assets/images/walking_music_man.png
-    # Note: .env is not included as an asset because:
-    # - It's gitignored and doesn't exist in CI
-    # - For web builds, keys come from --dart-define (see deploy.sh)
-    # - The code handles missing .env gracefully (env_loader_stub.dart)
+    # .env: for local (non-deployed) runs, include so web can load API keys from asset.
+    # Create .env in project root (see docs/ENV_AND_CI.md). CI creates a placeholder .env before build.
+    - .env
 
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see

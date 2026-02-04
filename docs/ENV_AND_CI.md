@@ -5,12 +5,12 @@
 API keys are loaded at **runtime** from a `.env` file:
 
 - **Mobile/Desktop**: `.env` is read from the project root via `flutter_dotenv` (no bundling).
-- **Web (local)**: `.env` is listed in `pubspec.yaml` assets and loaded from the asset bundle at runtime.
-- **CI/Deploy**: `.env` is not in the repo (gitignored). Keys are passed at **build time** via `--dart-define` from GitHub Secrets.
+- **Web (local)**: `.env` is listed in `pubspec.yaml` assets and loaded from the asset bundle at runtime, so **APIs are accessible when running locally** (e.g. `flutter run -d chrome`) as long as `.env` exists in the project root with your keys.
+- **CI/Deploy**: `.env` is not in the repo (gitignored). CI creates an empty `.env` so the asset exists; keys are passed at **build time** via `--dart-define` from GitHub Secrets.
 
-### Local setup
+### Local setup (APIs accessible when not deployed)
 
-1. Create a `.env` file in the **project root** (same folder as `pubspec.yaml`).
+1. Create a `.env` file in the **project root** (same folder as `pubspec.yaml`). Required for local web runs (`flutter run -d chrome`) so the app can load API keys from the bundled asset.
 2. Add at least Firebase, and any others your app uses:
    ```env
    FIREBASE_OPTIONS_KEY=your_firebase_web_api_key

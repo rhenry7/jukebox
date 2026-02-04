@@ -14,6 +14,7 @@ class Review {
   final int reposts;
   final String title;
   final List<String>? genres; // Optional genres for the track
+  final List<String>? tags; // User-added tags (genre, mood, etc.)
 
   Review({
     required this.displayName,
@@ -29,6 +30,7 @@ class Review {
     required this.reposts,
     required this.title,
     this.genres,
+    this.tags,
   });
 
   // Factory method to create a Review from Firestore document data
@@ -50,6 +52,9 @@ class Review {
       genres: data['genres'] != null 
           ? List<String>.from(data['genres'] as List)
           : null,
+      tags: data['tags'] != null 
+          ? List<String>.from(data['tags'] as List)
+          : null,
     );
   }
 
@@ -70,6 +75,9 @@ class Review {
       genres: json['genres'] != null 
           ? List<String>.from(json['genres'] as List)
           : null,
+      tags: json['tags'] != null 
+          ? List<String>.from(json['tags'] as List)
+          : null,
     );
   }
 
@@ -88,6 +96,7 @@ class Review {
       'replies': replies,
       'reposts': reposts,
       'genres': genres,
+      'tags': tags,
     };
   }
 }

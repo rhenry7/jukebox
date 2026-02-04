@@ -19,7 +19,8 @@ Future<List<Review>> fetchUserReviews() async {
 }
 
 Future<void> submitReview(String review, double score, String artist,
-    String title, bool liked, String albumImageUrl) async {
+    String title, bool liked, String albumImageUrl,
+    [List<String>? tags]) async {
   // album display image url
   debugPrint(artist);
   final User? user = FirebaseAuth.instance.currentUser;
@@ -54,6 +55,7 @@ Future<void> submitReview(String review, double score, String artist,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
         'albumImageUrl': albumImageUrl,
         if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
+        if (tags != null && tags.isNotEmpty) 'tags': tags,
       });
       
       debugPrint('✅ Review saved successfully! Document ID: ${docRef.id}');

@@ -122,7 +122,7 @@ class DiscoveryTapBar extends StatelessWidget {
             RecommendedAlbumScreen(),
             PlaylistDiscoveryScreen(), // New MusicBrainz-based playlist discovery
             ExploreTracks(),
-            MusicNewsWidget(), // Now uses user preferences automatically
+            //MusicNewsWidget(), // Now uses user preferences automatically
           ],
         ),
       ),
