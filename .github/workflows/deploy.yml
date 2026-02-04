@@ -45,8 +45,11 @@ jobs:
           FIREBASE_OPTIONS_KEY: ${{ secrets.FIREBASE_OPTIONS_KEY }}
           FIREBASE_OPTIONS_KEY_B64: ${{ secrets.FIREBASE_OPTIONS_KEY_B64 }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          # Support both SPOTIFY_CLIENT_ID and CLIENT_ID (code expects CLIENT_ID from --dart-define)
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
@@ -90,20 +93,26 @@ jobs:
           )
           
           # Add optional keys if they are set (non-empty), sanitizing each value
-          if [ -n "$SPOTIFY_CLIENT_ID" ] && [ "$SPOTIFY_CLIENT_ID" != "" ]; then
-            SANITIZED_VALUE=$(sanitize "$SPOTIFY_CLIENT_ID")
-            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_ID=${SANITIZED_VALUE}")
-            echo "✅ SPOTIFY_CLIENT_ID will be included in build"
+          # Note: Code expects CLIENT_ID/CLIENT_SECRET from --dart-define
+          # Support both SPOTIFY_CLIENT_ID and CLIENT_ID secret names (prefer SPOTIFY_CLIENT_ID if both set)
+          SPOTIFY_ID="${SPOTIFY_CLIENT_ID:-$CLIENT_ID}"
+          if [ -n "$SPOTIFY_ID" ] && [ "$SPOTIFY_ID" != "" ]; then
+            SANITIZED_VALUE=$(sanitize "$SPOTIFY_ID")
+            # Pass as CLIENT_ID (what code expects from String.fromEnvironment)
+            DART_DEFINES+=("--dart-define=CLIENT_ID=${SANITIZED_VALUE}")
+            echo "✅ CLIENT_ID will be included in build"
           else
-            echo "⚠️  SPOTIFY_CLIENT_ID is not set (optional) - Spotify features may not work"
+            echo "⚠️  SPOTIFY_CLIENT_ID/CLIENT_ID is not set (optional) - Spotify features may not work"
           fi
           
-          if [ -n "$SPOTIFY_CLIENT_SECRET" ] && [ "$SPOTIFY_CLIENT_SECRET" != "" ]; then
-            SANITIZED_VALUE=$(sanitize "$SPOTIFY_CLIENT_SECRET")
-            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_SECRET=${SANITIZED_VALUE}")
-            echo "✅ SPOTIFY_CLIENT_SECRET will be included in build"
+          SPOTIFY_SECRET="${SPOTIFY_CLIENT_SECRET:-$CLIENT_SECRET}"
+          if [ -n "$SPOTIFY_SECRET" ] && [ "$SPOTIFY_SECRET" != "" ]; then
+            SANITIZED_VALUE=$(sanitize "$SPOTIFY_SECRET")
+            # Pass as CLIENT_SECRET (what code expects from String.fromEnvironment)
+            DART_DEFINES+=("--dart-define=CLIENT_SECRET=${SANITIZED_VALUE}")
+            echo "✅ CLIENT_SECRET will be included in build"
           else
-            echo "⚠️  SPOTIFY_CLIENT_SECRET is not set (optional) - Spotify features may not work"
+            echo "⚠️  SPOTIFY_CLIENT_SECRET/CLIENT_SECRET is not set (optional) - Spotify features may not work"
           fi
           
           if [ -n "$NEWS_API_KEY" ] && [ "$NEWS_API_KEY" != "" ]; then
