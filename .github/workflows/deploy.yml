@@ -46,6 +46,20 @@ jobs:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           UNSPLASH_SECRET: ${{ secrets.UNSPLASH_SECRET }}
         run: |
+          # Verify required Firebase secrets are set
+          if [ -z "$FIREBASE_OPTIONS_KEY" ] || [ -z "$FIREBASE_APP_ID" ]; then
+            echo "❌ Error: FIREBASE_OPTIONS_KEY or FIREBASE_APP_ID secrets are not set"
+            echo "Please add these secrets in: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          
+          # Verify keys are not empty (basic check)
+          if [ "$FIREBASE_OPTIONS_KEY" = "" ] || [ "$FIREBASE_APP_ID" = "" ]; then
+            echo "❌ Error: FIREBASE_OPTIONS_KEY or FIREBASE_APP_ID are empty"
+            exit 1
+          fi
+          
+          echo "✅ Building web app with Firebase keys..."
           flutter build web --release \
             --dart-define=FIREBASE_OPTIONS_KEY="$FIREBASE_OPTIONS_KEY" \
             --dart-define=FIREBASE_APP_ID="$FIREBASE_APP_ID" \

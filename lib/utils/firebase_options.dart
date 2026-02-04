@@ -69,7 +69,7 @@ class DefaultFirebaseOptions {
 
   static FirebaseOptions get web => FirebaseOptions(
     apiKey: firebaseOptionsKey,
-    appId: '1:412268788730:web:ba888c5cdf66b317fe8243',
+    appId: firebaseAppId.isNotEmpty ? firebaseAppId : '1:412268788730:web:ba888c5cdf66b317fe8243',
     messagingSenderId: '412268788730',
     projectId: 'juxeboxd',
     authDomain: 'juxeboxd.firebaseapp.com',
