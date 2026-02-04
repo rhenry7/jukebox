@@ -13,6 +13,9 @@ analyzer:
   errors:
     missing_return: error
     invalid_assignment: error
+    # .env is gitignored and not present in CI (keys come from --dart-define)
+    # The code handles its absence gracefully, so suppress this warning
+    asset_does_not_exist: ignore
 
 linter:
   rules:

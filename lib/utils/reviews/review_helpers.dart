@@ -1,8 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
@@ -28,11 +28,11 @@ Future<void> submitReview(String review, double score, String artist,
     final String userId = user.uid;
     
     // Fetch and cache genres for this track (in background, don't block)
-    GenreCacheService.getGenresWithCache(title, artist).then((genres) {
+    unawaited(GenreCacheService.getGenresWithCache(title, artist).then((genres) {
       debugPrint('Cached genres for review: $genres');
     }).catchError((e) {
       debugPrint('Error caching genres for review: $e');
-    });
+    }));
     
     try {
       // Try to get genres from cache (non-blocking, but try to include in review)
@@ -60,7 +60,7 @@ Future<void> submitReview(String review, double score, String artist,
       debugPrint('📁 Path: users/$userId/reviews/${docRef.id}');
       
       // Auto-update preferences and invalidate cache (run in background)
-      Future(() async {
+      unawaited(Future(() async {
         try {
           // Invalidate cache so next analysis will be fresh
           await ReviewAnalysisService.clearCache(userId);
@@ -70,7 +70,7 @@ Future<void> submitReview(String review, double score, String artist,
         } catch (e) {
           debugPrint('Error updating preferences/cache: $e');
         }
-      });
+      }));
     } catch (e) {
       debugPrint('❌ Could not post review');
       debugPrint('Error: ${e.toString()}');
@@ -84,10 +84,8 @@ Future<void> submitReview(String review, double score, String artist,
 
 void addUserReview() async {
   final FirebaseAuth auth = FirebaseAuth.instance;
-  final database = FirebaseFirestore.instance.collection('users');
-  final DatabaseReference ref = FirebaseDatabase.instance.ref();
   if (auth.currentUser != null) {
-    final db = Firebase.app('jukeboxd');
+    // Function implementation pending
   }
 }
 
