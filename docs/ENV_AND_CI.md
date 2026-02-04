@@ -56,7 +56,7 @@ API keys are loaded at **runtime** from a `.env` file:
 | `CLIENT_ID`            | Spotify client ID (or `SPOTIFY_CLIENT_ID`) |
 | `CLIENT_SECRET`        | Spotify client secret (or `SPOTIFY_CLIENT_SECRET`) |
 | `NEWS_API_KEY`         | News API key (optional) |
-| `OPENAI_KEY`           | OpenAI API key (optional) |
+| `OPENAI_API_KEY`        | OpenAI API key (optional) |
 | `UNSPLASH_ACCESS_KEY`  | Unsplash access key (optional) |
 | `UNSPLASH_SECRET`      | Unsplash secret (optional) |
 

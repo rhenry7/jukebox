@@ -15,7 +15,7 @@ const String _clientSecret =
     String.fromEnvironment('CLIENT_SECRET', defaultValue: '');
 const String _newsAPIKey =
     String.fromEnvironment('NEWS_API_KEY', defaultValue: '');
-const String _openAIKey = String.fromEnvironment('OPENAI_KEY', defaultValue: '');
+const String _openAIKey = String.fromEnvironment('OPENAI_API_KEY', defaultValue: '');
 const String _firebaseOptionsKey =
     String.fromEnvironment('FIREBASE_OPTIONS_KEY', defaultValue: '');
 const String _firebaseAppId =

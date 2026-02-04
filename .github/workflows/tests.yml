@@ -27,10 +27,10 @@ jobs:
       run: flutter analyze
 
     - name: Run tests
-      run: flutter test --dart-define=CLIENT_ID=${{ secrets.CLIENT_ID }} --dart-define=CLIENT_SECRET=${{ secrets.CLIENT_SECRET }} --dart-define=NEWS_API_KEY=${{ secrets.NEWS_API_KEY }} --dart-define=OPENAI_KEY=${{ secrets.OPENAI_KEY }} --dart-define=FIREBASE_OPTIONS_KEY=${{ secrets.FIREBASE_OPTIONS_KEY }} --dart-define=FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} --dart-define=UNSPLASH_ACCESS_KEY=${{ secrets.UNSPLASH_ACCESS_KEY }} --dart-define=UNSPLASH_SECRET=${{ secrets.UNSPLASH_SECRET }}
+      run: flutter test --dart-define=CLIENT_ID=${{ secrets.CLIENT_ID }} --dart-define=CLIENT_SECRET=${{ secrets.CLIENT_SECRET }} --dart-define=NEWS_API_KEY=${{ secrets.NEWS_API_KEY }} --dart-define=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} --dart-define=FIREBASE_OPTIONS_KEY=${{ secrets.FIREBASE_OPTIONS_KEY }} --dart-define=FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} --dart-define=UNSPLASH_ACCESS_KEY=${{ secrets.UNSPLASH_ACCESS_KEY }} --dart-define=UNSPLASH_SECRET=${{ secrets.UNSPLASH_SECRET }}
 
     - name: Generate coverage
-      run: flutter test --coverage --dart-define=CLIENT_ID=${{ secrets.CLIENT_ID }} --dart-define=CLIENT_SECRET=${{ secrets.CLIENT_SECRET }} --dart-define=NEWS_API_KEY=${{ secrets.NEWS_API_KEY }} --dart-define=OPENAI_KEY=${{ secrets.OPENAI_KEY }} --dart-define=FIREBASE_OPTIONS_KEY=${{ secrets.FIREBASE_OPTIONS_KEY }} --dart-define=FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} --dart-define=UNSPLASH_ACCESS_KEY=${{ secrets.UNSPLASH_ACCESS_KEY }} --dart-define=UNSPLASH_SECRET=${{ secrets.UNSPLASH_SECRET }}
+      run: flutter test --coverage --dart-define=CLIENT_ID=${{ secrets.CLIENT_ID }} --dart-define=CLIENT_SECRET=${{ secrets.CLIENT_SECRET }} --dart-define=NEWS_API_KEY=${{ secrets.NEWS_API_KEY }} --dart-define=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} --dart-define=FIREBASE_OPTIONS_KEY=${{ secrets.FIREBASE_OPTIONS_KEY }} --dart-define=FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} --dart-define=UNSPLASH_ACCESS_KEY=${{ secrets.UNSPLASH_ACCESS_KEY }} --dart-define=UNSPLASH_SECRET=${{ secrets.UNSPLASH_SECRET }}
     
     - name: Upload coverage
       uses: codecov/codecov-action@v3
