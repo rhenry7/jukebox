@@ -66,16 +66,16 @@ jobs:
           )
           
           # Add optional keys if they are set (non-empty)
-          if [ -n "$CLIENT_ID" ] && [ "$CLIENT_ID" != "" ]; then
-            DART_DEFINES+=("--dart-define=CLIENT_ID=${CLIENT_ID}")
-            echo "✅ CLIENT_ID will be included in build"
+          if [ -n "$SPOTIFY_CLIENT_ID" ] && [ "$SPOTIFY_CLIENT_ID" != "" ]; then
+            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}")
+            echo "✅ SPOTIFY_CLIENT_ID will be included in build"
           else
             echo "⚠️  CLIENT_ID is not set (optional) - Spotify features may not work"
           fi
           
-          if [ -n "$CLIENT_SECRET" ] && [ "$CLIENT_SECRET" != "" ]; then
-            DART_DEFINES+=("--dart-define=CLIENT_SECRET=${CLIENT_SECRET}")
-            echo "✅ CLIENT_SECRET will be included in build"
+          if [ -n "$SPOTIFY_CLIENT_SECRET" ] && [ "$SPOTIFY_CLIENT_SECRET" != "" ]; then
+            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}")
+            echo "✅ SPOTIFY_CLIENT_SECRET will be included in build"
           else
             echo "⚠️  CLIENT_SECRET is not set (optional) - Spotify features may not work"
           fi
