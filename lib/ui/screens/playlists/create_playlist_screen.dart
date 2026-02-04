@@ -70,7 +70,7 @@ class _CreatePlaylistScreenState extends ConsumerState<CreatePlaylistScreen> {
 
       if (mounted) {
         // Navigate to add songs screen
-        Navigator.pushReplacement(
+        await Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => AddSongsScreen(playlistId: playlistId),

@@ -552,11 +552,15 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                       playlistId: widget.playlistId,
                                       trackId: track.trackId,
                                     );
-                                    ref.invalidate(playlistProvider(widget.playlistId));
+                                    if (mounted) {
+                                      ref.invalidate(playlistProvider(widget.playlistId));
+                                    }
                                   } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error removing track: $e')),
-                                    );
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error removing track: $e')),
+                                      );
+                                    }
                                   }
                                 }
                               },
