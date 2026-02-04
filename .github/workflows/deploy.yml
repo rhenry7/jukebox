@@ -4,11 +4,16 @@
 #
 # Required GitHub Secrets:
 #   FIREBASE_OPTIONS_KEY, FIREBASE_APP_ID  - Firebase web config
+#     (FIREBASE_OPTIONS_KEY can be base64-encoded as FIREBASE_OPTIONS_KEY_B64)
 #   FIREBASE_TOKEN                         - From: firebase login:ci (for deploy)
-#   Spotify:     CLIENT_ID, CLIENT_SECRET  (or SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET)
+#   Spotify:     SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 #   News:        NEWS_API_KEY
 #   OpenAI:      OPENAI_API_KEY
 #   Unsplash:    UNSPLASH_ACCESS_KEY, UNSPLASH_SECRET
+#
+# Note: All secret values are automatically sanitized (newlines removed, quotes escaped)
+#       to prevent build failures. For JSON values like FIREBASE_OPTIONS_KEY, consider
+#       using base64 encoding: echo -n 'your-json' | base64
 
 name: Deploy to Firebase Hosting
 
@@ -38,6 +43,7 @@ jobs:
       - name: Build web (release) with API keys from secrets
         env:
           FIREBASE_OPTIONS_KEY: ${{ secrets.FIREBASE_OPTIONS_KEY }}
+          FIREBASE_OPTIONS_KEY_B64: ${{ secrets.FIREBASE_OPTIONS_KEY_B64 }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
@@ -46,10 +52,24 @@ jobs:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           UNSPLASH_SECRET: ${{ secrets.UNSPLASH_SECRET }}
         run: |
+          # Sanitize function: removes newlines, escapes quotes, collapses spaces
+          # Usage: sanitized_value=$(sanitize "$raw_value")
+          sanitize() {
+            printf '%s' "$1" | tr -d '\r\n' | sed 's/"/\\"/g' | tr -s ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+          }
+          
+          # Handle base64-encoded FIREBASE_OPTIONS_KEY if provided
+          if [ -n "$FIREBASE_OPTIONS_KEY_B64" ] && [ "$FIREBASE_OPTIONS_KEY_B64" != "" ]; then
+            echo "📦 Using base64-encoded FIREBASE_OPTIONS_KEY"
+            FIREBASE_OPTIONS_KEY=$(echo -n "$FIREBASE_OPTIONS_KEY_B64" | base64 --decode)
+          fi
+          
           # Verify required Firebase secrets are set
           if [ -z "$FIREBASE_OPTIONS_KEY" ] || [ -z "$FIREBASE_APP_ID" ]; then
             echo "❌ Error: FIREBASE_OPTIONS_KEY or FIREBASE_APP_ID secrets are not set"
             echo "Please add these secrets in: Settings → Secrets and variables → Actions"
+            echo "Note: FIREBASE_OPTIONS_KEY can be provided as base64 via FIREBASE_OPTIONS_KEY_B64"
+            echo "  To encode: echo -n 'your-json-value' | base64"
             exit 1
           fi
           
@@ -59,56 +79,66 @@ jobs:
             exit 1
           fi
           
-          # Build the dart-define arguments (properly quoted for values with special characters)
+          # Sanitize all values before adding to DART_DEFINES array
+          SANITIZED_FIREBASE_OPTIONS_KEY=$(sanitize "$FIREBASE_OPTIONS_KEY")
+          SANITIZED_FIREBASE_APP_ID=$(sanitize "$FIREBASE_APP_ID")
+          
+          # Build the dart-define arguments with sanitized values
           DART_DEFINES=(
-            "--dart-define=FIREBASE_OPTIONS_KEY=${FIREBASE_OPTIONS_KEY}"
-            "--dart-define=FIREBASE_APP_ID=${FIREBASE_APP_ID}"
+            "--dart-define=FIREBASE_OPTIONS_KEY=${SANITIZED_FIREBASE_OPTIONS_KEY}"
+            "--dart-define=FIREBASE_APP_ID=${SANITIZED_FIREBASE_APP_ID}"
           )
           
-          # Add optional keys if they are set (non-empty)
+          # Add optional keys if they are set (non-empty), sanitizing each value
           if [ -n "$SPOTIFY_CLIENT_ID" ] && [ "$SPOTIFY_CLIENT_ID" != "" ]; then
-            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}")
+            SANITIZED_VALUE=$(sanitize "$SPOTIFY_CLIENT_ID")
+            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_ID=${SANITIZED_VALUE}")
             echo "✅ SPOTIFY_CLIENT_ID will be included in build"
           else
-            echo "⚠️  CLIENT_ID is not set (optional) - Spotify features may not work"
+            echo "⚠️  SPOTIFY_CLIENT_ID is not set (optional) - Spotify features may not work"
           fi
           
           if [ -n "$SPOTIFY_CLIENT_SECRET" ] && [ "$SPOTIFY_CLIENT_SECRET" != "" ]; then
-            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}")
+            SANITIZED_VALUE=$(sanitize "$SPOTIFY_CLIENT_SECRET")
+            DART_DEFINES+=("--dart-define=SPOTIFY_CLIENT_SECRET=${SANITIZED_VALUE}")
             echo "✅ SPOTIFY_CLIENT_SECRET will be included in build"
           else
-            echo "⚠️  CLIENT_SECRET is not set (optional) - Spotify features may not work"
+            echo "⚠️  SPOTIFY_CLIENT_SECRET is not set (optional) - Spotify features may not work"
           fi
           
           if [ -n "$NEWS_API_KEY" ] && [ "$NEWS_API_KEY" != "" ]; then
-            DART_DEFINES+=("--dart-define=NEWS_API_KEY=${NEWS_API_KEY}")
+            SANITIZED_VALUE=$(sanitize "$NEWS_API_KEY")
+            DART_DEFINES+=("--dart-define=NEWS_API_KEY=${SANITIZED_VALUE}")
             echo "✅ NEWS_API_KEY will be included in build"
           else
             echo "⚠️  NEWS_API_KEY is not set (optional) - News features may not work"
           fi
           
           if [ -n "$OPENAI_API_KEY" ] && [ "$OPENAI_API_KEY" != "" ]; then
-            DART_DEFINES+=("--dart-define=OPENAI_API_KEY=${OPENAI_API_KEY}")
+            SANITIZED_VALUE=$(sanitize "$OPENAI_API_KEY")
+            DART_DEFINES+=("--dart-define=OPENAI_API_KEY=${SANITIZED_VALUE}")
             echo "✅ OPENAI_API_KEY will be included in build"
           else
             echo "⚠️  OPENAI_API_KEY is not set (optional) - OpenAI features may not work"
           fi
           
           if [ -n "$UNSPLASH_ACCESS_KEY" ] && [ "$UNSPLASH_ACCESS_KEY" != "" ]; then
-            DART_DEFINES+=("--dart-define=UNSPLASH_ACCESS_KEY=${UNSPLASH_ACCESS_KEY}")
+            SANITIZED_VALUE=$(sanitize "$UNSPLASH_ACCESS_KEY")
+            DART_DEFINES+=("--dart-define=UNSPLASH_ACCESS_KEY=${SANITIZED_VALUE}")
             echo "✅ UNSPLASH_ACCESS_KEY will be included in build"
           else
             echo "⚠️  UNSPLASH_ACCESS_KEY is not set (optional) - Unsplash features may not work"
           fi
           
           if [ -n "$UNSPLASH_SECRET" ] && [ "$UNSPLASH_SECRET" != "" ]; then
-            DART_DEFINES+=("--dart-define=UNSPLASH_SECRET=${UNSPLASH_SECRET}")
+            SANITIZED_VALUE=$(sanitize "$UNSPLASH_SECRET")
+            DART_DEFINES+=("--dart-define=UNSPLASH_SECRET=${SANITIZED_VALUE}")
             echo "✅ UNSPLASH_SECRET will be included in build"
           else
             echo "⚠️  UNSPLASH_SECRET is not set (optional) - Unsplash features may not work"
           fi
           
-          echo "✅ Building web app with API keys..."
+          echo "✅ Building web app with ${#DART_DEFINES[@]} API key definitions..."
           flutter build web --release "${DART_DEFINES[@]}"
 
       - name: Deploy to Firebase Hosting
