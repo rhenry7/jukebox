@@ -5,8 +5,8 @@
 API keys are loaded at **runtime** from a `.env` file:
 
 - **Mobile/Desktop**: `.env` is read from the project root via `flutter_dotenv` (no bundling).
-- **Web (local)**: `.env` is listed in `pubspec.yaml` assets and loaded from the asset bundle at runtime, so **APIs are accessible when running locally** (e.g. `flutter run -d chrome`) as long as `.env` exists in the project root with your keys.
-- **CI/Deploy**: `.env` is not in the repo (gitignored). CI creates an empty `.env` so the asset exists; keys are passed at **build time** via `--dart-define` from GitHub Secrets.
+- **Web (local, debug only)**: `.env` is listed in `pubspec.yaml` assets. In **debug** mode, the web loader reads `.env` from the asset bundle at runtime so APIs work when you run locally (e.g. `flutter run -d chrome`). In **release** (deployed) mode, the web loader does **not** load `.env` at all; keys come only from `--dart-define` at build time.
+- **CI/Deploy**: `.env` is not in the repo (gitignored). CI creates an empty `.env` so the asset exists; keys are passed at **build time** via `--dart-define` from GitHub Secrets. The deployed app never reads `.env`; it uses only compile-time values from the build.
 
 ### Local setup (APIs accessible when not deployed)
 

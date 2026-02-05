@@ -1,7 +1,10 @@
 // Safe stub — no secrets here. Safe to commit.
-// Values: 1) --dart-define at build (CI), 2) .env at runtime via loadFromDotenv() (local dev).
-// CI: pass secrets via --dart-define or leave empty for analyze/tests.
-// Local: create .env and call ApiKeyOverrides.loadFromDotenv() after dotenv.load() (main.dart does this).
+//
+// Key resolution (same for all platforms):
+//   1. Compile-time: String.fromEnvironment (set by --dart-define at build; used by deploy from GitHub Secrets).
+//   2. Runtime: .env via loadApiKeysFromMap/loadApiKeysFromDotenv (used by local dev when compile-time is empty).
+// Getters always prefer compile-time when non-empty, then fall back to runtime. This keeps deploy using
+// --dart-define only and local using .env only.
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 

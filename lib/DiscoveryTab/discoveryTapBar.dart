@@ -95,24 +95,7 @@ class DiscoveryTapBar extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.article, size: 18),
-                      SizedBox(width: 6),
-                      Text(
-                        'Articles',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                )
               ],
             ),
           ),
