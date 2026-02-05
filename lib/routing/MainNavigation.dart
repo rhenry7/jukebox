@@ -67,12 +67,13 @@ class MainNavState extends ConsumerState<MainNav> {
 
   // Get profile label - show username if logged in, otherwise "Profile"
   String _getProfileLabel() {
-    final user = ref.read(currentUserProvider);
-    if (user != null &&
-        user.displayName != null &&
-        user.displayName!.isNotEmpty) {
-      return user.displayName!;
-    }
+    //TODO: handle username display so that text doesn't overflow
+    // final user = ref.read(currentUserProvider);
+    // if (user != null &&
+    //     user.displayName != null &&
+    //     user.displayName!.isNotEmpty) {
+    //   return user.displayName!;
+    // }
     return 'Profile';
   }
 
