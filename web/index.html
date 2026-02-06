@@ -34,25 +34,10 @@
   <title>flutter_test_project</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- This script adds the flutter initialization JS code -->
-  <script src="flutter.js" defer></script>
+  <!-- flutter_bootstrap.js is generated at build time with the Flutter loader,
+       build config, service worker version, and app initialization. -->
 </head>
 <body>
-<script>
-  window.addEventListener('load', function(ev) {
-    // Flutter replaces {{flutter_service_worker_version}} with the actual version at build time.
-    // Enabling the service worker gives the PWA caching and ensures new deployments are picked up.
-    _flutter.loader.loadEntrypoint({
-      serviceWorker: {
-        serviceWorkerVersion: "{{flutter_service_worker_version}}",
-      },
-      onEntrypointLoaded: function(engineInitializer) {
-        engineInitializer.initializeEngine().then(function(appRunner) {
-          appRunner.runApp();
-        });
-      }
-    });
-  });
-</script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
