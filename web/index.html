@@ -38,21 +38,21 @@
   <script src="flutter.js" defer></script>
 </head>
 <body>
-  <script>
-    window.addEventListener('load', function(ev) {
-      // Flutter replaces {{flutter_service_worker_version}} with the actual version at build time.
-      // Enabling the service worker gives the PWA caching and ensures new deployments are picked up.
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: {{flutter_service_worker_version}},
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
+<script>
+  window.addEventListener('load', function(ev) {
+    // Flutter replaces {{flutter_service_worker_version}} with the actual version at build time.
+    // Enabling the service worker gives the PWA caching and ensures new deployments are picked up.
+    _flutter.loader.loadEntrypoint({
+      serviceWorker: {
+        serviceWorkerVersion: "{{flutter_service_worker_version}}",
+      },
+      onEntrypointLoaded: function(engineInitializer) {
+        engineInitializer.initializeEngine().then(function(appRunner) {
+          appRunner.runApp();
+        });
+      }
     });
-  </script>
+  });
+</script>
 </body>
 </html>

@@ -470,7 +470,7 @@ class _MyReviewSheetContentFormState
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(color: background),
-      height: MediaQuery.of(context).size.height * 0.9, // Responsive height
+      height: MediaQuery.of(context).size.height * 1.0, // Responsive height
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -805,206 +805,217 @@ class _MyReviewSheetContentFormState
                     ],
                   ),
                 )
-              : Column(
-                  children: [
-                    const Gap(16),
-                    // Album info section
-                    Row(
+              : Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: Column(
                       children: [
-                        // Album image
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey[800],
-                          ),
-                          child: _selectedTrackImageUrl.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    _selectedTrackImageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const Icon(Icons.music_note,
-                                                color: Colors.white),
+                        const Gap(16),
+                        // Album info section
+                        Row(
+                          children: [
+                            // Album image
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.grey[800],
+                              ),
+                              child: _selectedTrackImageUrl.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        _selectedTrackImageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(Icons.music_note,
+                                                    color: Colors.white),
+                                      ),
+                                    )
+                                  : const Icon(Icons.music_note,
+                                      color: Colors.white),
+                            ),
+
+                            const Gap(16),
+
+                            // Title and artist
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _selectedTrackTitle.isNotEmpty
+                                        ? _selectedTrackTitle
+                                        : widget.title,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                )
-                              : const Icon(Icons.music_note,
-                                  color: Colors.white),
+                                  const Gap(4),
+                                  Text(
+                                    _selectedTrackArtist.isNotEmpty
+                                        ? _selectedTrackArtist
+                                        : widget.artist,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const Gap(24),
+
+                        // Review text field — fixed height, internally scrollable
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 20.0),
+                          child: Container(
+                            width: double.infinity,
+                            height: 180,
+                            constraints: const BoxConstraints(maxWidth: 500),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[900],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[700]!),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextField(
+                                controller: reviewController,
+                                maxLines: null,
+                                expands: true,
+                                textAlignVertical: TextAlignVertical.top,
+                                scrollPhysics: const ClampingScrollPhysics(),
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: 'What did you think?',
+                                  hintStyle: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Rating and like section
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Rating stars
+                            RatingBar(
+                              initialRating: ratingScore,
+                              minRating: 0,
+                              maxRating: 5,
+                              allowHalfRating: true,
+                              itemSize: 32,
+                              itemPadding:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
+                              ratingWidget: RatingWidget(
+                                full:
+                                    const Icon(Icons.star, color: Colors.amber),
+                                empty: const Icon(Icons.star_border,
+                                    color: Colors.grey),
+                                half: const Icon(Icons.star_half,
+                                    color: Colors.amber),
+                              ),
+                              onRatingUpdate: (rating) {
+                                setState(() {
+                                  ratingScore = rating;
+                                });
+                              },
+                            ),
+
+                            // Like button
+                            IconButton(
+                              onPressed: toggleHeart,
+                              icon: Icon(
+                                liked ? Ionicons.heart : Ionicons.heart_outline,
+                                color: liked ? Colors.red : Colors.grey,
+                                size: 28,
+                              ),
+                            ),
+                          ],
                         ),
 
                         const Gap(16),
 
-                        // Title and artist
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _selectedTrackTitle.isNotEmpty
-                                    ? _selectedTrackTitle
-                                    : widget.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Gap(4),
-                              Text(
-                                _selectedTrackArtist.isNotEmpty
-                                    ? _selectedTrackArtist
-                                    : widget.artist,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 16,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const Gap(24),
-
-                    // Rating and like section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Rating stars
-                        RatingBar(
-                          initialRating: ratingScore,
-                          minRating: 0,
-                          maxRating: 5,
-                          allowHalfRating: true,
-                          itemSize: 32,
-                          itemPadding:
-                              const EdgeInsets.symmetric(horizontal: 4.0),
-                          ratingWidget: RatingWidget(
-                            full: const Icon(Icons.star, color: Colors.amber),
-                            empty: const Icon(Icons.star_border,
-                                color: Colors.grey),
-                            half: const Icon(Icons.star_half,
-                                color: Colors.amber),
-                          ),
-                          onRatingUpdate: (rating) {
-                            setState(() {
-                              ratingScore = rating;
-                            });
-                          },
-                        ),
-
-                        // Like button
-                        IconButton(
-                          onPressed: toggleHeart,
-                          icon: Icon(
-                            liked ? Ionicons.heart : Ionicons.heart_outline,
-                            color: liked ? Colors.red : Colors.grey,
-                            size: 28,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const Gap(16),
-
-                    // Tags bar (genre, mood, etc.)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          controller: _tagsController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Tags',
-                            labelStyle: const TextStyle(color: Colors.white70),
-                            hintText: 'rock, indie, workout (comma-separated)',
-                            hintStyle: const TextStyle(color: Colors.white30),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  const BorderSide(color: Colors.white30),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  const BorderSide(color: Colors.white30),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  const BorderSide(color: Colors.red, width: 2),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const Gap(24),
-
-                    // Review text field
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 20.0),
-                      child: SizedBox(
-                        width: 500.0,
-                        height: 200.0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[900],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[700]!),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: TextField(
-                              controller: reviewController,
-                              maxLines: null,
-                              expands: true,
-                              textAlignVertical: TextAlignVertical.top,
+                        // Tags bar (genre, mood, etc.)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextFormField(
+                              controller: _tagsController,
                               style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                hintText: 'What did you think?',
-                                hintStyle: TextStyle(color: Colors.grey),
+                              decoration: InputDecoration(
+                                labelText: 'Tags',
+                                labelStyle:
+                                    const TextStyle(color: Colors.white70),
+                                hintText:
+                                    'rock, indie, workout (comma-separated)',
+                                hintStyle:
+                                    const TextStyle(color: Colors.white30),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      const BorderSide(color: Colors.white30),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      const BorderSide(color: Colors.white30),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                      color: Colors.red, width: 2),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const Gap(24),
+                        // Submit button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: handleSubmit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Save Review',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    // Submit button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: handleSubmit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Save Review',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
 
-                    const Gap(16),
-                  ],
+                        const Gap(16),
+                      ],
+                    ),
+                  ),
                 ),
         ],
       ),
