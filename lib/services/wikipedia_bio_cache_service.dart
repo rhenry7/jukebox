@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-/// Service to cache Wikipedia artist bios in Firestore to avoid repeated API calls
+/// Service to cache Wikipedia artist bios in Firestore to avoid repeated API calls.
+/// Cached entries expire after [_cacheTtl] and are treated as stale on read.
 class WikipediaBioCacheService {
   static const String _collectionName = 'wikipediaBios';
+
+  /// How long a cached bio is considered fresh (7 days).
+  static const Duration _cacheTtl = Duration(days: 7);
   
   /// Generate a cache key from artist name
   /// Sanitizes to ensure valid Firestore document ID
@@ -43,9 +47,18 @@ class WikipediaBioCacheService {
 
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
+        // Check TTL — treat entry as stale if older than _cacheTtl
+        final cachedAt = data['cachedAt'] as Timestamp?;
+        if (cachedAt != null) {
+          final age = DateTime.now().difference(cachedAt.toDate());
+          if (age > _cacheTtl) {
+            debugPrint('Bio cache expired for $artistName (${age.inDays}d old)');
+            return null; // stale — caller will re-fetch
+          }
+        }
         final bio = data['bio'] as String?;
         if (bio != null && bio.isNotEmpty) {
-          debugPrint('💾 Found cached Wikipedia bio for: $artistName');
+          debugPrint('Found cached Wikipedia bio for: $artistName');
           return bio;
         }
       }

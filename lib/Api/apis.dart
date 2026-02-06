@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
+import 'package:flutter_test_project/utils/spotify_retry.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
 
@@ -133,12 +134,10 @@ Future<List<Track>> fetchExploreTracks({
     // Execute queries in parallel for faster loading
     final queryFutures = exploreQueries.map((query) async {
       try {
-        final searchFuture = spotify.search.get(query,
-            types: [SearchType.track]).first(10); // Increased from 3 to 10 for more results
-        
-        final searchResults = await searchFuture.timeout(
-          const Duration(seconds: 5),
-        );
+        final searchResults = await withSpotifyRetry(
+          () => spotify.search.get(query,
+              types: [SearchType.track]).first(10),
+        ).timeout(const Duration(seconds: 10));
 
         final tracks = <Track>[];
         if (searchResults.isNotEmpty) {
@@ -248,9 +247,11 @@ Future<List<Track>> fetchTrendingTracks() async {
 
     for (final String query in trendingQueries) {
       try {
-        final searchResults = await spotify.search.get(query, types: [
-          SearchType.track
-        ]).first(4); // Get 4 tracks from each search
+        final searchResults = await withSpotifyRetry(
+          () => spotify.search.get(query, types: [
+            SearchType.track
+          ]).first(4),
+        );
 
         if (searchResults.isNotEmpty) {
           for (final page in searchResults) {
@@ -308,8 +309,9 @@ Future<List<Track>> fetchHiddenGemTracks() async {
 
     for (final String query in hiddenGemQueries) {
       try {
-        final searchResults =
-            await spotify.search.get(query, types: [SearchType.track]).first(3);
+        final searchResults = await withSpotifyRetry(
+          () => spotify.search.get(query, types: [SearchType.track]).first(3),
+        );
 
         if (searchResults.isNotEmpty) {
           for (final page in searchResults) {
@@ -358,8 +360,9 @@ Future<List<Track>> fetchNewReleaseTracks() async {
 
     for (final String query in newReleaseQueries) {
       try {
-        final searchResults =
-            await spotify.search.get(query, types: [SearchType.track]).first(5);
+        final searchResults = await withSpotifyRetry(
+          () => spotify.search.get(query, types: [SearchType.track]).first(5),
+        );
 
         if (searchResults.isNotEmpty) {
           for (final page in searchResults) {
@@ -435,8 +438,10 @@ Future<List<Album>> fetchExploreAlbums() async {
 
     for (final String query in exploreQueries) {
       try {
-        final searchResults = await spotify.search.get(query,
-            types: [SearchType.album]).first(4); // Get 4 from each genre
+        final searchResults = await withSpotifyRetry(
+          () => spotify.search.get(query,
+              types: [SearchType.album]).first(4),
+        );
 
         if (searchResults.isNotEmpty) {
           for (final page in searchResults) {
@@ -481,8 +486,9 @@ Future<List<Album>> fetchPopularAlbums({String query = 'year:2019'}) async {
   try {
     final credentials = SpotifyApiCredentials(clientId, clientSecret);
     final spotify = SpotifyApi(credentials);
-    final searchResults =
-        await spotify.search.get(query, types: [SearchType.album]).first(20);
+    final searchResults = await withSpotifyRetry(
+      () => spotify.search.get(query, types: [SearchType.album]).first(20),
+    );
 
     final List<Album> albums = [];
     if (searchResults.isNotEmpty) {
@@ -528,8 +534,10 @@ Future<List<Album>> fetchNewDiscoveries(
 
     for (final String query in newReleaseQueries) {
       try {
-        final searchResults = await spotify.search.get(query,
-            types: [SearchType.album]).first(5); // Get 5 from each search
+        final searchResults = await withSpotifyRetry(
+          () => spotify.search.get(query,
+              types: [SearchType.album]).first(5),
+        );
 
         if (searchResults.isNotEmpty) {
           for (final page in searchResults) {

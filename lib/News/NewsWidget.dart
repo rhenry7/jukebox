@@ -87,7 +87,10 @@ class MusicNewsWidget extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: articles.length,
                 itemBuilder: (context, index) {
-                  return _NewsCard(article: articles[index]);
+                  return _NewsCard(
+                    key: ValueKey(articles[index].title),
+                    article: articles[index],
+                  );
                 },
               ),
             );
@@ -122,7 +125,7 @@ class MusicNewsWidget extends ConsumerWidget {
 class _NewsCard extends StatelessWidget {
   final MusicNewsArticle article;
 
-  const _NewsCard({required this.article});
+  const _NewsCard({super.key, required this.article});
 
   void _launchURL(BuildContext context, String url) async {
     final uri = Uri.parse(url);

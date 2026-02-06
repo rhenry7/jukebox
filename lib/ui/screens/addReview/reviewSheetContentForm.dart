@@ -10,6 +10,8 @@ import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_test_project/utils/cached_image.dart';
+import 'package:flutter_test_project/utils/spotify_retry.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
@@ -144,8 +146,9 @@ class _MyReviewSheetContentFormState
       debugPrint('   Limit: $limit');
       debugPrint('   Making API request to Spotify...');
 
-      final searchResults =
-          await spotifyApi.search.get(query, types: searchTypes).first(limit);
+      final searchResults = await withSpotifyRetry(
+        () => spotifyApi.search.get(query, types: searchTypes).first(limit),
+      );
 
       debugPrint('   ✅ API request successful');
       debugPrint('   Processing results...');
@@ -485,39 +488,217 @@ class _MyReviewSheetContentFormState
     }
   }
 
+  // ─── Extracted sub-widgets ───────────────────────────────────
+
+  /// Header row with back button and user display name.
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        Row(
+          children: [
+            Text(
+              auth.currentUser?.displayName ?? 'NotSignedIn',
+              style: const TextStyle(color: Colors.white),
+            ),
+            const Gap(8),
+            const Icon(
+              Ionicons.person_circle_outline,
+              color: Colors.white,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// The search error banner shown when a search fails.
+  Widget _buildSearchErrorBanner() {
+    if (_searchError == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red.withAlpha(30),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.withAlpha(80)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _searchError!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => setState(() => _searchError = null),
+              child: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Album / track info header shown when a track is selected for review.
+  Widget _buildSelectedTrackInfo() {
+    return Row(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[800],
+          ),
+          child: _selectedTrackImageUrl.isNotEmpty
+              ? AppCachedImage(
+                  imageUrl: _selectedTrackImageUrl,
+                  borderRadius: BorderRadius.circular(8),
+                )
+              : const Icon(Icons.music_note, color: Colors.white),
+        ),
+        const Gap(16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _selectedTrackTitle.isNotEmpty
+                    ? _selectedTrackTitle
+                    : widget.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Gap(4),
+              Text(
+                _selectedTrackArtist.isNotEmpty
+                    ? _selectedTrackArtist
+                    : widget.artist,
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Review text area — fixed height, internally scrollable.
+  Widget _buildReviewTextField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Container(
+        width: double.infinity,
+        height: 180,
+        constraints: const BoxConstraints(maxWidth: 500),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[700]!),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: reviewController,
+            maxLines: null,
+            expands: true,
+            textAlignVertical: TextAlignVertical.top,
+            scrollPhysics: const ClampingScrollPhysics(),
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              hintText: 'What did you think?',
+              hintStyle: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Tags input field (comma-separated).
+  Widget _buildTagsField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _tagsController,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: 'Tags',
+            labelStyle: const TextStyle(color: Colors.white70),
+            hintText: 'rock, indie, workout (comma-separated)',
+            hintStyle: const TextStyle(color: Colors.white30),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.white30),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.white30),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Submit button.
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: handleSubmit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          'Save Review',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  // ─── Build ────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(color: background),
-      height: MediaQuery.of(context).size.height * 1.0, // Responsive height
+      height: MediaQuery.of(context).size.height * 1.0,
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with back button and user info
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
-              ),
-              Row(
-                children: [
-                  Text(
-                    auth.currentUser?.displayName ?? 'NotSignedIn',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  const Gap(8),
-                  const Icon(
-                    Ionicons.person_circle_outline,
-                    color: Colors.white,
-                  ),
-                ],
-              ),
-            ],
-          ),
+          _buildHeader(),
 
           _selectedTrackImageUrl.isEmpty
               ? Expanded(
@@ -577,45 +758,7 @@ class _MyReviewSheetContentFormState
                         ],
                       ),
                       const Gap(16),
-                      // Search error feedback
-                      if (_searchError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withAlpha(30),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: Colors.red.withAlpha(80)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline,
-                                    color: Colors.redAccent, size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _searchError!,
-                                    style: const TextStyle(
-                                        color: Colors.redAccent,
-                                        fontSize: 13),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _searchError = null;
-                                    });
-                                  },
-                                  child: const Icon(Icons.close,
-                                      color: Colors.redAccent, size: 18),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      _buildSearchErrorBanner(),
                       // Search results
                       if (_trackResults.isNotEmpty || _albumResults.isNotEmpty)
                         Expanded(
@@ -636,41 +779,32 @@ class _MyReviewSheetContentFormState
                                     'Unknown Artist';
 
                                 return Card(
+                                  key: ValueKey('track_${track.id ?? index}'),
                                   color: Colors.grey[900],
                                   margin: const EdgeInsets.symmetric(
                                       vertical: 4, horizontal: 0),
                                   child: ListTile(
-                                    leading: ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: imageUrl != null
-                                          ? Image.network(
-                                              imageUrl,
-                                              width: 56,
-                                              height: 56,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Container(
-                                                  width: 56,
-                                                  height: 56,
-                                                  color: Colors.grey[800],
-                                                  child: const Icon(
-                                                    Icons.music_note,
-                                                    color: Colors.white70,
-                                                  ),
-                                                );
-                                              },
-                                            )
-                                          : Container(
-                                              width: 56,
-                                              height: 56,
+                                    leading: imageUrl != null
+                                        ? AppCachedImage(
+                                            imageUrl: imageUrl,
+                                            width: 56,
+                                            height: 56,
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          )
+                                        : Container(
+                                            width: 56,
+                                            height: 56,
+                                            decoration: BoxDecoration(
                                               color: Colors.grey[800],
-                                              child: const Icon(
-                                                Icons.music_note,
-                                                color: Colors.white70,
-                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
-                                    ),
+                                            child: const Icon(
+                                              Icons.music_note,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
                                     title: Row(
                                       children: [
                                         Expanded(
@@ -777,41 +911,32 @@ class _MyReviewSheetContentFormState
                                 }
 
                                 return Card(
+                                  key: ValueKey('album_${album.id ?? index}'),
                                   color: Colors.grey[900],
                                   margin: const EdgeInsets.symmetric(
                                       vertical: 4, horizontal: 0),
                                   child: ListTile(
-                                    leading: ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: imageUrl != null
-                                          ? Image.network(
-                                              imageUrl,
-                                              width: 56,
-                                              height: 56,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Container(
-                                                  width: 56,
-                                                  height: 56,
-                                                  color: Colors.grey[800],
-                                                  child: const Icon(
-                                                    Icons.album,
-                                                    color: Colors.white70,
-                                                  ),
-                                                );
-                                              },
-                                            )
-                                          : Container(
-                                              width: 56,
-                                              height: 56,
+                                    leading: imageUrl != null
+                                        ? AppCachedImage(
+                                            imageUrl: imageUrl,
+                                            width: 56,
+                                            height: 56,
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          )
+                                        : Container(
+                                            width: 56,
+                                            height: 56,
+                                            decoration: BoxDecoration(
                                               color: Colors.grey[800],
-                                              child: const Icon(
-                                                Icons.album,
-                                                color: Colors.white70,
-                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
-                                    ),
+                                            child: const Icon(
+                                              Icons.album,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
                                     title: Row(
                                       children: [
                                         Expanded(
@@ -872,103 +997,9 @@ class _MyReviewSheetContentFormState
                     child: Column(
                       children: [
                         const Gap(16),
-                        // Album info section
-                        Row(
-                          children: [
-                            // Album image
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.grey[800],
-                              ),
-                              child: _selectedTrackImageUrl.isNotEmpty
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        _selectedTrackImageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                const Icon(Icons.music_note,
-                                                    color: Colors.white),
-                                      ),
-                                    )
-                                  : const Icon(Icons.music_note,
-                                      color: Colors.white),
-                            ),
-
-                            const Gap(16),
-
-                            // Title and artist
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _selectedTrackTitle.isNotEmpty
-                                        ? _selectedTrackTitle
-                                        : widget.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const Gap(4),
-                                  Text(
-                                    _selectedTrackArtist.isNotEmpty
-                                        ? _selectedTrackArtist
-                                        : widget.artist,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 16,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
+                        _buildSelectedTrackInfo(),
                         const Gap(24),
-
-                        // Review text field — fixed height, internally scrollable
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 20.0),
-                          child: Container(
-                            width: double.infinity,
-                            height: 180,
-                            constraints: const BoxConstraints(maxWidth: 500),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[900],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[700]!),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: TextField(
-                                controller: reviewController,
-                                maxLines: null,
-                                expands: true,
-                                textAlignVertical: TextAlignVertical.top,
-                                scrollPhysics: const ClampingScrollPhysics(),
-                                style: const TextStyle(color: Colors.white),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: 'What did you think?',
-                                  hintStyle: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                        _buildReviewTextField(),
 
                         // Rating and like section
                         Row(
@@ -1011,65 +1042,9 @@ class _MyReviewSheetContentFormState
                         ),
 
                         const Gap(16),
-
-                        // Tags bar (genre, mood, etc.)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextFormField(
-                              controller: _tagsController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Tags',
-                                labelStyle:
-                                    const TextStyle(color: Colors.white70),
-                                hintText:
-                                    'rock, indie, workout (comma-separated)',
-                                hintStyle:
-                                    const TextStyle(color: Colors.white30),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      const BorderSide(color: Colors.white30),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      const BorderSide(color: Colors.white30),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                      color: Colors.red, width: 2),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
+                        _buildTagsField(),
                         const Gap(24),
-                        // Submit button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: handleSubmit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Save Review',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
+                        _buildSubmitButton(),
 
                         const Gap(16),
                       ],

@@ -12,8 +12,10 @@ class UnsplashService {
   static String get _accessKey => unsplashAccessKey;
   static const String _baseUrl = 'https://api.unsplash.com';
 
-  // Cache to avoid repeated API calls for the same search
+  // Cache to avoid repeated API calls for the same search.
+  // Capped at [_maxCacheSize] entries to prevent unbounded memory growth.
   static final Map<String, String> _imageCache = {};
+  static const int _maxCacheSize = 100;
 
   static Future<String?> getVinylImage({
     required String albumName,
@@ -57,7 +59,10 @@ class UnsplashService {
                 DateTime.now().millisecondsSinceEpoch % results.length;
             final imageUrl = results[randomIndex]['urls']['regular'];
 
-            // Cache the result
+            // Cache the result (evict oldest if over limit)
+            if (_imageCache.length >= _maxCacheSize) {
+              _imageCache.remove(_imageCache.keys.first);
+            }
             _imageCache[cacheKey] = imageUrl;
             return imageUrl;
           }

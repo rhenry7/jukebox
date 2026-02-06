@@ -2,9 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
 
-/// Service to cache genres in Firestore to avoid repeated API calls
+/// Service to cache genres in Firestore to avoid repeated API calls.
+/// Cached entries expire after [_cacheTtl] and are treated as stale on read.
 class GenreCacheService {
   static const String _collectionName = 'trackGenres';
+
+  /// How long cached genres are considered fresh (14 days).
+  static const Duration _cacheTtl = Duration(days: 14);
   
   /// Generate a cache key from track title and artist
   static String _generateCacheKey(String title, String artist) {
@@ -25,6 +29,15 @@ class GenreCacheService {
 
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
+        // Check TTL — treat entry as stale if older than _cacheTtl
+        final cachedAt = data['cachedAt'] as Timestamp?;
+        if (cachedAt != null) {
+          final age = DateTime.now().difference(cachedAt.toDate());
+          if (age > _cacheTtl) {
+            debugPrint('Cache expired for $title by $artist (${age.inDays}d old)');
+            return null; // stale — caller will re-fetch
+          }
+        }
         final genres = data['genres'] as List<dynamic>?;
         if (genres != null && genres.isNotEmpty) {
           final genreList = genres.map((g) => g.toString()).toList();

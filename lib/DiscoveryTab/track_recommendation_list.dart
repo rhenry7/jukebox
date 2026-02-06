@@ -19,7 +19,10 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
       itemCount: albums.length,
       itemBuilder: (_, index) {
         final album = albums[index];
-        return _RecommendationCard(album: album);
+        return _RecommendationCard(
+          key: ValueKey('rec_${album.song}_${album.artist}'),
+          album: album,
+        );
       },
     );
   }
@@ -28,7 +31,7 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
 class _RecommendationCard extends StatefulWidget {
   final MusicRecommendation album;
 
-  const _RecommendationCard({required this.album});
+  const _RecommendationCard({super.key, required this.album});
 
   @override
   State<_RecommendationCard> createState() => _RecommendationCardState();

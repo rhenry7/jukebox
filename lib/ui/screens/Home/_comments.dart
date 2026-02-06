@@ -12,6 +12,7 @@ import '../../../services/genre_cache_service.dart';
 import '../../../services/review_likes_service.dart';
 import '../../../utils/helpers.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../../utils/cached_image.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
 
@@ -446,20 +447,17 @@ class ReviewCardWidget extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Album Cover
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: review.albumImageUrl != null
-                    ? Image.network(
-                        review.albumImageUrl!,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.music_note, size: 80, color: Colors.white70);
-                        },
-                      )
-                    : const Icon(Icons.music_note, size: 80, color: Colors.white70),
-              ),
+              review.albumImageUrl != null
+                  ? AppCachedImage(
+                      imageUrl: review.albumImageUrl!,
+                      width: 80,
+                      height: 80,
+                      borderRadius: BorderRadius.circular(4),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const Icon(Icons.music_note, size: 80, color: Colors.white70),
+                    ),
               const SizedBox(width: 16),
               // Artist, Song, and Rating
               Expanded(

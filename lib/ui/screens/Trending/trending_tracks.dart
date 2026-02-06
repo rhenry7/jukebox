@@ -5,6 +5,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/providers/preferences_provider.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
+import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:gap/gap.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
@@ -224,6 +225,7 @@ class TrendingTracksWidget extends ConsumerWidget {
                   final track = trendingTrack.track;
                   
                   return _TrendingTrackCard(
+                    key: ValueKey(track.id ?? index),
                     track: track,
                     popularity: trendingTrack.popularity,
                     relevanceScore: trendingTrack.relevanceScore,
@@ -286,6 +288,7 @@ class _TrendingTrackCard extends StatelessWidget {
   final double relevanceScore;
 
   const _TrendingTrackCard({
+    super.key,
     required this.track,
     required this.popularity,
     required this.relevanceScore,
@@ -328,30 +331,22 @@ class _TrendingTrackCard extends StatelessWidget {
           child: Row(
             children: [
               // Album cover
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: imageUrl != null
-                    ? Image.network(
-                        imageUrl,
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 64,
-                            height: 64,
-                            color: Colors.grey[800],
-                            child: const Icon(Icons.music_note, color: Colors.white70),
-                          );
-                        },
-                      )
-                    : Container(
-                        width: 64,
-                        height: 64,
+              imageUrl != null
+                  ? AppCachedImage(
+                      imageUrl: imageUrl,
+                      width: 64,
+                      height: 64,
+                      borderRadius: BorderRadius.circular(8),
+                    )
+                  : Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
                         color: Colors.grey[800],
-                        child: const Icon(Icons.music_note, color: Colors.white70),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-              ),
+                      child: const Icon(Icons.music_note, color: Colors.white70),
+                    ),
               const Gap(12),
               // Track info
               Expanded(

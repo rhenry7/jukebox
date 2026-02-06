@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-/// Service to cache album art URLs in Firestore to avoid repeated API calls
+/// Service to cache album art URLs in Firestore to avoid repeated API calls.
+/// Cached entries expire after [_cacheTtl] and are treated as stale on read.
 class AlbumArtCacheService {
   static const String _collectionName = 'albumArt';
+
+  /// How long a cached album art URL is considered fresh (30 days).
+  static const Duration _cacheTtl = Duration(days: 30);
   
   /// Generate a cache key from track title and artist
   /// Sanitizes to ensure valid Firestore document ID
@@ -56,6 +60,15 @@ class AlbumArtCacheService {
 
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
+        // Check TTL — treat entry as stale if older than _cacheTtl
+        final cachedAt = data['cachedAt'] as Timestamp?;
+        if (cachedAt != null) {
+          final age = DateTime.now().difference(cachedAt.toDate());
+          if (age > _cacheTtl) {
+            debugPrint('Cache expired for $title by $artist (${age.inDays}d old)');
+            return null; // stale — caller will re-fetch
+          }
+        }
         final imageUrl = data['imageUrl'] as String?;
         if (imageUrl != null && imageUrl.isNotEmpty) {
           debugPrint('Found cached album art for $title by $artist');
