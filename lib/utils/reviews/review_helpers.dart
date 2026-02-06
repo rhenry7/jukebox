@@ -97,7 +97,7 @@ Future<void> deleteReview(String userId, String reviewDocId) async {
         .collection('users')
         .doc(userId)
         .collection('reviews')
-        .doc()
+        .doc(reviewDocId)
         .delete();
   } catch (e) {
     debugPrint('Could not delete review: $e');
@@ -181,7 +181,7 @@ Future<void> updateSavedTracks(String artist, String title) async {
     debugPrint('User not logged in, cannot upload preferences.');
     return;
   }
-  final String saved = 'arist: $artist, song: $title';
+  final String saved = 'artist: $artist, song: $title';
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -201,7 +201,7 @@ Future<void> updateDislikedTracks(String artist, String title) async {
     debugPrint('User not logged in, cannot upload preferences.');
     return;
   }
-  final String disliked = 'arist: $artist, song: $title';
+  final String disliked = 'artist: $artist, song: $title';
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -221,7 +221,7 @@ Future<void> updateRemovePreferences(String artist, String title) async {
     debugPrint('User not logged in, cannot upload preferences.');
     return;
   }
-  final String saved = 'arist: $artist, song: $title';
+  final String saved = 'artist: $artist, song: $title';
 
   await FirebaseFirestore.instance
       .collection('users')

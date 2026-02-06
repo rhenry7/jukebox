@@ -131,7 +131,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       });
 
       // Invalidate provider so playlist updates
-      ref.invalidate(playlistProvider(widget.playlistId));
+      ref.invalidate(singlePlaylistProvider(widget.playlistId));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -152,7 +152,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final playlistAsync = ref.watch(playlistProvider(widget.playlistId));
+    final playlistAsync = ref.watch(singlePlaylistProvider(widget.playlistId));
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -214,7 +214,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               // Invalidate and wait for refresh
-              ref.invalidate(playlistProvider(widget.playlistId));
+              ref.invalidate(singlePlaylistProvider(widget.playlistId));
               await Future.delayed(const Duration(milliseconds: 500));
             },
             color: Colors.red[600],
@@ -553,7 +553,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                       trackId: track.trackId,
                                     );
                                     if (mounted) {
-                                      ref.invalidate(playlistProvider(widget.playlistId));
+                                      ref.invalidate(singlePlaylistProvider(widget.playlistId));
                                     }
                                   } catch (e) {
                                     if (mounted) {

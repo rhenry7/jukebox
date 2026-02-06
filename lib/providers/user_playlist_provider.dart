@@ -15,6 +15,6 @@ final userPlaylistsProvider = StreamProvider<List<UserPlaylist>>((ref) {
 });
 
 /// Provider for a single playlist by ID (stream for real-time updates)
-final playlistProvider = StreamProvider.family<UserPlaylist?, String>((ref, playlistId) {
+final singlePlaylistProvider = StreamProvider.family<UserPlaylist?, String>((ref, playlistId) {
   return UserPlaylistService.getPlaylistStream(playlistId);
 });

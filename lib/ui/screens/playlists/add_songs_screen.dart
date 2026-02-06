@@ -136,7 +136,7 @@ class _AddSongsScreenState extends ConsumerState<AddSongsScreen> {
       await _loadPlaylistTracks();
       
       // Invalidate provider so detail screen updates
-      ref.invalidate(playlistProvider(widget.playlistId));
+      ref.invalidate(singlePlaylistProvider(widget.playlistId));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +157,7 @@ class _AddSongsScreenState extends ConsumerState<AddSongsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final playlistAsync = ref.watch(playlistProvider(widget.playlistId));
+    final playlistAsync = ref.watch(singlePlaylistProvider(widget.playlistId));
 
     return Scaffold(
       backgroundColor: Colors.black,

@@ -22,19 +22,19 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
   final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    //users = fetchMockUserComments();
   }
 
   @override
   void dispose() {
-    // Clean up controllers when the widget is disposed
     _userNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -85,20 +85,25 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                       labelText: 'Email *',
                     ),
                     onSaved: (String? value) {
-                      // This optional block of code can be used to run
-                      // code when the user saves the form.
                       if (value != null) {
                         email = value;
                       }
                     },
                     validator: (String? value) {
-                      return (value != null && value.contains('@'))
-                          ? 'Do not use the @ char.'
-                          : null;
+                      if (value == null || value.isEmpty) {
+                        return 'Email is required.';
+                      }
+                      // Basic email pattern check
+                      final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                      if (!emailRegex.hasMatch(value)) {
+                        return 'Please enter a valid email address.';
+                      }
+                      return null;
                     },
                   ),
                   TextFormField(
                     controller: _passwordController,
+                    obscureText: true,
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.eye_outline),
                       hintText: 'Password must be 8 characters long',
@@ -106,34 +111,31 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                       labelText: 'Password *',
                     ),
                     onSaved: (String? value) {
-                      // This optional block of code can be used to run
-                      // code when the user saves the form.
                       if (value != null) {
                         password = value;
                       }
                     },
                     validator: (String? value) {
-                      return (value != null && value.contains('@'))
-                          ? 'Do not use the @ char.'
-                          : null;
+                      if (value == null || value.length < 8) {
+                        return 'Password must be at least 8 characters.';
+                      }
+                      return null;
                     },
                   ),
                   TextFormField(
-                    controller: _passwordController,
+                    controller: _confirmPasswordController,
+                    obscureText: true,
                     decoration: const InputDecoration(
                       icon: Icon(Ionicons.eye_outline),
                       hintText: 'Passwords must match',
                       hintStyle: TextStyle(color: Colors.grey),
                       labelText: 'Confirm Password *',
                     ),
-                    onSaved: (String? value) {
-                      // This optional block of code can be used to run
-                      // code when the user saves the form.
-                    },
                     validator: (String? value) {
-                      return (value != null && value.contains('@'))
-                          ? 'Do not use the @ char.'
-                          : null;
+                      if (value != _passwordController.text) {
+                        return 'Passwords do not match.';
+                      }
+                      return null;
                     },
                   ),
                   const Gap(70),
@@ -227,6 +229,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                           _userNameController.clear();
                           _emailController.clear();
                           _passwordController.clear();
+                          _confirmPasswordController.clear();
                         }
                       } catch (e) {
                         // Handle sign-up errors here

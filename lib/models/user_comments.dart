@@ -7,31 +7,33 @@ class UserComment {
   final int replies;
   final int reposts;
   final int shares;
-  final DateTime time; // Added DateTime field
+  final DateTime time;
 
-  UserComment(
-      {required this.id,
-      required this.name,
-      required this.avatar,
-      required this.comment,
-      required this.likes,
-      required this.replies,
-      required this.reposts,
-      required this.shares,
-      required this.time});
+  UserComment({
+    required this.id,
+    required this.name,
+    required this.avatar,
+    required this.comment,
+    required this.likes,
+    required this.replies,
+    required this.reposts,
+    required this.shares,
+    required this.time,
+  });
 
-  // Factory method to create a UserComment from JSON
   factory UserComment.fromJson(Map<String, dynamic> json) {
     return UserComment(
-      id: json['id'],
-      name: json['name'],
-      avatar: json['avatar'],
-      comment: json['comment'],
-      likes: json['likes'],
-      time: DateTime.parse(json['time']),
-      replies: json['replies'],
-      reposts: json['reposts'],
-      shares: json['shares'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      avatar: json['avatar']?.toString() ?? '',
+      comment: json['comment']?.toString() ?? '',
+      likes: (json['likes'] as num?)?.toInt() ?? 0,
+      time: json['time'] != null
+          ? DateTime.tryParse(json['time'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      replies: (json['replies'] as num?)?.toInt() ?? 0,
+      reposts: (json['reposts'] as num?)?.toInt() ?? 0,
+      shares: (json['shares'] as num?)?.toInt() ?? 0,
     );
   }
 
