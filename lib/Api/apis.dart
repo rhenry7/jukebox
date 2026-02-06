@@ -574,7 +574,7 @@ Future<List<Album>> fetchNewDiscoveries(
 Future<List<Review>> fetchMockUserComments() async {
   final url = Uri.parse(
       'https://66d638b1f5859a704268af2d.mockapi.io/test/v1/usercomments');
-  final response = await http.get(url);
+  final response = await http.get(url).timeout(const Duration(seconds: 15));
   if (response.statusCode == 200) {
     // Parse the JSON data
     final List<dynamic> jsonData = json.decode(response.body);
@@ -591,7 +591,7 @@ Future<List<dynamic>> fetchAlbumsFromTag(String tag) async {
 
   final response = await http.get(url, headers: {
     'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
-  });
+  }).timeout(const Duration(seconds: 15));
 
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
@@ -607,8 +607,8 @@ Future<List<dynamic>> fetchListTracks(String tag, {int limit = 1}) async {
       'https://musicbrainz.org/ws/2/recording/?query=tag:rap&fmt=json&limit=1');
 
   final response = await http.get(url, headers: {
-    'User-Agent': 'YourAppName/1.0 (your-email@example.com)',
-  });
+    'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
+  }).timeout(const Duration(seconds: 15));
 
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
@@ -624,8 +624,8 @@ Future<List<dynamic>> fetchTrackByName(String trackName) async {
       'https://musicbrainz.org/ws/2/recording/?query=recording:"$trackName"&fmt=json');
 
   final response = await http.get(url, headers: {
-    'User-Agent': 'YourAppName/1.0 (your-email@example.com)',
-  });
+    'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
+  }).timeout(const Duration(seconds: 15));
 
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);

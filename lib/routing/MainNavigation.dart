@@ -78,6 +78,12 @@ class MainNavState extends ConsumerState<MainNav> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     // If navigateToPreferences is true, navigate after first frame

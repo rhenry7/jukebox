@@ -51,6 +51,7 @@ class _MyReviewSheetContentFormState
   String _selectedTrackImageUrl = '';
   Timer? _searchDebounce;
   String _searchFilter = 'all'; // 'all', 'song', 'album'
+  String? _searchError; // User-facing error message for search failures
 
   @override
   void initState() {
@@ -117,6 +118,7 @@ class _MyReviewSheetContentFormState
 
     setState(() {
       _isSearching = true;
+      _searchError = null;
     });
 
     try {
@@ -225,10 +227,27 @@ class _MyReviewSheetContentFormState
       debugPrint('   Error: $e');
       debugPrint('   Stack trace: $stackTrace');
       if (mounted) {
+        final errorStr = e.toString().toLowerCase();
+        String userMessage;
+        if (e is TimeoutException || errorStr.contains('timeout')) {
+          userMessage = 'Search timed out. Please try again.';
+        } else if (errorStr.contains('socket') ||
+            errorStr.contains('network') ||
+            errorStr.contains('connection')) {
+          userMessage =
+              'No internet connection. Check your network and try again.';
+        } else if (errorStr.contains('401') ||
+            errorStr.contains('403') ||
+            errorStr.contains('api key')) {
+          userMessage = 'Search service unavailable. Please try again later.';
+        } else {
+          userMessage = 'Search failed. Please try again.';
+        }
         setState(() {
           _trackResults = [];
           _albumResults = [];
           _isSearching = false;
+          _searchError = userMessage;
         });
         debugPrint('   ✅ Error state handled, search cleared');
       }
@@ -539,6 +558,7 @@ class _MyReviewSheetContentFormState
                                         setState(() {
                                           _trackResults = [];
                                           _albumResults = [];
+                                          _searchError = null;
                                         });
                                       },
                                     )
@@ -557,6 +577,45 @@ class _MyReviewSheetContentFormState
                         ],
                       ),
                       const Gap(16),
+                      // Search error feedback
+                      if (_searchError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withAlpha(30),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: Colors.red.withAlpha(80)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    color: Colors.redAccent, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _searchError!,
+                                    style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 13),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _searchError = null;
+                                    });
+                                  },
+                                  child: const Icon(Icons.close,
+                                      color: Colors.redAccent, size: 18),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       // Search results
                       if (_trackResults.isNotEmpty || _albumResults.isNotEmpty)
                         Expanded(

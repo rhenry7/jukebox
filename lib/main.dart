@@ -60,42 +60,46 @@ void main() async {
   } catch (e, st) {
     debugPrint('Firebase.initializeApp failed: $e');
     debugPrint('$st');
-    if (kIsWeb) {
-      runApp(
-        MaterialApp(
-          title: 'Jukeboxd',
-          theme: ThemeData.dark(),
-          home: Scaffold(
-            backgroundColor: Colors.black,
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.red, size: 48),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Firebase configuration error',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Check .env (FIREBASE_OPTIONS_KEY) or use ./deploy.sh for deploy.',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+    // Show a user-friendly error screen on all platforms.
+    final String hint = kIsWeb
+        ? 'Check .env (FIREBASE_OPTIONS_KEY) or use ./deploy.sh for deploy.'
+        : 'Firebase failed to initialise. Check your google-services.json '
+            '(Android) or GoogleService-Info.plist (iOS) and ensure Firebase '
+            'is configured correctly.\n\nError: $e';
+    runApp(
+      MaterialApp(
+        title: 'Jukeboxd',
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline,
+                      color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Firebase configuration error',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    hint,
+                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           ),
         ),
-      );
-      return;
-    }
+      ),
+    );
+    return;
   }
 
   // Firebase Auth automatically uses localStorage on web to persist auth state

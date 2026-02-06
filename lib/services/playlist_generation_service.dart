@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,9 @@ import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/services/album_art_cache_service.dart';
 import 'package:spotify/spotify.dart' as spotify;
+
+/// HTTP timeout for MusicBrainz API requests in playlist generation.
+const _httpTimeout = Duration(seconds: 20);
 
 /// Playlist track with MusicBrainz metadata
 class PlaylistTrack {
@@ -38,17 +42,28 @@ class PlaylistTrack {
 
 class PlaylistGenerationService {
   static const String _baseUrl = 'https://musicbrainz.org/ws/2';
-  static DateTime? _lastRequest;
+
+  /// Queue-based rate limiter: ensures only 1 request per second globally.
+  static final List<Completer<void>> _requestQueue = [];
+  static bool _processing = false;
 
   static Future<void> _rateLimit() async {
-    if (_lastRequest != null) {
-      final diff = DateTime.now().difference(_lastRequest!);
-      if (diff.inMilliseconds < 1000) {
-        await Future.delayed(
-            Duration(milliseconds: 1000 - diff.inMilliseconds));
-      }
+    final completer = Completer<void>();
+    _requestQueue.add(completer);
+    if (!_processing) {
+      _processQueue();
     }
-    _lastRequest = DateTime.now();
+    return completer.future;
+  }
+
+  static Future<void> _processQueue() async {
+    _processing = true;
+    while (_requestQueue.isNotEmpty) {
+      final next = _requestQueue.removeAt(0);
+      next.complete();
+      await Future.delayed(const Duration(milliseconds: 1100));
+    }
+    _processing = false;
   }
 
   /// Generate playlist based on user preferences using MusicBrainz
@@ -353,7 +368,7 @@ class PlaylistGenerationService {
         try {
           final response = await http.get(url, headers: {
             'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
-          });
+          }).timeout(_httpTimeout);
 
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
@@ -392,7 +407,7 @@ class PlaylistGenerationService {
     try {
       final response = await http.get(url, headers: {
         'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
-      });
+      }).timeout(_httpTimeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -424,7 +439,7 @@ class PlaylistGenerationService {
     try {
       final response = await http.get(url, headers: {
         'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
-      });
+      }).timeout(_httpTimeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
