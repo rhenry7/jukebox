@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'package:ionicons/ionicons.dart';
+
 import '../../../GIFs/gifs.dart';
 import 'ProfileSignUpWidget.dart';
 import 'auth/authService.dart';
+import 'helpers/profileHelpers.dart' show signInWithGoogle, hasUserPreferences;
 import '../../../routing/MainNavigation.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -20,6 +23,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void initState() {
@@ -127,6 +131,65 @@ class _SignInScreenState extends State<SignInScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  /// Handle Google sign-in flow
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      final user = await signInWithGoogle();
+      if (user == null) {
+        // User cancelled
+        if (mounted) setState(() => _isGoogleLoading = false);
+        return;
+      }
+
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      final hasPrefs = await hasUserPreferences(user.uid);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Successfully signed in with Google!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      if (hasPrefs) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+              builder: (context) => const MainNav(title: 'JUKEBOXD')),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+              builder: (context) => const MainNav(
+                  title: 'JUKEBOXD', navigateToPreferences: true)),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Google sign-in error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Google sign-in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -276,6 +339,54 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: const Text('Sign Up'),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            // Divider with "or" text
+            Row(
+              children: [
+                const Expanded(child: Divider(color: Colors.grey)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('or',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14)),
+                ),
+                const Expanded(child: Divider(color: Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Google Sign-In button
+            SizedBox(
+              width: double.infinity,
+              child: _isGoogleLoading
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                    )
+                  : ElevatedButton.icon(
+                      onPressed: (_isLoading || _isGoogleLoading)
+                          ? null
+                          : _handleGoogleSignIn,
+                      icon: const Icon(Ionicons.logo_google,
+                          size: 20, color: Colors.white),
+                      label: const Text(
+                        'Sign in with Google',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),

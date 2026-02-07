@@ -140,3 +140,40 @@ Future<void> signUp(String userName, String email, String password) async {
     debugPrint('Sign-up failed.');
   }
 }
+
+/// Sign in (or sign up) with Google.
+/// If the user is new, a Firestore user document is created automatically.
+/// Returns the [User] on success, or null if cancelled.
+Future<User?> signInWithGoogle() async {
+  final AuthService authService = AuthService();
+  final userCredential = await authService.signInWithGoogle();
+
+  if (userCredential == null) {
+    // User cancelled the flow
+    return null;
+  }
+
+  final User? user = userCredential.user;
+  if (user == null) return null;
+
+  // Check if this is a new user — create Firestore doc if it doesn't exist
+  final userDoc =
+      FirebaseFirestore.instance.collection('users').doc(user.uid);
+  final docSnapshot = await userDoc.get();
+
+  if (!docSnapshot.exists) {
+    // First-time Google sign-in: create the user document
+    await userDoc.set({
+      'email': user.email ?? '',
+      'userId': user.uid,
+      'displayName': user.displayName ?? user.email?.split('@').first ?? '',
+      'joinDate': FieldValue.serverTimestamp(),
+      'photoUrl': user.photoURL ?? '',
+    });
+    debugPrint('New Google user created: ${user.uid}');
+  } else {
+    debugPrint('Existing Google user signed in: ${user.uid}');
+  }
+
+  return user;
+}

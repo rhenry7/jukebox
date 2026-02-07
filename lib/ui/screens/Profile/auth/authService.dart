@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -83,5 +84,72 @@ class AuthService {
       debugPrint('Sign-in error: $e');
       rethrow; // Re-throw to be handled by caller
     }
+  }
+
+  /// Sign in with Google.
+  /// Works on web (via signInWithPopup) and mobile (via google_sign_in package).
+  /// Returns the [UserCredential] on success, or null if the user cancelled.
+  /// Throws an exception with a user-friendly message on failure.
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      if (kIsWeb) {
+        return await _signInWithGoogleWeb();
+      } else {
+        return await _signInWithGoogleMobile();
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Google sign-in Firebase error: ${e.code} – ${e.message}');
+      if (e.code == 'account-exists-with-different-credential') {
+        throw Exception(
+            'An account already exists with this email using a different sign-in method.');
+      }
+      throw Exception('Google sign-in failed. Please try again.');
+    } catch (e) {
+      debugPrint('Google sign-in error: $e');
+      rethrow;
+    }
+  }
+
+  /// Web: Use Firebase Auth popup flow (no google_sign_in package needed).
+  Future<UserCredential?> _signInWithGoogleWeb() async {
+    final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+    googleProvider.addScope('email');
+    googleProvider.addScope('profile');
+
+    final UserCredential userCredential =
+        await _auth.signInWithPopup(googleProvider);
+    debugPrint('Google sign-in (web) successful: ${userCredential.user?.email}');
+    return userCredential;
+  }
+
+  /// Mobile (Android / iOS): Use the google_sign_in package to get credentials,
+  /// then pass them to Firebase Auth.
+  Future<UserCredential?> _signInWithGoogleMobile() async {
+    // Trigger the Google Sign-In flow
+    final GoogleSignIn googleSignIn = GoogleSignIn();
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+    if (googleUser == null) {
+      // User cancelled the sign-in flow
+      debugPrint('Google sign-in cancelled by user.');
+      return null;
+    }
+
+    // Obtain the auth details from the Google Sign-In
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    // Create a Firebase credential from the Google tokens
+    final OAuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // Sign in to Firebase with the Google credential
+    final UserCredential userCredential =
+        await _auth.signInWithCredential(credential);
+    debugPrint(
+        'Google sign-in (mobile) successful: ${userCredential.user?.email}');
+    return userCredential;
   }
 }
