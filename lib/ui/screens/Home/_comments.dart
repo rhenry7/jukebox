@@ -567,66 +567,71 @@ class ReviewCardWidget extends ConsumerWidget {
                 final showPlusBadge = !isOwnReview && !isFriend;
 
                 return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Circled user icon with a conditional plus badge
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        // Circle with user icon
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[800],
-                            border: Border.all(
-                              color: isFriend
-                                  ? Colors.green.shade400
-                                  : Colors.blue.shade300,
-                              width: 1.2,
-                            ),
-                          ),
-                          child: const Icon(Icons.person,
-                              size: 14, color: Colors.white70),
-                        ),
-                        // Plus badge – only when NOT already friends and NOT own review
-                        if (showPlusBadge)
-                        Positioned(
-                          top: -3,
-                          right: -3,
-                          child: Container(
-                            width: 12,
-                            height: 12,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Circled user icon with a conditional plus badge
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Circle with user icon
+                          Container(
+                            width: 24,
+                            height: 24,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.blue[600],
-                              border: Border.all(color: Colors.black, width: 1),
+                              color: Colors.grey[800],
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 1.2,
+                              ),
                             ),
-                            child: const Icon(Icons.add,
-                                size: 8, color: Colors.white),
+                            child: const Icon(Icons.person,
+                                size: 14, color: Colors.white70),
                           ),
-                        ),
-                      ],
+                          // Plus badge – only when NOT already friends and NOT own review
+                          if (showPlusBadge)
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Container(
+                                width: 13,
+                                height: 13,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.greenAccent[700],
+                                  border:
+                                      Border.all(color: Colors.black, width: 1),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  '+',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  // Display name
-                  Text(
-                    review.displayName,
-                    style: TextStyle(
-                      color: isFriend
-                          ? Colors.green[300]
-                          : Colors.blue[300],
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
+                    const SizedBox(width: 6),
+                    // Display name
+                    Text(
+                      review.displayName,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
-                  ),
-                ],
-              );
+                  ],
+                );
               }),
             ),
           ],
