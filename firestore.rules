@@ -37,6 +37,12 @@ service cloud.firestore {
       match /reviewAnalysis/{cacheId} {
         allow read, write: if isOwner(userId);
       }
+      
+      // Friends subcollection
+      match /friends/{friendId} {
+        // Only the owner can read and write their own friends list
+        allow read, write: if isOwner(userId);
+      }
     }
     
     // Track genres collection (top-level, shared cache)

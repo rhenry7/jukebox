@@ -6,8 +6,11 @@ import 'package:gap/gap.dart';
 
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
-import '../../../providers/reviews_provider.dart' show ReviewWithDocId, userReviewsProvider;
+import '../../../providers/reviews_provider.dart'
+    show ReviewWithDocId, userReviewsProvider;
 import '../../../providers/review_likes_provider.dart';
+import '../../../providers/friends_provider.dart';
+import '../../../services/friends_service.dart';
 import '../../../services/genre_cache_service.dart';
 import '../../../services/review_likes_service.dart';
 import '../../../utils/helpers.dart';
@@ -26,7 +29,7 @@ class UserReviewsCollection extends ConsumerWidget {
     // Use Riverpod providers instead of direct Firebase calls
     final userId = ref.watch(currentUserIdProvider);
     final reviewsAsync = ref.watch(userReviewsProvider);
-    
+
     // Check if user is authenticated
     if (userId == null) {
       return Center(
@@ -98,7 +101,7 @@ class UserReviewsCollection extends ConsumerWidget {
         if (reviews.isEmpty) {
           debugPrint('⚠️ No reviews found for user: $userId');
         }
-        
+
         if (reviews.isEmpty) {
           return Center(
             child: Column(
@@ -120,7 +123,8 @@ class UserReviewsCollection extends ConsumerWidget {
                 ElevatedButton.icon(
                   onPressed: () {
                     // Navigate to discovery tab (index 1)
-                    final mainNavState = context.findAncestorStateOfType<MainNavState>();
+                    final mainNavState =
+                        context.findAncestorStateOfType<MainNavState>();
                     if (mainNavState != null) {
                       mainNavState.navigateToTab(1);
                     }
@@ -251,8 +255,9 @@ class FriendsReviewList extends ConsumerWidget {
                   side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
                 ),
                 color: Colors.white10,
-                child:
-                    ReviewCardWithGenres(review: review.review), // Pass review data with genre loading
+                child: ReviewCardWithGenres(
+                    review:
+                        review.review), // Pass review data with genre loading
               ),
             ),
           ),
@@ -261,7 +266,8 @@ class FriendsReviewList extends ConsumerWidget {
     );
   }
 
-  void _showReviewOptionsDialog(BuildContext context, ReviewWithDocId review, WidgetRef ref) {
+  void _showReviewOptionsDialog(
+      BuildContext context, ReviewWithDocId review, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -280,7 +286,7 @@ class FriendsReviewList extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Text(
-                  'Review by ${review.review.displayName ?? "Unknown"}', // Assuming Review has userName
+                  'Review by ${review.review.displayName.isNotEmpty ? review.review.displayName : "Unknown"}',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.white,
@@ -341,15 +347,17 @@ class FriendsReviewList extends ConsumerWidget {
     );
   }
 
-  void _deleteReview(BuildContext context, ReviewWithDocId review, WidgetRef ref) {
+  void _deleteReview(
+      BuildContext context, ReviewWithDocId review, WidgetRef ref) {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be signed in to delete reviews')),
+        const SnackBar(
+            content: Text('You must be signed in to delete reviews')),
       );
       return;
     }
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -383,7 +391,7 @@ class FriendsReviewList extends ConsumerWidget {
                     .collection('reviews')
                     .doc(review.docId)
                     .delete();
-                
+
                 // Invalidate provider to refresh UI automatically
                 ref.invalidate(userReviewsProvider);
 
@@ -411,30 +419,27 @@ List<String> _allTagsForReview(Review review) {
     ...(review.tags ?? <String>[]),
   ];
   final seen = <String>{};
-  return combined
-      .map((t) => t.trim())
-      .where((t) => t.isNotEmpty)
-      .where((t) {
-        final lower = t.toLowerCase();
-        if (seen.contains(lower)) return false;
-        seen.add(lower);
-        return true;
-      })
-      .toList();
+  return combined.map((t) => t.trim()).where((t) => t.isNotEmpty).where((t) {
+    final lower = t.toLowerCase();
+    if (seen.contains(lower)) return false;
+    seen.add(lower);
+    return true;
+  }).toList();
 }
 
 class ReviewCardWidget extends ConsumerWidget {
   final Review review;
-  final String? reviewId; // Full review ID for likes: users/{userId}/reviews/{docId}
+  final String?
+      reviewId; // Full review ID for likes: users/{userId}/reviews/{docId}
   final bool showLikeButton; // Only show like button in community tab
-  
+
   const ReviewCardWidget({
-    super.key, 
+    super.key,
     required this.review,
     this.reviewId,
     this.showLikeButton = false,
   });
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
@@ -456,7 +461,8 @@ class ReviewCardWidget extends ConsumerWidget {
                     )
                   : ClipRRect(
                       borderRadius: BorderRadius.circular(4),
-                      child: const Icon(Icons.music_note, size: 80, color: Colors.white70),
+                      child: const Icon(Icons.music_note,
+                          size: 80, color: Colors.white70),
                     ),
               const SizedBox(width: 16),
               // Artist, Song, and Rating
@@ -508,7 +514,8 @@ class ReviewCardWidget extends ConsumerWidget {
                           ratingWidget: RatingWidget(
                             full: const Icon(Icons.star, color: Colors.amber),
                             empty: const Icon(Icons.star, color: Colors.grey),
-                            half: const Icon(Icons.star_half, color: Colors.amber),
+                            half: const Icon(Icons.star_half,
+                                color: Colors.amber),
                           ),
                           ignoreGestures: true,
                           onRatingUpdate: (rating) {},
@@ -546,24 +553,85 @@ class ReviewCardWidget extends ConsumerWidget {
               overflow: TextOverflow.visible,
             ),
           ],
-          // Username row - left aligned, italic, small font
+          // Username row - tappable to show user profile / add friend
           if (review.displayName.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  review.displayName,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
+            GestureDetector(
+              onTap: () => _showUserProfileSheet(context, ref, review),
+              child: Builder(builder: (context) {
+                final currentUserId = ref.watch(currentUserIdProvider);
+                final isOwnReview = review.userId == currentUserId;
+                final isFriend = !isOwnReview &&
+                    review.userId.isNotEmpty &&
+                    ref.watch(isFriendProvider(review.userId));
+                final showPlusBadge = !isOwnReview && !isFriend;
+
+                return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Circled user icon with a conditional plus badge
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Circle with user icon
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.grey[800],
+                            border: Border.all(
+                              color: isFriend
+                                  ? Colors.green.shade400
+                                  : Colors.blue.shade300,
+                              width: 1.2,
+                            ),
+                          ),
+                          child: const Icon(Icons.person,
+                              size: 14, color: Colors.white70),
+                        ),
+                        // Plus badge – only when NOT already friends and NOT own review
+                        if (showPlusBadge)
+                        Positioned(
+                          top: -3,
+                          right: -3,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.blue[600],
+                              border: Border.all(color: Colors.black, width: 1),
+                            ),
+                            child: const Icon(Icons.add,
+                                size: 8, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  // Display name
+                  Text(
+                    review.displayName,
+                    style: TextStyle(
+                      color: isFriend
+                          ? Colors.green[300]
+                          : Colors.blue[300],
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              );
+              }),
             ),
           ],
           // Tags: MusicBrainz genres + user-created tags (pills at the bottom)
-          ...(){
+          ...() {
             final allTags = _allTagsForReview(review);
             if (allTags.isEmpty) return <Widget>[];
             return [
@@ -572,31 +640,221 @@ class ReviewCardWidget extends ConsumerWidget {
                 spacing: 8.0,
                 runSpacing: 8.0,
                 children: allTags.take(10).map((tag) {
-                return Chip(
-                  label: Text(
-                    tag,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                  return Chip(
+                    label: Text(
+                      tag,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  backgroundColor: Colors.white.withOpacity(0.1),
-                  side: BorderSide(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                );
-              }).toList(),
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    side: BorderSide(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  );
+                }).toList(),
               ),
             ];
           }(),
+        ],
+      ),
+    );
+  }
+
+  /// Shows a bottom sheet with the reviewer's info and an add/remove friend button.
+  void _showUserProfileSheet(
+      BuildContext context, WidgetRef ref, Review review) {
+    final currentUserId = ref.read(currentUserIdProvider);
+    if (currentUserId == null) return;
+
+    // Don't show for the user's own reviews
+    if (review.userId == currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This is your review!'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return _UserProfileSheet(
+          reviewUserId: review.userId,
+          reviewDisplayName: review.displayName,
+        );
+      },
+    );
+  }
+}
+
+/// Bottom sheet content showing reviewer info with add/remove friend toggle.
+class _UserProfileSheet extends ConsumerStatefulWidget {
+  final String reviewUserId;
+  final String reviewDisplayName;
+
+  const _UserProfileSheet({
+    required this.reviewUserId,
+    required this.reviewDisplayName,
+  });
+
+  @override
+  ConsumerState<_UserProfileSheet> createState() => _UserProfileSheetState();
+}
+
+class _UserProfileSheetState extends ConsumerState<_UserProfileSheet> {
+  bool _isLoading = false;
+
+  Future<void> _toggleFriend() async {
+    final currentUserId = ref.read(currentUserIdProvider);
+    if (currentUserId == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final service = FriendsService();
+      final alreadyFriend = ref.read(isFriendProvider(widget.reviewUserId));
+
+      if (alreadyFriend) {
+        await service.removeFriend(
+          currentUserId: currentUserId,
+          friendId: widget.reviewUserId,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Removed ${widget.reviewDisplayName} from friends'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        await service.addFriend(
+          currentUserId: currentUserId,
+          friendId: widget.reviewUserId,
+          friendDisplayName: widget.reviewDisplayName,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Added ${widget.reviewDisplayName} as a friend!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isFriend = ref.watch(isFriendProvider(widget.reviewUserId));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.grey[600],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Avatar placeholder
+          CircleAvatar(
+            radius: 36,
+            backgroundColor: Colors.grey[800],
+            child: Text(
+              widget.reviewDisplayName.isNotEmpty
+                  ? widget.reviewDisplayName[0].toUpperCase()
+                  : '?',
+              style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Display name
+          Text(
+            widget.reviewDisplayName,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Friend status badge
+          if (isFriend)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, color: Colors.green[400], size: 16),
+                const SizedBox(width: 4),
+                Text('Friend',
+                    style: TextStyle(color: Colors.green[400], fontSize: 13)),
+              ],
+            ),
+          const SizedBox(height: 24),
+          // Add / Remove friend button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _toggleFriend,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Icon(
+                      isFriend ? Icons.person_remove : Icons.person_add,
+                      color: Colors.white,
+                    ),
+              label: Text(
+                isFriend ? 'Remove Friend' : 'Add Friend',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isFriend ? Colors.red[700] : Colors.blue[700],
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -606,9 +864,9 @@ class ReviewCardWidget extends ConsumerWidget {
 // Like button widget for review cards
 class _LikeButton extends ConsumerWidget {
   final String reviewId;
-  
+
   const _LikeButton({required this.reviewId});
-  
+
   String _formatLikeCount(int count) {
     if (count >= 1000) {
       final k = (count / 1000).toStringAsFixed(1);
@@ -616,32 +874,34 @@ class _LikeButton extends ConsumerWidget {
     }
     return count.toString();
   }
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userId = ref.watch(currentUserIdProvider);
     final likeCountAsync = ref.watch(reviewLikeCountProvider(reviewId));
-    final isLikedAsync = userId != null 
+    final isLikedAsync = userId != null
         ? ref.watch(reviewUserLikeStatusProvider(reviewId))
         : const AsyncValue.data(false);
-    
+
     return likeCountAsync.when(
       data: (likeCount) {
         final isLiked = isLikedAsync.value ?? false;
-        
+
         return GestureDetector(
-          onTap: userId != null ? () async {
-            try {
-              final service = ReviewLikesService();
-              await service.toggleLike(reviewId, userId);
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-              }
-            }
-          } : null,
+          onTap: userId != null
+              ? () async {
+                  try {
+                    final service = ReviewLikesService();
+                    await service.toggleLike(reviewId, userId);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                }
+              : null,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -679,9 +939,9 @@ class ReviewCardWithGenres extends StatefulWidget {
   final Review review;
   final String? reviewId; // Full review ID for likes
   final bool showLikeButton; // Only show like button in community tab
-  
+
   const ReviewCardWithGenres({
-    super.key, 
+    super.key,
     required this.review,
     this.reviewId,
     this.showLikeButton = false,
@@ -707,7 +967,7 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
 
   Future<void> _loadGenres() async {
     if (_isLoadingGenres) return;
-    
+
     setState(() {
       _isLoadingGenres = true;
     });
@@ -742,7 +1002,7 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
   Widget build(BuildContext context) {
     // Use genres from state if available, otherwise use review's genres
     final genres = _genres ?? widget.review.genres;
-    
+
     return ReviewCardWidget(
       review: widget.review.copyWith(genres: genres),
       reviewId: widget.reviewId,

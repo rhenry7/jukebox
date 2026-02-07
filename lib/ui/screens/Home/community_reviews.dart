@@ -399,7 +399,7 @@ class CommunityReviewList extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Text(
-                  'Review by ${review.review.displayName ?? "Unknown"}',
+                  'Review by ${review.review.displayName.isNotEmpty ? review.review.displayName : "Unknown"}',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.white,
