@@ -43,6 +43,18 @@ service cloud.firestore {
         // Only the owner can read and write their own friends list
         allow read, write: if isOwner(userId);
       }
+      
+      // Notifications subcollection
+      match /notifications/{notificationId} {
+        // Only the owner can read notifications
+        allow read: if isOwner(userId);
+        // Any authenticated user can create a notification for another user,
+        // but only for themselves as the actor.
+        allow create: if isAuthenticated() &&
+                         request.resource.data.actorId == request.auth.uid;
+        // Only the owner can update/delete (e.g., mark read)
+        allow update, delete: if isOwner(userId);
+      }
     }
     
     // Track genres collection (top-level, shared cache)

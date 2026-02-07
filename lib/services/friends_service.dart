@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+import 'notifications_service.dart';
+
 /// Service for managing friend relationships in Firestore.
 ///
 /// Firestore structure:
@@ -25,12 +27,29 @@ class FriendsService {
     if (currentUserId == friendId) return; // Can't friend yourself
 
     try {
+      final existingDoc = await _friendsRef(currentUserId).doc(friendId).get();
       await _friendsRef(currentUserId).doc(friendId).set({
         'userId': friendId,
         'displayName': friendDisplayName,
         'addedAt': FieldValue.serverTimestamp(),
       });
       debugPrint('Added friend: $friendId ($friendDisplayName)');
+
+      if (!existingDoc.exists) {
+        try {
+          debugPrint('[FRIENDS] New friend added — sending notification to $friendId');
+          await NotificationsService().createFriendAddedNotification(
+            targetUserId: friendId,
+            actorUserId: currentUserId,
+          );
+          debugPrint('[FRIENDS] Friend notification sent successfully');
+        } catch (e) {
+          debugPrint('[FRIENDS] ERROR sending friend notification: $e');
+          // Don't rethrow — friend was added successfully, notification is secondary
+        }
+      } else {
+        debugPrint('[FRIENDS] Friend already existed — skipping notification');
+      }
     } catch (e) {
       debugPrint('Error adding friend: $e');
       rethrow;

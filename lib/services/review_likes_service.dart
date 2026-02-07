@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+import 'notifications_service.dart';
+
 /// Service for managing review likes
 /// Structure: reviewLikes/{reviewId}/likes/{userId}
 class ReviewLikesService {
@@ -47,6 +49,42 @@ class ReviewLikesService {
         'likeCount': FieldValue.increment(1),
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      final targetUserId =
+          ReviewLikesService.parseUserIdFromReviewId(reviewId);
+      debugPrint('[LIKES] Parsed targetUserId=$targetUserId from reviewId=$reviewId');
+      if (targetUserId != null && targetUserId != userId) {
+        try {
+          String? reviewTitle;
+          String? reviewArtist;
+          try {
+            final reviewDoc = await _firestore.doc(reviewId).get();
+            final data = reviewDoc.data();
+            reviewTitle = data?['title'];
+            reviewArtist = data?['artist'];
+            debugPrint('[LIKES] Review metadata: title=$reviewTitle, artist=$reviewArtist');
+          } catch (e) {
+            debugPrint('[LIKES] Error fetching review metadata: $e');
+          }
+
+          debugPrint('[LIKES] Creating like notification for target=$targetUserId');
+          await NotificationsService().createReviewLikeNotification(
+            targetUserId: targetUserId,
+            actorUserId: userId,
+            reviewId: reviewId,
+            reviewTitle: reviewTitle,
+            reviewArtist: reviewArtist,
+          );
+          debugPrint('[LIKES] Like notification sent successfully');
+        } catch (e) {
+          debugPrint('[LIKES] ERROR creating like notification: $e');
+          // Don't rethrow — like was recorded, notification is secondary
+        }
+      } else {
+        debugPrint('[LIKES] Skipped notification: '
+            'targetUserId=$targetUserId, userId=$userId '
+            '(${targetUserId == null ? "no target" : "own review"})');
+      }
 
       return true;
     } catch (e) {
@@ -161,5 +199,14 @@ class ReviewLikesService {
     // For collection group queries, the path is: users/{userId}/reviews/{reviewId}
     // We'll use the full path as the review ID
     return path;
+  }
+
+  /// Parse user ID from a review path (users/{userId}/reviews/{reviewId})
+  static String? parseUserIdFromReviewId(String reviewId) {
+    final parts = reviewId.split('/');
+    if (parts.length >= 4 && parts[0] == 'users' && parts[2] == 'reviews') {
+      return parts[1];
+    }
+    return null;
   }
 }
