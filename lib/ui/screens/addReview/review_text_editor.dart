@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Add this import for kIsWeb
 import 'package:flutter_test_project/utils/cached_image.dart';
 
 /// A full-screen review text editor that matches the design language shown in
@@ -20,11 +21,15 @@ class ReviewTextEditor extends StatefulWidget {
   /// Title shown in the app bar ("Add Review" or "Edit Review").
   final String headerTitle;
 
+  /// Whether to auto-focus on mount (only works reliably on native, not mobile web)
+  final bool autoFocus;
+
   const ReviewTextEditor({
     super.key,
     this.initialText = '',
     this.albumImageUrl = '',
     this.headerTitle = 'Add Review',
+    this.autoFocus = true,
   });
 
   @override
@@ -43,10 +48,12 @@ class _ReviewTextEditorState extends State<ReviewTextEditor> {
     _focusNode = FocusNode();
     _undoController = UndoHistoryController();
 
-    // Auto-focus the text field after the frame so the keyboard opens.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
-    });
+    // Only auto-focus on native platforms (not on web to avoid mobile browser blocking)
+    if (widget.autoFocus && !kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -126,25 +133,30 @@ class _ReviewTextEditorState extends State<ReviewTextEditor> {
 
             // ─── Text area (fills all available space) ───────
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  undoController: _undoController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  scrollPhysics: const ClampingScrollPhysics(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'What did you think?',
-                    hintStyle: TextStyle(color: Colors.white38, fontSize: 16),
+              child: GestureDetector(
+                // On web, allow users to tap anywhere in the text area to focus
+                onTap: kIsWeb ? () => _focusNode.requestFocus() : null,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    undoController: _undoController,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    scrollPhysics: const ClampingScrollPhysics(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: 'What did you think?',
+                      hintStyle: TextStyle(color: Colors.white38, fontSize: 16),
+                    ),
                   ),
                 ),
               ),
