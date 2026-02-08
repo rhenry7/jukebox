@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
-import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
@@ -14,6 +13,8 @@ import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/utils/spotify_retry.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart' as spotify;
+
+import 'review_text_editor.dart';
 
 class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String title;
@@ -599,34 +600,80 @@ class _MyReviewSheetContentFormState
     );
   }
 
-  /// Review text area — fixed height, internally scrollable.
+  /// Opens the full-screen review text editor and returns the text on "Done".
+  Future<void> _openReviewEditor() async {
+    final imageUrl = _selectedTrackImageUrl.isNotEmpty
+        ? _selectedTrackImageUrl
+        : widget.albumImageUrl;
+    final isEditing = reviewController.text.trim().isNotEmpty;
+
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ReviewTextEditor(
+          initialText: reviewController.text,
+          albumImageUrl: imageUrl,
+          headerTitle: isEditing ? 'Edit Review' : 'Add Review',
+        ),
+      ),
+    );
+
+    // If the user pressed "Done", update the controller with the returned text.
+    if (result != null && mounted) {
+      setState(() {
+        reviewController.text = result;
+      });
+    }
+  }
+
+  /// Tappable review preview — opens the full-screen editor on tap.
   Widget _buildReviewTextField() {
+    final hasText = reviewController.text.trim().isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
-      child: Container(
-        width: double.infinity,
-        height: 180,
-        constraints: const BoxConstraints(maxWidth: 500),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[700]!),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: reviewController,
-            maxLines: null,
-            expands: true,
-            textAlignVertical: TextAlignVertical.top,
-            scrollPhysics: const ClampingScrollPhysics(),
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              hintText: 'What did you think?',
-              hintStyle: TextStyle(color: Colors.grey),
-            ),
+      child: GestureDetector(
+        onTap: _openReviewEditor,
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 120, maxWidth: 500),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[700]!),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: hasText
+                    ? Text(
+                        reviewController.text,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          height: 1.4,
+                        ),
+                        maxLines: 5,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : const Text(
+                        'What did you think?\nTap to write your review…',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 15,
+                          height: 1.4,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                hasText ? Icons.edit_outlined : Icons.rate_review_outlined,
+                color: Colors.white38,
+                size: 20,
+              ),
+            ],
           ),
         ),
       ),
@@ -699,7 +746,6 @@ class _MyReviewSheetContentFormState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-
           _selectedTrackImageUrl.isEmpty
               ? Expanded(
                   child: Column(
@@ -998,9 +1044,6 @@ class _MyReviewSheetContentFormState
                       children: [
                         const Gap(16),
                         _buildSelectedTrackInfo(),
-                        const Gap(24),
-                        _buildReviewTextField(),
-
                         // Rating and like section
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1041,9 +1084,11 @@ class _MyReviewSheetContentFormState
                           ],
                         ),
 
-                        const Gap(16),
+                        // const Gap(16),
                         _buildTagsField(),
-                        const Gap(24),
+                        const Gap(12),
+                        _buildReviewTextField(),
+                        const Gap(16),
                         _buildSubmitButton(),
 
                         const Gap(16),
