@@ -4,6 +4,7 @@ import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/services/genre_cache_service.dart';
+import 'package:flutter_test_project/utils/scoring_utils.dart';
 import 'package:spotify/spotify.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 
@@ -32,10 +33,13 @@ class RecommendationEnhancements {
     return (genreDiversity * 0.6) + (artistDiversity * 0.4);
   }
 
-  /// Find similar users based on review patterns (collaborative filtering)
+  /// Find similar users based on review patterns (collaborative filtering).
+  ///
+  /// Upgraded: Uses Jaccard similarity across artist and genre dimensions
+  /// instead of raw overlap count (Grainger Ch. 5).
   static Future<List<String>> findSimilarUsers(String currentUserId) async {
     try {
-      // Get current user's top rated artists
+      // Get current user's highly-rated reviews
       final currentUserReviews = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUserId)
@@ -44,39 +48,65 @@ class RecommendationEnhancements {
           .get();
 
       final currentUserArtists = <String>{};
+      final currentUserGenres = <String>{};
       for (final doc in currentUserReviews.docs) {
         final review = Review.fromFirestore(doc.data());
         currentUserArtists.add(review.artist.toLowerCase().trim());
+        if (review.genres != null) {
+          currentUserGenres.addAll(
+            review.genres!.map((g) => g.toLowerCase().trim()),
+          );
+        }
       }
 
       if (currentUserArtists.isEmpty) return [];
 
-      // Find users who reviewed similar artists
-      final similarUsers = <String, int>{};
-      
-      // Get all reviews from community
+      // Collect per-user artist & genre sets from community reviews
+      final userArtists = <String, Set<String>>{};
+      final userGenres = <String, Set<String>>{};
+
       final allReviews = await FirebaseFirestore.instance
           .collectionGroup('reviews')
           .where('score', isGreaterThan: 3.5)
-          .limit(500) // Limit for performance
+          .limit(500)
           .get();
 
       for (final doc in allReviews.docs) {
         final review = Review.fromFirestore(doc.data());
         final userId = review.userId;
-        
         if (userId == currentUserId) continue;
-        
-        final artist = review.artist.toLowerCase().trim();
-        if (currentUserArtists.contains(artist)) {
-          similarUsers[userId] = (similarUsers[userId] ?? 0) + 1;
+
+        userArtists.putIfAbsent(userId, () => <String>{});
+        userArtists[userId]!.add(review.artist.toLowerCase().trim());
+
+        if (review.genres != null) {
+          userGenres.putIfAbsent(userId, () => <String>{});
+          userGenres[userId]!
+              .addAll(review.genres!.map((g) => g.toLowerCase().trim()));
         }
       }
 
-      // Sort by similarity score and return top 10
-      final sortedUsers = similarUsers.entries.toList()
+      // Compute combined Jaccard similarity for each user
+      final similarityScores = <String, double>{};
+      for (final userId in userArtists.keys) {
+        final similarity = ScoringUtils.combinedUserSimilarity(
+          userArtists: currentUserArtists,
+          otherArtists: userArtists[userId] ?? {},
+          userGenres: currentUserGenres,
+          otherGenres: userGenres[userId] ?? {},
+        );
+        if (similarity > 0.0) {
+          similarityScores[userId] = similarity;
+        }
+      }
+
+      // Sort by similarity and return top 10
+      final sortedUsers = similarityScores.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
-      
+
+      debugPrint('[COLLAB] Top similar users: '
+          '${sortedUsers.take(3).map((e) => '${e.key.substring(0, 6)}…=${e.value.toStringAsFixed(2)}').join(', ')}');
+
       return sortedUsers.take(10).map((e) => e.key).toList();
     } catch (e) {
       debugPrint('Error finding similar users: $e');

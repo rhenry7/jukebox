@@ -5,6 +5,8 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
+import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
+import 'package:flutter_test_project/services/signal_collection_service.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
@@ -100,6 +102,11 @@ class _MyReviewSheetContentFormState
       // Debounce search by 500ms
       _searchDebounce = Timer(const Duration(milliseconds: 500), () {
         debugPrint('   ⏰ Debounce timer completed, executing search');
+        // Log search query signal (only final debounced queries)
+        SignalCollectionService.logSearchQuery(
+          query: query,
+          sourceContext: 'search',
+        );
         _performSearch(query);
       });
     } else {
@@ -449,6 +456,27 @@ class _MyReviewSheetContentFormState
             ? _selectedTrackImageUrl
             : widget.albumImageUrl,
         _tagsFromController.isEmpty ? null : _tagsFromController,
+      );
+
+      // Log review_submit signal (strongest explicit signal)
+      final submittedArtist = _selectedTrackArtist.isNotEmpty
+          ? _selectedTrackArtist
+          : widget.artist;
+      final submittedTrack = _selectedTrackTitle.isNotEmpty
+          ? _selectedTrackTitle
+          : widget.title;
+      SignalCollectionService.logReviewSubmit(
+        artist: submittedArtist,
+        track: submittedTrack,
+        rating: ratingScore,
+        tags: _tagsFromController,
+      );
+
+      // Check if this review matches a pending recommendation (Phase 4)
+      RecommendationOutcomeService.checkAndRecordOutcome(
+        artist: submittedArtist,
+        track: submittedTrack,
+        rating: ratingScore,
       );
 
       // Invalidate reviews provider to refresh all screens automatically

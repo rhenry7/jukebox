@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_test_project/services/embedding_service.dart';
 
 /// Service for analyzing music profiles and generating recommendation prompts
 class MusicProfileService {
@@ -101,7 +102,11 @@ class MusicProfileService {
     return terms;
   }
 
-  /// Generates a detailed music taste profile from the user's data
+  /// Generates a detailed music taste profile from the user's data.
+  ///
+  /// Upgraded: When a taste vector is available, appends embedding-derived
+  /// semantic descriptors to the prompt (Grainger Ch. 8-10). This replaces
+  /// simple keyword matching with genuine semantic understanding.
   String generateMusicTastePrompt(Map<String, dynamic> profile) {
     final favoriteGenres = List<String>.from(profile['favoriteGenres'] ?? []);
     final dislikedGenres = List<String>.from(profile['dislikedGenres'] ?? []);
@@ -111,6 +116,10 @@ class MusicProfileService {
     final reviews = List<dynamic>.from(profile['reviews'] ?? []);
     final savedTracks = List<String>.from(profile['savedTracks'] ?? []);
     final moodPreferences = profile['moodPreferences'];
+
+    // Optional embedding-derived descriptors (set via enrichPromptWithTasteDescriptors)
+    final tasteDescriptors =
+        List<String>.from(profile['_tasteDescriptors'] ?? []);
 
     // Analyze reviews
     final reviewAnalysis = analyzeReviews(reviews);
@@ -132,6 +141,18 @@ class MusicProfileService {
     promptBuffer
         .writeln('Generate music recommendations based on this user profile:');
     promptBuffer.writeln();
+
+    // Semantic taste profile (from embeddings — Phase 3)
+    if (tasteDescriptors.isNotEmpty) {
+      promptBuffer.writeln('SEMANTIC TASTE PROFILE (derived from embedding analysis):');
+      promptBuffer.writeln('The user\'s taste profile emphasizes:');
+      for (final descriptor in tasteDescriptors) {
+        promptBuffer.writeln('  - $descriptor');
+      }
+      promptBuffer.writeln(
+          'Recommend tracks that align with these themes while introducing diversity.');
+      promptBuffer.writeln();
+    }
 
     // Primary preferences
     promptBuffer.writeln('STRONGLY PREFERRED GENRES (priority order):');
@@ -195,6 +216,31 @@ class MusicProfileService {
     promptBuffer.writeln('Recommend 10 songs that match this profile.');
 
     return promptBuffer.toString();
+  }
+
+  /// Enrich a profile map with embedding-derived taste descriptors.
+  ///
+  /// Call this before [generateMusicTastePrompt] to inject semantic
+  /// understanding into the prompt generation.
+  Future<Map<String, dynamic>> enrichProfileWithTasteDescriptors(
+    Map<String, dynamic> profile,
+    List<double>? tasteVector,
+  ) async {
+    if (tasteVector == null) return profile;
+
+    try {
+      final descriptors =
+          await EmbeddingService.deriveTasteDescriptors(tasteVector, topN: 5);
+      if (descriptors.isNotEmpty) {
+        return {
+          ...profile,
+          '_tasteDescriptors': descriptors,
+        };
+      }
+    } catch (e) {
+      debugPrint('[PROMPT] Error deriving taste descriptors: $e');
+    }
+    return profile;
   }
 
   /// Generates a concise JSON-like summary for API requests

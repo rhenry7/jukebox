@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/services/embedding_service.dart';
+import 'package:flutter_test_project/utils/scoring_utils.dart';
 
 /// Service to analyze user reviews and extract preferences for personalized recommendations
 class ReviewAnalysisService {
@@ -42,6 +44,9 @@ class ReviewAnalysisService {
     
     // Cache the profile
     await _cacheProfile(userId, profile, reviews.length);
+
+    // Trigger taste vector refresh in background (Phase 3 — embeddings)
+    _refreshTasteVectorInBackground(userId, reviews);
     
     return profile;
   }
@@ -332,6 +337,24 @@ class ReviewAnalysisService {
     );
   }
   
+  /// Refresh the user's taste vector in the background (non-blocking).
+  ///
+  /// Triggered when review analysis detects new reviews. This ensures
+  /// the embedding-based taste vector stays in sync with the latest reviews.
+  static void _refreshTasteVectorInBackground(
+    String userId,
+    List<Review> reviews,
+  ) {
+    Future(() async {
+      try {
+        await EmbeddingService.getTasteVector(userId, reviews);
+        debugPrint('[EMBED] Background taste vector refresh complete');
+      } catch (e) {
+        debugPrint('[EMBED] Background taste vector refresh failed: $e');
+      }
+    });
+  }
+
   /// Clear cached profile (useful for testing or forced refresh)
   static Future<void> clearCache(String userId) async {
     try {
@@ -416,12 +439,15 @@ class ReviewAnalysisService {
     );
   }
   
-  /// Analyze genre preferences from reviews
+  /// Analyze genre preferences from reviews (with temporal decay — Grainger Ch. 5).
+  ///
+  /// Recent reviews are weighted exponentially higher than old ones when computing
+  /// preference strength, so the user's evolving taste is reflected.
   static Map<String, GenrePreference> _analyzeGenrePreferences(
     List<Review> reviews,
   ) {
     final genreData = <String, List<Review>>{};
-    
+
     // Group reviews by genre
     for (final review in reviews) {
       if (review.genres != null && review.genres!.isNotEmpty) {
@@ -430,37 +456,52 @@ class ReviewAnalysisService {
         }
       }
     }
-    
+
     final preferences = <String, GenrePreference>{};
     final totalReviews = reviews.length;
-    
+
     if (totalReviews == 0) return preferences;
-    
+
     genreData.forEach((genre, genreReviews) {
-      final avgRating = genreReviews.fold<double>(
-        0.0,
-        (sum, r) => sum + r.score,
-      ) / genreReviews.length;
-      
+      // Weighted average rating using temporal decay
+      double weightedRatingSum = 0.0;
+      double decayWeightSum = 0.0;
+
+      for (final review in genreReviews) {
+        final decay = review.date != null
+            ? ScoringUtils.temporalDecay(review.date!, halfLifeDays: 30.0)
+            : 0.5; // Default weight for reviews without a date
+        weightedRatingSum += review.score * decay;
+        decayWeightSum += decay;
+      }
+
+      final avgRating = decayWeightSum > 0
+          ? weightedRatingSum / decayWeightSum
+          : genreReviews.fold<double>(0.0, (s, r) => s + r.score) /
+              genreReviews.length;
+
       final reviewCount = genreReviews.length;
-      final preferenceStrength = (avgRating / 5.0) * 
-                                 (reviewCount / totalReviews) * 2.0;
-      
+
+      // Preference strength now incorporates temporal decay
+      final preferenceStrength =
+          (avgRating / 5.0) * (reviewCount / totalReviews) * 2.0;
+
       // Get favorite artists in this genre
       final artistRatings = <String, List<double>>{};
       for (final review in genreReviews) {
         artistRatings.putIfAbsent(review.artist, () => []).add(review.score);
       }
-      
+
       final favoriteArtists = artistRatings.entries
           .where((e) {
-            final avg = e.value.fold<double>(0.0, (sum, r) => sum + r) / e.value.length;
+            final avg =
+                e.value.fold<double>(0.0, (sum, r) => sum + r) / e.value.length;
             return avg >= 4.0;
           })
           .map((e) => e.key)
           .take(5)
           .toList();
-      
+
       preferences[genre] = GenrePreference(
         genre: genre,
         averageRating: avgRating,
@@ -469,59 +510,79 @@ class ReviewAnalysisService {
         favoriteArtists: favoriteArtists,
       );
     });
-    
+
     return preferences;
   }
   
-  /// Analyze artist preferences
+  /// Analyze artist preferences (with temporal decay — Grainger Ch. 5).
   static Map<String, ArtistPreference> _analyzeArtistPreferences(
     List<Review> reviews,
   ) {
     final artistData = <String, List<Review>>{};
-    
+
     // Group reviews by artist
     for (final review in reviews) {
       artistData.putIfAbsent(review.artist, () => []).add(review);
     }
-    
+
     final preferences = <String, ArtistPreference>{};
-    
+
     artistData.forEach((artist, artistReviews) {
-      final ratings = artistReviews.map((r) => r.score).toList();
-      final avgRating = ratings.fold<double>(0.0, (sum, r) => sum + r) / 
-                        ratings.length;
-      
+      // Weighted average rating using temporal decay
+      double weightedRatingSum = 0.0;
+      double decayWeightSum = 0.0;
+
+      for (final review in artistReviews) {
+        final decay = review.date != null
+            ? ScoringUtils.temporalDecay(review.date!, halfLifeDays: 30.0)
+            : 0.5;
+        weightedRatingSum += review.score * decay;
+        decayWeightSum += decay;
+      }
+
+      final avgRating = decayWeightSum > 0
+          ? weightedRatingSum / decayWeightSum
+          : artistReviews.fold<double>(0.0, (s, r) => s + r.score) /
+              artistReviews.length;
+
       // Calculate consistency (lower std dev = more consistent)
+      final ratings = artistReviews.map((r) => r.score).toList();
+      final rawAvg =
+          ratings.fold<double>(0.0, (sum, r) => sum + r) / ratings.length;
       final variance = ratings.fold<double>(
-        0.0,
-        (sum, r) => sum + (r - avgRating) * (r - avgRating),
-      ) / ratings.length;
+            0.0,
+            (sum, r) => sum + (r - rawAvg) * (r - rawAvg),
+          ) /
+          ratings.length;
       final consistency = 1.0 - (variance / 5.0).clamp(0.0, 1.0);
-      
-      // Recent bonus (reviews in last 30 days weighted more)
-      final now = DateTime.now();
-      final recentReviews = artistReviews.where((r) {
-        if (r.date == null) return false;
-        return now.difference(r.date!).inDays <= 30;
-      }).length;
-      final recentBonus = artistReviews.isEmpty 
+
+      // Temporal-decay based recency bonus (replaces binary 30-day check)
+      double recencyBonus = 0.0;
+      for (final review in artistReviews) {
+        if (review.date != null) {
+          recencyBonus +=
+              ScoringUtils.temporalDecay(review.date!, halfLifeDays: 30.0);
+        }
+      }
+      recencyBonus = artistReviews.isEmpty
           ? 0.0
-          : (recentReviews / artistReviews.length) * 0.3;
-      
+          : (recencyBonus / artistReviews.length) * 0.3;
+
       // Preference score
-      final preferenceScore = (avgRating / 5.0) * 
-                               (artistReviews.length / 10.0).clamp(0.0, 1.0) * 
-                               (1.0 + consistency * 0.2) + 
-                               recentBonus;
-      
+      final preferenceScore = (avgRating / 5.0) *
+              (artistReviews.length / 10.0).clamp(0.0, 1.0) *
+              (1.0 + consistency * 0.2) +
+          recencyBonus;
+
       DateTime? lastReviewed;
-      final reviewsWithDates = artistReviews.where((r) => r.date != null).toList();
+      final reviewsWithDates =
+          artistReviews.where((r) => r.date != null).toList();
       if (reviewsWithDates.isNotEmpty) {
         lastReviewed = reviewsWithDates
             .map((r) => r.date!)
             .reduce((a, b) => a.isAfter(b) ? a : b);
       }
-      
+
       preferences[artist] = ArtistPreference(
         artist: artist,
         averageRating: avgRating,
@@ -531,7 +592,7 @@ class ReviewAnalysisService {
         preferenceScore: preferenceScore.clamp(0.0, 1.0),
       );
     });
-    
+
     return preferences;
   }
   

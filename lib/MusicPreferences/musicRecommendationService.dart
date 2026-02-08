@@ -8,10 +8,14 @@ import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
+import 'package:flutter_test_project/utils/scoring_utils.dart';
 import 'package:flutter_test_project/MusicPreferences/recommendation_enhancements.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:flutter_test_project/services/genre_cache_service.dart';
 import 'package:flutter_test_project/services/review_analysis_service.dart';
+import 'package:flutter_test_project/services/signal_collection_service.dart';
+import 'package:flutter_test_project/services/embedding_service.dart';
+import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
 
@@ -188,21 +192,113 @@ class MusicRecommendationService {
         }).toList();
       }
 
-      // 4. Score recommendations based on review analysis (if available)
+      // 4. Score recommendations based on review analysis + signals + feedback weights
       if (reviewProfile != null && filteredRecs.isNotEmpty) {
+        // Fetch user signals for signal-aggregated scoring (Phase 1+2)
+        List<UserSignal> userSignals = [];
+        try {
+          userSignals = await SignalCollectionService.getRecentSignals(limit: 200);
+          debugPrint('Fetched ${userSignals.length} user signals for scoring');
+        } catch (e) {
+          debugPrint('Error fetching signals (will use review-only scoring): $e');
+        }
+
+        // Fetch feedback-calibrated weights (Phase 4)
+        Map<String, double>? adjustedSignalWeights;
+        try {
+          final componentWeights =
+              await RecommendationOutcomeService.getAdjustedWeights();
+          if (componentWeights != RecommendationOutcomeService.defaultComponentWeights) {
+            adjustedSignalWeights = null; // signal weights remain default for now
+            debugPrint('Using feedback-calibrated component weights: $componentWeights');
+          }
+        } catch (e) {
+          debugPrint('Error fetching adjusted weights: $e');
+        }
+
         final scoredRecs = filteredRecs.map((rec) {
-          final score = _scoreRecommendationFromReviews(rec, reviewProfile!);
+          final score = _scoreRecommendationFromReviews(
+            rec,
+            reviewProfile!,
+            signals: userSignals,
+            adjustedWeights: adjustedSignalWeights,
+          );
           return {'rec': rec, 'score': score};
         }).toList();
-        
-        // Sort by review-based score
+
+        // Sort by combined score
         scoredRecs.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
-        
+
         // Take top scored recommendations
         filteredRecs = scoredRecs
-            .take((count * 1.5).round())  // Take more for diversity filtering
+            .take((count * 1.5).round()) // Take more for diversity filtering
             .map((e) => e['rec'] as MusicRecommendation)
             .toList();
+      }
+
+      // 4b. Semantic scoring via taste vector embeddings (Phase 3)
+      if (filteredRecs.isNotEmpty) {
+        try {
+          final tasteVector = await EmbeddingService.getTasteVector(
+            userId,
+            reviews,
+          );
+          if (tasteVector != null) {
+            debugPrint('[SEMANTIC] Taste vector loaded — scoring ${filteredRecs.length} candidates');
+            final candidates = filteredRecs
+                .map((r) => CandidateInfo(
+                      artist: r.artist,
+                      track: r.song,
+                      album: r.album,
+                      genres: r.genres,
+                    ))
+                .toList();
+            final semanticScores = await EmbeddingService.scoreCandidatesBatch(
+              tasteVector: tasteVector,
+              candidates: candidates,
+            );
+
+            // Re-rank using combined score (signal + semantic)
+            final reRanked = <Map<String, dynamic>>[];
+            for (int i = 0; i < filteredRecs.length; i++) {
+              reRanked.add({
+                'rec': filteredRecs[i],
+                'semanticScore': semanticScores[i],
+              });
+            }
+            reRanked.sort((a, b) => (b['semanticScore'] as double)
+                .compareTo(a['semanticScore'] as double));
+
+            // Blend semantic ranking with existing order (50/50 interleave)
+            final semanticOrder =
+                reRanked.map((e) => e['rec'] as MusicRecommendation).toList();
+            final blended = <MusicRecommendation>[];
+            final seen = <String>{};
+            int sIdx = 0, oIdx = 0;
+            while (blended.length < filteredRecs.length) {
+              // Alternate between semantic and original order
+              MusicRecommendation? next;
+              if (blended.length % 2 == 0 && sIdx < semanticOrder.length) {
+                next = semanticOrder[sIdx++];
+              } else if (oIdx < filteredRecs.length) {
+                next = filteredRecs[oIdx++];
+              } else if (sIdx < semanticOrder.length) {
+                next = semanticOrder[sIdx++];
+              } else {
+                break;
+              }
+              final key = '${next.artist}|${next.song}'.toLowerCase();
+              if (!seen.contains(key)) {
+                seen.add(key);
+                blended.add(next);
+              }
+            }
+            filteredRecs = blended;
+            debugPrint('[SEMANTIC] Re-ranked with semantic scoring');
+          }
+        } catch (e) {
+          debugPrint('[SEMANTIC] Error in semantic scoring (continuing without): $e');
+        }
       }
 
       // 5. Apply enhanced algorithm: balance discovery vs safe bets, ensure diversity
@@ -241,6 +337,12 @@ class MusicRecommendationService {
       
       // Start fetching album images in the background (non-blocking)
       _fetchAlbumImagesInBackground(filteredRecs);
+
+      // 7. Log shown recommendations for outcome tracking (Phase 4)
+      _logShownRecommendationsInBackground(filteredRecs);
+
+      // 8. Resolve stale outcomes in background (Phase 4)
+      RecommendationOutcomeService.resolveStaleOutcomes();
 
       debugPrint('Returning ${filteredRecs.length} final recommendations with genres');
       return filteredRecs;
@@ -359,47 +461,70 @@ Format:
     return _buildEnhancedPrompt(preferences, count, excludeSongs, reviews, null);
   }
   
-  /// Score recommendation based on review analysis
+  /// Score recommendation based on review analysis and user signals.
+  ///
+  /// Upgraded from pure hand-tuned weights to a hybrid approach:
+  ///   1. Review-analysis score (genre/artist preference from reviews)
+  ///   2. Signal-aggregated score (from actual user interactions)
+  ///   3. Temporal decay on both (Grainger Ch. 5)
   static double _scoreRecommendationFromReviews(
     MusicRecommendation recommendation,
-    UserReviewProfile reviewProfile,
-  ) {
-    double score = 0.5; // Base score
-    
+    UserReviewProfile reviewProfile, {
+    List<UserSignal> signals = const [],
+    Map<String, double>? adjustedWeights,
+  }) {
+    double reviewScore = 0.5; // Base review score
+
     // Genre match from reviews (weighted by preference strength)
     for (final genre in recommendation.genres) {
       final genrePref = reviewProfile.genrePreferences[genre];
       if (genrePref != null) {
-        score += genrePref.preferenceStrength * 0.3;
+        reviewScore += genrePref.preferenceStrength * 0.3;
       }
     }
-    
+
     // Artist similarity (if similar to highly-rated artists)
     final artist = recommendation.artist.toLowerCase();
     for (final topArtist in reviewProfile.ratingPattern.highlyRatedArtists) {
       final topArtistLower = topArtist.toLowerCase();
       if (artist.contains(topArtistLower) || topArtistLower.contains(artist)) {
-        score += 0.2;
+        reviewScore += 0.2;
         break;
       }
     }
-    
+
     // Check if artist is in user's top artist preferences
     final artistPref = reviewProfile.artistPreferences[recommendation.artist];
     if (artistPref != null && artistPref.preferenceScore > 0.7) {
-      score += 0.15;
+      reviewScore += 0.15;
     }
-    
+
     // Recent trends match
     if (reviewProfile.temporalPatterns.recentTrends.isNotEmpty) {
-      final hasTrendGenre = recommendation.genres.any((genre) => 
-        reviewProfile.temporalPatterns.recentTrends.contains(genre));
+      final hasTrendGenre = recommendation.genres.any(
+        (genre) => reviewProfile.temporalPatterns.recentTrends.contains(genre),
+      );
       if (hasTrendGenre) {
-        score += 0.1;
+        reviewScore += 0.1;
       }
     }
-    
-    return score.clamp(0.0, 1.0);
+
+    reviewScore = reviewScore.clamp(0.0, 1.0);
+
+    // If we have signals, compute a signal-aggregated score and blend
+    if (signals.isNotEmpty) {
+      final signalScore = ScoringUtils.signalAggregatedScore(
+        candidateArtist: recommendation.artist,
+        candidateGenres: recommendation.genres,
+        signals: signals,
+        adjustedWeights: adjustedWeights,
+      );
+
+      // Blend: 60% review-based, 40% signal-based
+      return (reviewScore * 0.6 + signalScore * 0.4).clamp(0.0, 1.0);
+    }
+
+    return reviewScore;
   }
 
   static Future<String> _makeApiRequest(String prompt) async {
@@ -510,6 +635,27 @@ Format:
 
   static void clearRecentRecommendations() {
     _recentRecommendations.clear();
+  }
+
+  /// Log shown recommendations in the background for outcome tracking (Phase 4).
+  static void _logShownRecommendationsInBackground(
+      List<MusicRecommendation> recs) {
+    Future(() async {
+      try {
+        final records = recs
+            .map((r) => RecommendationRecord(
+                  track: r.song,
+                  artist: r.artist,
+                  source: 'ai', // Default; could be enriched with actual source
+                ))
+            .toList();
+        await RecommendationOutcomeService.logRecommendationsShown(
+          recommendations: records,
+        );
+      } catch (e) {
+        debugPrint('[OUTCOMES] Error logging shown recs: $e');
+      }
+    });
   }
 
   /// Optimized validation with caching - faster for repeated requests

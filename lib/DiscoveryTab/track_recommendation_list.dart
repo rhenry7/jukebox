@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
+import 'package:flutter_test_project/services/signal_collection_service.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:ionicons/ionicons.dart';
@@ -219,6 +220,13 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                   children: [
                     IconButton(
                         onPressed: () => {
+                              // Log rec_dismiss signal (implicit negative signal)
+                              SignalCollectionService.logRecDismiss(
+                                artist: widget.album.artist,
+                                track: widget.album.song,
+                                genres: widget.album.genres,
+                                sourceContext: 'discovery_tab',
+                              ),
                               updateDislikedTracks(widget.album.artist, widget.album.song),
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -226,12 +234,18 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                                   backgroundColor: Colors.red,
                                 ),
                               ),
-                              // Navigator.pop(context)
                             },
                         icon: const Icon(Ionicons.close_circle_outline,
                             color: Colors.red)),
                     IconButton(
                         onPressed: () {
+                          // Log rec_click signal (moderate intent signal)
+                          SignalCollectionService.logRecClick(
+                            artist: widget.album.artist,
+                            track: widget.album.song,
+                            genres: widget.album.genres,
+                            sourceContext: 'discovery_tab',
+                          );
                           // Open review sheet with pre-populated data
                           showModalBottomSheet(
                             context: context,
