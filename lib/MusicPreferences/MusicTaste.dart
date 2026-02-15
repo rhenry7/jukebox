@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';
+import 'package:flutter_test_project/services/review_recommendation_service.dart';
 
 Future<MusicPreferences?> fetchMusicPreferences() async {
   final String userId = FirebaseAuth.instance.currentUser != null
@@ -247,14 +248,22 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
     debugPrint('Saving preferences: ${_preferences.toJson()}');
     try {
       await _uploadPreferences();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preferences saved successfully!')),
-      );
+      // Clear For You recommendations cache so they refresh with new preferences
+      if (userId.isNotEmpty) {
+        await ReviewRecommendationService.clearRecommendationsCache(userId);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preferences saved successfully!')),
+        );
+      }
     } catch (e) {
       log('Error saving preferences: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save preferences.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save preferences.')),
+        );
+      }
     }
   }
 

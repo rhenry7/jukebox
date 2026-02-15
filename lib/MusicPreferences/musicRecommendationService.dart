@@ -21,7 +21,7 @@ import 'package:spotify/spotify.dart';
 
 class MusicRecommendationService {
   static const _openAiEndpoint = 'https://api.openai.com/v1/chat/completions';
-  static const _model = 'gpt-3.5-turbo';
+  static const _model = 'gpt-4o-mini';
   static const _maxRetries = 3;
   static const _timeoutDuration = Duration(seconds: 30);
 

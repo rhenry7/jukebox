@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'community_reviews.dart';
 import 'friends_reviews.dart';
+import 'recommended_reviews.dart';
 
 class CategoryTapBar extends StatelessWidget {
   const CategoryTapBar({super.key});
@@ -10,7 +11,7 @@ class CategoryTapBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       initialIndex: 0,
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(80.0),
@@ -77,6 +78,23 @@ class CategoryTapBar extends StatelessWidget {
                     ],
                   ),
                 ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, size: 18),
+                      SizedBox(width: 6),
+                      Text(
+                        'For You',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -85,6 +103,7 @@ class CategoryTapBar extends StatelessWidget {
           children: [
             FriendsReviewsCollection(),
             CommunityReviewsCollection(),
+            RecommendedReviewsCollection(),
           ],
         ),
       ),

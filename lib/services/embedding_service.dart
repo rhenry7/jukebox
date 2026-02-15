@@ -21,6 +21,7 @@ import 'package:http/http.dart' as http;
 class EmbeddingService {
   static const _embeddingEndpoint = 'https://api.openai.com/v1/embeddings';
   static const _embeddingModel = 'text-embedding-3-small';
+  static const _embeddingModelFallback = 'text-embedding-ada-002';
   static const int _embeddingDimensions = 1536;
   static const _timeout = Duration(seconds: 20);
 
@@ -29,13 +30,18 @@ class EmbeddingService {
   /// Generate an embedding vector for [text] using OpenAI.
   ///
   /// Returns a list of [_embeddingDimensions] doubles, or `null` on failure.
+  /// Falls back to text-embedding-ada-002 if text-embedding-3-small is not available.
   static Future<List<double>?> generateEmbedding(String text) async {
     if (text.trim().isEmpty) return null;
     if (openAIKey.isEmpty) {
       debugPrint('[EMBED] OpenAI key not configured — skipping embedding');
       return null;
     }
+    return _generateEmbeddingWithModel(text, _embeddingModel);
+  }
 
+  static Future<List<double>?> _generateEmbeddingWithModel(
+      String text, String model) async {
     try {
       final response = await http
           .post(
@@ -45,7 +51,7 @@ class EmbeddingService {
               'Authorization': 'Bearer $openAIKey',
             },
             body: jsonEncode({
-              'model': _embeddingModel,
+              'model': model,
               'input': text.length > 8000 ? text.substring(0, 8000) : text,
             }),
           )
@@ -57,10 +63,17 @@ class EmbeddingService {
             .map((e) => (e as num).toDouble())
             .toList();
         return embedding;
-      } else {
-        debugPrint('[EMBED] API error ${response.statusCode}: ${response.body}');
-        return null;
+      } else if (response.statusCode == 403) {
+        final body = response.body;
+        if (body.contains('model_not_found')) {
+          if (model == _embeddingModel) {
+            return _generateEmbeddingWithModel(text, _embeddingModelFallback);
+          }
+          return null; // Fallback also failed, no spam
+        }
       }
+      debugPrint('[EMBED] API error ${response.statusCode}: ${response.body}');
+      return null;
     } catch (e) {
       debugPrint('[EMBED] Error generating embedding: $e');
       return null;
@@ -69,12 +82,35 @@ class EmbeddingService {
 
   // ─── Generate batch embeddings ───────────────────────────────
 
+  static bool _loggedNoEmbeddingAccess = false;
+
   /// Generate embeddings for multiple texts in a single API call.
+  /// Falls back to text-embedding-ada-002 if text-embedding-3-small is not available.
   static Future<List<List<double>?>> generateBatchEmbeddings(
       List<String> texts) async {
     if (texts.isEmpty) return [];
     if (openAIKey.isEmpty) return List.filled(texts.length, null);
 
+    final result =
+        await _generateBatchEmbeddingsWithModel(texts, _embeddingModel);
+    if (result != null) return result;
+
+    debugPrint('[EMBED] text-embedding-3-small not available, trying ada-002');
+    final fallback =
+        await _generateBatchEmbeddingsWithModel(texts, _embeddingModelFallback);
+    if (fallback != null) return fallback;
+
+    if (!_loggedNoEmbeddingAccess) {
+      _loggedNoEmbeddingAccess = true;
+      debugPrint(
+          '[EMBED] No embedding model available. Enable at platform.openai.com '
+          '→ Settings → Model access: text-embedding-3-small or text-embedding-ada-002');
+    }
+    return List<List<double>?>.filled(texts.length, null);
+  }
+
+  static Future<List<List<double>?>?> _generateBatchEmbeddingsWithModel(
+      List<String> texts, String model) async {
     try {
       final cleanTexts =
           texts.map((t) => t.length > 8000 ? t.substring(0, 8000) : t).toList();
@@ -87,7 +123,7 @@ class EmbeddingService {
               'Authorization': 'Bearer $openAIKey',
             },
             body: jsonEncode({
-              'model': _embeddingModel,
+              'model': model,
               'input': cleanTexts,
             }),
           )
@@ -101,11 +137,14 @@ class EmbeddingService {
               .toList();
         }).toList();
         return embeddings;
-      } else {
-        debugPrint(
-            '[EMBED] Batch API error ${response.statusCode}: ${response.body}');
-        return List.filled(texts.length, null);
+      } else if (response.statusCode == 403) {
+        if (response.body.contains('model_not_found')) {
+          return null; // Caller will retry with fallback or log once
+        }
       }
+      debugPrint(
+          '[EMBED] Batch API error ${response.statusCode}: ${response.body}');
+      return List.filled(texts.length, null);
     } catch (e) {
       debugPrint('[EMBED] Error generating batch embeddings: $e');
       return List.filled(texts.length, null);

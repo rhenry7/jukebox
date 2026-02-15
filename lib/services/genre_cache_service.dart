@@ -10,12 +10,23 @@ class GenreCacheService {
   /// How long cached genres are considered fresh (14 days).
   static const Duration _cacheTtl = Duration(days: 14);
   
-  /// Generate a cache key from track title and artist
+  /// Generate a cache key from track title and artist.
+  ///
+  /// Firestore document IDs cannot contain `/` (path separator).
+  /// We replace `/` and other problematic chars to avoid invalid references.
   static String _generateCacheKey(String title, String artist) {
-    // Normalize: lowercase, trim, remove special characters for consistency
-    final normalizedTitle = title.toLowerCase().trim();
-    final normalizedArtist = artist.toLowerCase().trim().split(',').first.trim();
-    return '$normalizedTitle|$normalizedArtist';
+    // Normalize: lowercase, trim
+    final normalizedTitle = title.toLowerCase().trim().replaceAll('/', '_');
+    final normalizedArtist = artist
+        .toLowerCase()
+        .trim()
+        .split(',')
+        .first
+        .trim()
+        .replaceAll('/', '_');
+    // Replace any remaining path-like chars that could break Firestore
+    final key = '$normalizedTitle|$normalizedArtist';
+    return key.replaceAll(RegExp(r'[/\\]'), '_');
   }
 
   /// Get cached genres for a track

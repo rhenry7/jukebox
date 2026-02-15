@@ -55,6 +55,16 @@ service cloud.firestore {
         // Only the owner can update/delete (e.g., mark read)
         allow update, delete: if isOwner(userId);
       }
+      
+      // Signals subcollection (AI-powered search: rec clicks, search queries, etc.)
+      match /signals/{signalId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Recommendation outcomes subcollection (feedback loop for learning)
+      match /recommendationOutcomes/{outcomeId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     // Track genres collection (top-level, shared cache)
