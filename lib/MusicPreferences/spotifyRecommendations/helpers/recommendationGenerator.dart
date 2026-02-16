@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,6 +8,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/MusicPreferences/musicRecommendationService.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
+import 'package:flutter_test_project/services/review_analysis_service.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,14 +22,83 @@ class RecommendedAlbumScreen extends StatefulWidget {
   State<RecommendedAlbumScreen> createState() => _RecommendedAlbumScreenState();
 }
 
-class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
+class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
+    with AutomaticKeepAliveClientMixin {
   Future<List<MusicRecommendation>>? _albumsFuture;
   bool _isInitialized = false;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+      _preferencesSubscription;
+  String? _lastPreferenceSignature;
+  static const String _recentShownRecsKey = 'recent_shown_recs_v1';
+  static const int _maxRecentShown = 80;
+  static List<MusicRecommendation>? _sessionRecommendations;
+  static String? _sessionPreferenceSignature;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    _listenForPreferenceChanges();
     _loadRecommendations();
+  }
+
+  @override
+  void dispose() {
+    _preferencesSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _listenForPreferenceChanges() {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null || userId.isEmpty) return;
+
+    _preferencesSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('musicPreferences')
+        .doc('profile')
+        .snapshots()
+        .listen((doc) {
+      final nextSignature = _buildPreferenceSignature(doc.data());
+      if (_lastPreferenceSignature == null) {
+        _lastPreferenceSignature = nextSignature;
+        return;
+      }
+
+      if (nextSignature != _lastPreferenceSignature) {
+        _lastPreferenceSignature = nextSignature;
+        debugPrint(
+          'Preferences changed in Discover tab, refreshing recommendations...',
+        );
+        _refreshRecommendations();
+      }
+    });
+  }
+
+  String _buildPreferenceSignature(Map<String, dynamic>? data) {
+    if (data == null) return 'none';
+
+    final favorites = (data['favoriteGenres'] as List<dynamic>? ?? [])
+        .map((e) => e.toString().toLowerCase().trim())
+        .where((e) => e.isNotEmpty)
+        .toList()
+      ..sort();
+
+    final disliked = (data['dislikedGenres'] as List<dynamic>? ?? [])
+        .map((e) => e.toString().toLowerCase().trim())
+        .where((e) => e.isNotEmpty)
+        .toList()
+      ..sort();
+
+    final weightsMap = data['genreWeights'] as Map<String, dynamic>? ?? {};
+    final weighted = weightsMap.entries
+        .map((e) => '${e.key.toLowerCase().trim()}:${e.value}')
+        .toList()
+      ..sort();
+
+    return 'f=${favorites.join(",")}|d=${disliked.join(",")}|w=${weighted.join(",")}';
   }
 
   Future<EnhancedUserPreferences> _fetchUserPreferences() async {
@@ -49,8 +119,10 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
         .get();
 
     if (doc.exists) {
+      _lastPreferenceSignature = _buildPreferenceSignature(doc.data());
       return EnhancedUserPreferences.fromJson(doc.data()!);
     } else {
+      _lastPreferenceSignature = 'none';
       return EnhancedUserPreferences(favoriteGenres: [], favoriteArtists: []);
     }
   }
@@ -68,40 +140,48 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
   }
 
   Future<List<MusicRecommendation>> processRecommendations() async {
+    return _fetchFreshRecommendations();
+  }
+
+  Future<List<String>> _readRecentShownKeys() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList(_recentShownRecsKey) ?? [];
+    return stored
+        .map((e) => e.toLowerCase().trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _storeRecentShown(
+      List<MusicRecommendation> recommendations) async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = await _readRecentShownKeys();
+
+    final merged = <String>[...existing];
+    for (final rec in recommendations) {
+      final key = '${rec.artist}|${rec.song}'.toLowerCase().trim();
+      if (!merged.contains(key)) {
+        merged.add(key);
+      }
+    }
+
+    final trimmed = merged.length > _maxRecentShown
+        ? merged.sublist(merged.length - _maxRecentShown)
+        : merged;
+    await prefs.setStringList(_recentShownRecsKey, trimmed);
+  }
+
+  Future<List<MusicRecommendation>> _fetchFreshRecommendations() async {
     try {
       final preferences = await _fetchUserPreferences();
       final prefs = await SharedPreferences.getInstance();
-      final List<String>? recsJsonList = prefs.getStringList('cached_recs');
-      if (recsJsonList != null && recsJsonList.isNotEmpty) {
-        debugPrint('pull from cached');
-        final List<MusicRecommendation> cachedRecs = [];
-        for (final jsonStr in recsJsonList) {
-          try {
-            final decoded = jsonDecode(jsonStr);
-            if (decoded is Map<String, dynamic>) {
-              final rec = MusicRecommendation.fromJson(decoded);
-              if (rec.isValid) {
-                cachedRecs.add(rec);
-              }
-            }
-          } catch (e) {
-            debugPrint('Error parsing cached music recommendation: $e');
-            // Continue to next item
-          }
-        }
+      // Legacy cache key no longer used for playback to avoid repetition.
+      await prefs.remove('cached_recs');
 
-        // If we got valid recommendations from cache, return them
-        if (cachedRecs.isNotEmpty) {
-          return cachedRecs;
-        } else {
-          // Cache is corrupted, clear it and fetch fresh
-          debugPrint('Cache corrupted, clearing and fetching fresh');
-          await prefs.remove('cached_recs');
-        }
-      }
-
-      // Fetch new recommendations
-      debugPrint('Fetching new recommendations');
+      final recentShown = await _readRecentShownKeys();
+      final recentShownSet = recentShown.toSet();
+      debugPrint('Fetching fresh recommendations '
+          '(excluding ${recentShown.length} recently shown tracks)');
       // OPTIMIZATION: Using spotify-only mode (default) - skips MusicBrainz for speed
       // MusicBrainz validation is skipped by default (saves ~1 second per recommendation)
       // Options:
@@ -111,52 +191,78 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
       final List<MusicRecommendation> recommendations =
           await MusicRecommendationService.getRecommendations(
         preferences,
+        excludeSongs: recentShown,
+        count: 20, // fetch wider pool, then filter already-shown tracks
         // validationMode defaults to 'spotify-only' (skips MusicBrainz)
         validateTopN:
             10, // Only validate top 10 (rest shown without validation)
         skipMetadataEnrichment: false, // Keep metadata for better UX
       );
-      final newRecsJsonList =
-          recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
-      await prefs.setStringList('cached_recs', newRecsJsonList);
-      return recommendations;
+
+      // Hard guard: never show already-seen tracks if possible.
+      final unseenRecommendations = recommendations.where((rec) {
+        final key = '${rec.artist}|${rec.song}'.toLowerCase().trim();
+        return !recentShownSet.contains(key);
+      }).toList();
+
+      final finalRecommendations = unseenRecommendations.isNotEmpty
+          ? unseenRecommendations
+          : recommendations;
+
+      _sessionRecommendations = finalRecommendations;
+      _sessionPreferenceSignature = _lastPreferenceSignature ?? 'none';
+      await _storeRecentShown(finalRecommendations);
+      return finalRecommendations;
     } catch (error) {
       debugPrint(
           'Error fetching user preferences and or recommendations: $error');
-      // Clear cache on error to prevent future issues
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('cached_recs');
-      } catch (e) {
-        debugPrint('Error clearing cache: $e');
-      }
       rethrow;
     }
   }
 
   Future<List<MusicRecommendation>> fetchNewRecommendations() async {
     try {
-      final preferences = await _fetchUserPreferences();
-      final prefs = await SharedPreferences.getInstance();
-
-      // OPTIMIZATION: Using spotify-only mode (default) - skips MusicBrainz for speed
-      final List<MusicRecommendation> recommendations =
-          await MusicRecommendationService.getRecommendations(
-        preferences,
-        // validationMode defaults to 'spotify-only' (skips MusicBrainz)
-      );
-      final newRecsJsonList =
-          recommendations.map((rec) => jsonEncode(rec.toJson())).toList();
-      await prefs.setStringList('cached_recs', newRecsJsonList);
-      return recommendations;
+      return await _fetchFreshRecommendations();
     } catch (error) {
       debugPrint('Error in fetching new recommendations: $error');
       return [];
     }
   }
 
+  Future<void> _clearCachesOnRefresh() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cached_recs'); // legacy
+      _sessionRecommendations = null;
+      _sessionPreferenceSignature = null;
+
+      // Clear Firestore-backed review analysis cache so refresh is fully fresh.
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null && userId.isNotEmpty) {
+        await ReviewAnalysisService.clearCache(userId);
+      }
+    } catch (e) {
+      debugPrint('Error clearing recommendation caches on refresh: $e');
+    }
+  }
+
   void _loadRecommendations() async {
     try {
+      await _fetchUserPreferences();
+      final currentSignature = _lastPreferenceSignature ?? 'none';
+
+      if (_sessionRecommendations != null &&
+          _sessionRecommendations!.isNotEmpty &&
+          _sessionPreferenceSignature == currentSignature) {
+        debugPrint('Using in-memory Discover recommendations '
+            '(${_sessionRecommendations!.length})');
+        setState(() {
+          _albumsFuture = Future.value(_sessionRecommendations!);
+          _isInitialized = true;
+        });
+        return;
+      }
+
       setState(() {
         _albumsFuture = processRecommendations();
         _isInitialized = true;
@@ -172,6 +278,8 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
 
   void _refreshRecommendations() async {
     try {
+      await _clearCachesOnRefresh();
+
       // Create a new future for the refresh
       final newFuture = fetchNewRecommendations();
 
@@ -200,6 +308,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: Column(
         children: [
@@ -211,9 +320,8 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen> {
                         child: Text('Failed to load recommendations'))
                     : RefreshIndicator(
                         onRefresh: () async {
-                          // _refreshRecommendations();
-                          // // Wait for recommendations to reload
-                          // await _albumsFuture;
+                          _refreshRecommendations();
+                          await _albumsFuture;
                         },
                         child: FutureBuilder<List<MusicRecommendation>>(
                           future: _albumsFuture,

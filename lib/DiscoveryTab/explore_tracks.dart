@@ -6,6 +6,8 @@ import 'package:flutter/widgets.dart' as flutter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/Api/apis.dart';
+import 'package:flutter_test_project/providers/recommended_reviews_provider.dart';
+import 'package:flutter_test_project/services/new_recommendation_service.dart';
 import 'package:flutter_test_project/services/taste_profile_prompt_generation_service.dart';
 import 'package:flutter_test_project/services/wikipedia_service.dart';
 import 'package:spotify/spotify.dart';
@@ -104,6 +106,11 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
     
     return RefreshIndicator(
       onRefresh: () async {
+        final refreshUserId = FirebaseAuth.instance.currentUser?.uid;
+        if (refreshUserId != null && refreshUserId.isNotEmpty) {
+          await NewRecommendationService.clearLocalCache(refreshUserId);
+        }
+        ref.invalidate(recommendedReviewsProvider);
         // Refresh by invalidating state
         setState(() {});
         await Future.delayed(const Duration(milliseconds: 500));
@@ -164,7 +171,6 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
                         final imageUrl = albumImages!.isNotEmpty 
                             ? albumImages.first.url 
                             : null;
-                        final trackDescription = track.album!.releaseDate;
                         
                         // Get artist name for Wikipedia bio
                         final artistName = track.artists != null && track.artists!.isNotEmpty
