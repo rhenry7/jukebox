@@ -23,6 +23,7 @@ class _RecommendedReviewsCollectionState
     extends ConsumerState<RecommendedReviewsCollection> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
+  bool _isRefreshingRecommendations = false;
 
   @override
   void initState() {
@@ -60,6 +61,23 @@ class _RecommendedReviewsCollectionState
     if (mounted) {
       setState(() {
         _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _fetchNewRecommendations() async {
+    if (_isRefreshingRecommendations) return;
+
+    setState(() {
+      _isRefreshingRecommendations = true;
+    });
+
+    ref.read(recommendedReviewsDisplayLimitProvider.notifier).state = 10;
+    await ref.read(refreshRecommendationsProvider)();
+
+    if (mounted) {
+      setState(() {
+        _isRefreshingRecommendations = false;
       });
     }
   }
@@ -172,10 +190,7 @@ class _RecommendedReviewsCollectionState
             : allReviews;
 
         return RefreshIndicator(
-          onRefresh: () async {
-            ref.read(recommendedReviewsDisplayLimitProvider.notifier).state = 10;
-            await ref.read(refreshRecommendationsProvider)();
-          },
+          onRefresh: _fetchNewRecommendations,
           color: Colors.red[600],
           child: Column(
             children: [
@@ -184,8 +199,7 @@ class _RecommendedReviewsCollectionState
                 child: ListView.builder(
                   key: const PageStorageKey('recommended_reviews_list'),
                   controller: _scrollController,
-                  itemCount:
-                      displayedReviews.length + (_isLoadingMore ? 1 : 0),
+                  itemCount: displayedReviews.length + (_isLoadingMore ? 1 : 0),
                   cacheExtent: 500,
                   itemBuilder: (context, index) {
                     if (index == displayedReviews.length) {

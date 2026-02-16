@@ -180,10 +180,81 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
       ? FirebaseAuth.instance.currentUser!.uid
       : '';
 
+  static const List<Tab> _preferenceTabs = [
+    Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.music_note, size: 18),
+          SizedBox(width: 6),
+          Text(
+            'Genres',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+    Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.mood, size: 18),
+          SizedBox(width: 6),
+          Text(
+            'Moods',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+    Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.speed, size: 18),
+          SizedBox(width: 6),
+          Text(
+            'Tempo',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+    Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.location_on, size: 18),
+          SizedBox(width: 6),
+          Text(
+            'Context',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: _preferenceTabs.length, vsync: this);
 
     _preferencesFuture = _fetchPreferences();
     _preferencesFuture.then((prefs) {
@@ -279,8 +350,8 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
         } else if (!snapshot.hasData) {
           return const Center(child: Text('No preferences found'));
         } else {
-          // Assign loaded preferences if not already set
-          if (_loadedPreferences) {
+          // Assign loaded preferences once from snapshot.
+          if (!_loadedPreferences) {
             _preferences = snapshot.data!;
             _loadedPreferences = true;
           }
@@ -322,76 +393,7 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
                     labelPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    tabs: const [
-                      Tab(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.music_note, size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              'Genres',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.mood, size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              'Moods',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.speed, size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              'Tempo',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.location_on, size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              'Context',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    tabs: _preferenceTabs,
                   ),
                 ),
               ),
@@ -686,7 +688,6 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
           const SizedBox(height: 20),
           ..._contextualOptions.entries.map((entry) {
             final context = entry.key;
-            final subContexts = entry.value;
             final selectedGenres =
                 _preferences.contextualPreferences[context] ?? [];
 

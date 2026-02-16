@@ -3,10 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
-import 'package:flutter_test_project/services/embedding_service.dart';
-import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
-import 'package:flutter_test_project/services/review_analysis_service.dart';
-import 'package:flutter_test_project/utils/scoring_utils.dart';
 
 /// A review paired with its recommendation scoring breakdown.
 class ScoredReview {
@@ -29,206 +25,254 @@ class ScoredReview {
   });
 }
 
-/// Core recommendation engine that surfaces community reviews
-/// semantically matched to the user's taste profile.
+/// Simplified recommendation engine:
+/// - Use the user's liked genres.
+/// - Return only high-rated community reviews that share those genres.
 class ReviewRecommendationService {
   static const _cacheTtl = Duration(hours: 1);
-
-  // Sentiment word lists (same as ReviewAnalysisService._analyzeReviewSentiment)
-  static const _positiveWords = [
-    'love',
-    'amazing',
-    'perfect',
-    'beautiful',
-    'loved',
-    'great',
-    'excellent',
-    'incredible',
-    'best',
-    'fantastic',
-    'wonderful',
-    'brilliant',
-    'masterpiece',
-  ];
-  static const _negativeWords = [
-    'boring',
-    'overrated',
-    'disappointing',
-    'hated'
-        'bad',
-    'terrible',
-    'awful',
-    'worst',
-    'hate',
-    'dislike',
-    'mediocre',
-    'weak',
-  ];
+  static const double _highRatingThreshold = 3.5;
+  static const double _fallbackRatingThreshold = 3.0;
 
   /// Get personalized review recommendations for a user.
   ///
-  /// 1. Checks Firestore cache (1-hour TTL).
-  /// 2. Fetches user taste profile + taste vector (both already cached).
-  /// 3. Fetches candidate pool via collectionGroup query.
-  /// 4. Scores each candidate across 5 dimensions.
-  /// 5. Returns top-N sorted by final score.
+  /// Intended behavior:
+  /// - If the user likes genre X, return community reviews that are
+  ///   highly rated and tagged with genre X.
   static Future<List<ScoredReview>> getRecommendedReviews(
     String userId, {
-    int candidatePoolSize = 100,
+    int candidatePoolSize = 400,
     int topN = 20,
     bool forceRefresh = true,
   }) async {
-    // 1. Check cache
+    final userPrefs = await _fetchUserPreferences(userId);
+    final preferencesSignature = _buildPreferencesSignature(userPrefs);
+
     if (!forceRefresh) {
-      final cached = await _getCachedRecommendations(userId);
+      final cached = await _getCachedRecommendations(
+        userId,
+        preferencesSignature: preferencesSignature,
+      );
       if (cached != null) {
-        debugPrint(
-            '[REC] Using cached recommendations (${cached.length} items)');
+        debugPrint('[REC] Using cached recommendations (${cached.length} items)');
         return cached;
       }
     }
 
-    // 2. Fetch user taste profile
-    final profile = await ReviewAnalysisService.analyzeUserReviews(userId);
+    final likedGenreWeights = _extractLikedGenreWeights(userPrefs);
+    final dislikedGenres = _extractDislikedGenres(userPrefs);
+    final likedGenres = likedGenreWeights.keys.toSet();
 
-    // 2b. Fetch user genre interest preferences
-    final userPrefs = await _fetchUserPreferences(userId);
-
-    // 3. Fetch user taste vector (may be null if no API key or no reviews)
-    final userReviews = await _fetchUserReviews(userId);
-    List<double>? tasteVector;
-    if (userReviews.isNotEmpty) {
-      tasteVector = await EmbeddingService.getTasteVector(userId, userReviews);
+    if (likedGenres.isEmpty) {
+      debugPrint('[REC] No liked genres found for user=$userId');
+      return [];
     }
 
-    // 4. Fetch candidate pool
     final candidates = await _fetchCandidateReviews(userId, candidatePoolSize);
     if (candidates.isEmpty) {
       debugPrint('[REC] No candidate reviews found');
       return [];
     }
 
-    // 5. Get feedback-calibrated weights
-    final weights = await RecommendationOutcomeService.getAdjustedWeights();
+    final primaryMatches = <ScoredReview>[];
+    final secondaryMatches = <ScoredReview>[];
 
-    // 6. Compute semantic scores in batch
-    final userSentiment = profile.reviewSentiment.sentimentScore;
-
-    List<double> semanticScores;
-    if (tasteVector != null) {
-      final tv = tasteVector; // Local non-null capture for closure
-      final candidateTexts = candidates.map((c) {
-        final r = c.review;
-        return '${r.artist} - ${r.title}. ${r.review}'.trim();
-      }).toList();
-
-      final embeddings =
-          await EmbeddingService.generateBatchEmbeddings(candidateTexts);
-
-      semanticScores = embeddings.map((embedding) {
-        if (embedding == null) return 0.5;
-        final cosine = ScoringUtils.cosineSimilarity(tv, embedding);
-        return ((cosine + 1.0) / 2.0).clamp(0.0, 1.0);
-      }).toList();
-    } else {
-      semanticScores = List.filled(candidates.length, 0.5);
-    }
-
-    // 7. Score each candidate
-    final scored = <ScoredReview>[];
-    for (int i = 0; i < candidates.length; i++) {
-      final candidate = candidates[i];
+    for (final candidate in candidates) {
       final review = candidate.review;
+      if (_matchesDislikedGenre(review: review, dislikedGenres: dislikedGenres)) {
+        continue;
+      }
 
-      // Genre overlap (rating-weighted + active interest)
-      final candidateGenres = (review.genres ?? []).toSet();
-      final genreScore = _computeWeightedGenreScore(
-        candidateGenres: candidateGenres,
-        genrePreferences: profile.genrePreferences,
-        userPrefs: userPrefs,
-        candidateReviewScore: review.score,
+      final match = _genreMatchForReview(
+        review: review,
+        likedGenreWeights: likedGenreWeights,
       );
+      if (!match.hasMatch) continue;
 
-      // Semantic similarity (already computed)
-      final semanticScore = semanticScores[i];
+      // Rank by user's genre preference weight first, then overlap, then rating.
+      final genreMatchStrength = ((match.weightScore * 0.75) +
+              ((match.matchCount / likedGenres.length).clamp(0.0, 1.0) * 0.25))
+          .clamp(0.0, 1.0);
+      final normalizedRating = (review.score / 5.0).clamp(0.0, 1.0);
+      final finalScore = (genreMatchStrength * 0.8) + (normalizedRating * 0.2);
 
-      // Sentiment alignment
-      final candidateSentiment = _computeSentiment(review.review);
-      final sentimentScore = 1.0 - (userSentiment - candidateSentiment).abs();
-
-      // Artist preference
-      final artistScore =
-          profile.artistPreferences[review.artist]?.preferenceScore ?? 0.0;
-
-      // Recency bonus
-      final recencyBonus = review.date != null
-          ? ScoringUtils.temporalDecay(review.date!, halfLifeDays: 30)
-          : 0.0;
-
-      // Combine via finalRelevanceScore
-      final finalScore = ScoringUtils.finalRelevanceScore(
-        signalScore: artistScore,
-        collaborativeScore: genreScore,
-        semanticScore: semanticScore,
-        noveltyScore: recencyBonus,
-        diversityBonus: sentimentScore * 0.5,
-        componentWeights: weights,
-      );
-
-      scored.add(ScoredReview(
+      final scored = ScoredReview(
         reviewWithDocId: candidate,
         finalScore: finalScore,
-        genreScore: genreScore,
-        semanticScore: semanticScore,
-        sentimentScore: sentimentScore,
-        artistScore: artistScore,
-        recencyBonus: recencyBonus,
-      ));
+        genreScore: genreMatchStrength,
+      );
+
+      if (review.score >= _highRatingThreshold) {
+        primaryMatches.add(scored);
+      } else if (review.score >= _fallbackRatingThreshold) {
+        secondaryMatches.add(scored);
+      }
     }
 
-    // 8. Sort and filter: prioritize genre match to user's genreWeights
-    final List<ScoredReview> results;
-    final hasGenreWeights = userPrefs?.genreWeights.isNotEmpty ?? false;
-    if (hasGenreWeights) {
-      // Primary sort by genreScore (user's preferred genres), then by finalScore
-      scored.sort((a, b) {
-        final genreCmp = b.genreScore.compareTo(a.genreScore);
-        if (genreCmp != 0) return genreCmp;
-        return b.finalScore.compareTo(a.finalScore);
-      });
-      // Filter: prefer candidates that match at least one preferred genre
-      final topGenres = (userPrefs!.genreWeights.entries.toList()
-            ..sort((a, b) => b.value.compareTo(a.value)))
-          .take(5)
-          .map((e) => e.key.toLowerCase())
-          .toSet();
-      final genreMatches = scored.where((s) {
-        final candidateGenres = (s.reviewWithDocId.review.genres ?? [])
-            .map((g) => g.toLowerCase())
-            .toSet();
-        return candidateGenres.any((g) => topGenres.contains(g));
-      }).toList();
-      final nonMatches = scored.where((s) {
-        final candidateGenres = (s.reviewWithDocId.review.genres ?? [])
-            .map((g) => g.toLowerCase())
-            .toSet();
-        return !candidateGenres.any((g) => topGenres.contains(g));
-      }).toList();
-      // Genre matches first (sorted by genreScore then finalScore), then others
-      final ordered = [...genreMatches, ...nonMatches];
-      results = ordered.take(topN).toList();
-    } else {
-      scored.sort((a, b) => b.finalScore.compareTo(a.finalScore));
-      results = scored.take(topN).toList();
+    primaryMatches.sort((a, b) => b.finalScore.compareTo(a.finalScore));
+    secondaryMatches.sort((a, b) => b.finalScore.compareTo(a.finalScore));
+
+    final merged = <ScoredReview>[];
+    final seenReviewIds = <String>{};
+
+    for (final item in [...primaryMatches, ...secondaryMatches]) {
+      final key = item.reviewWithDocId.fullReviewId ?? item.reviewWithDocId.docId;
+      if (seenReviewIds.add(key)) {
+        merged.add(item);
+      }
+      if (merged.length >= topN) break;
     }
 
-    // 9. Cache results
-    await _cacheRecommendations(userId, results);
+    // Final fallback: if still not enough, include high-rated community reviews
+    // even without a genre match so the list does not collapse to 1-2 items.
+    if (merged.length < topN) {
+      for (final candidate in candidates) {
+        final review = candidate.review;
+        if (_matchesDislikedGenre(
+          review: review,
+          dislikedGenres: dislikedGenres,
+        )) {
+          continue;
+        }
+        if (review.score < _highRatingThreshold) continue;
+
+        final key = candidate.fullReviewId ?? candidate.docId;
+        if (!seenReviewIds.add(key)) continue;
+
+        merged.add(
+          ScoredReview(
+            reviewWithDocId: candidate,
+            finalScore: (review.score / 5.0).clamp(0.0, 1.0),
+            genreScore: 0.0,
+          ),
+        );
+        if (merged.length >= topN) break;
+      }
+    }
+
+    final results = merged.take(topN).toList();
+
+    await _cacheRecommendations(
+      userId,
+      results,
+      preferencesSignature: preferencesSignature,
+    );
 
     debugPrint('[REC] Generated ${results.length} recommendations '
-        '(from ${candidates.length} candidates)');
+        '(from ${candidates.length} candidates, likedGenres=${likedGenres.length}, '
+        'dislikedGenres=${dislikedGenres.length}, primary=${primaryMatches.length}, '
+        'secondary=${secondaryMatches.length})');
 
     return results;
+  }
+
+  static Map<String, double> _extractLikedGenreWeights(
+      EnhancedUserPreferences? userPrefs) {
+    if (userPrefs == null) return <String, double>{};
+
+    final weights = <String, double>{};
+
+    for (final genre in userPrefs.favoriteGenres) {
+      final key = genre.toLowerCase().trim();
+      if (key.isEmpty) continue;
+      final existing = weights[key] ?? 0.0;
+      if (existing < 0.7) {
+        weights[key] = 0.7;
+      }
+    }
+
+    for (final entry in userPrefs.genreWeights.entries) {
+      final key = entry.key.toLowerCase().trim();
+      if (key.isEmpty) continue;
+      final normalizedWeight = entry.value.clamp(0.0, 1.0);
+      final existing = weights[key] ?? 0.0;
+      if (normalizedWeight > existing) {
+        weights[key] = normalizedWeight;
+      }
+    }
+
+    return weights;
+  }
+
+  static Set<String> _extractDislikedGenres(
+      EnhancedUserPreferences? userPrefs) {
+    if (userPrefs == null) return <String>{};
+
+    return userPrefs.dislikedGenres
+        .map((g) => g.toLowerCase().trim())
+        .where((g) => g.isNotEmpty)
+        .toSet();
+  }
+
+  static bool _matchesDislikedGenre({
+    required Review review,
+    required Set<String> dislikedGenres,
+  }) {
+    if (dislikedGenres.isEmpty) return false;
+
+    final reviewGenres = <String>{
+      ...(review.genres ?? const <String>[])
+          .map((g) => g.toLowerCase().trim())
+          .where((g) => g.isNotEmpty),
+      ...(review.tags ?? const <String>[])
+          .map((g) => g.toLowerCase().trim())
+          .where((g) => g.isNotEmpty),
+    };
+
+    for (final disliked in dislikedGenres) {
+      for (final candidateGenre in reviewGenres) {
+        final isMatch = candidateGenre == disliked ||
+            candidateGenre.contains(disliked) ||
+            disliked.contains(candidateGenre);
+        if (isMatch) return true;
+      }
+    }
+
+    return false;
+  }
+
+  static _GenreMatchResult _genreMatchForReview({
+    required Review review,
+    required Map<String, double> likedGenreWeights,
+  }) {
+    final reviewGenres = <String>{
+      ...(review.genres ?? const <String>[])
+          .map((g) => g.toLowerCase().trim())
+          .where((g) => g.isNotEmpty),
+      ...(review.tags ?? const <String>[])
+          .map((g) => g.toLowerCase().trim())
+          .where((g) => g.isNotEmpty),
+    };
+
+    if (reviewGenres.isEmpty || likedGenreWeights.isEmpty) {
+      return const _GenreMatchResult.empty();
+    }
+
+    final matchedLikedGenres = <String>{};
+    double topMatchedWeight = 0.0;
+
+    for (final liked in likedGenreWeights.entries) {
+      for (final candidateGenre in reviewGenres) {
+        final isMatch = candidateGenre == liked.key ||
+            candidateGenre.contains(liked.key) ||
+            liked.key.contains(candidateGenre);
+        if (!isMatch) continue;
+
+        matchedLikedGenres.add(liked.key);
+        if (liked.value > topMatchedWeight) {
+          topMatchedWeight = liked.value;
+        }
+      }
+    }
+
+    if (matchedLikedGenres.isEmpty) {
+      return const _GenreMatchResult.empty();
+    }
+
+    return _GenreMatchResult(
+      hasMatch: true,
+      matchCount: matchedLikedGenres.length,
+      weightScore: topMatchedWeight.clamp(0.0, 1.0),
+    );
   }
 
   /// Fetch candidate reviews from the community (excluding the user's own).
@@ -270,47 +314,6 @@ class ReviewRecommendationService {
     }
   }
 
-  /// Fetch the user's own reviews for taste vector generation.
-  static Future<List<Review>> _fetchUserReviews(String userId) async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('reviews')
-          .orderBy('date', descending: true)
-          .limit(100)
-          .get();
-
-      return snapshot.docs
-          .map((doc) => Review.fromFirestore(doc.data()))
-          .toList();
-    } catch (e) {
-      debugPrint('[REC] Error fetching user reviews: $e');
-      return [];
-    }
-  }
-
-  /// Keyword-based sentiment score for a single review text.
-  ///
-  /// Uses the same word lists as ReviewAnalysisService._analyzeReviewSentiment.
-  static double _computeSentiment(String text) {
-    final lower = text.toLowerCase();
-    int positiveCount = 0;
-    int negativeCount = 0;
-
-    for (final word in _positiveWords) {
-      if (lower.contains(word)) positiveCount++;
-    }
-    for (final word in _negativeWords) {
-      if (lower.contains(word)) negativeCount++;
-    }
-
-    if (positiveCount > negativeCount) {
-      return 0.5 + (positiveCount * 0.1).clamp(0.0, 0.5);
-    }
-    return 0.5 - (negativeCount * 0.1).clamp(0.0, 0.5);
-  }
-
   /// Fetch user genre interest preferences from Firestore.
   ///
   /// Returns `null` if the user has not set any preferences.
@@ -333,76 +336,10 @@ class ReviewRecommendationService {
     }
   }
 
-  /// Compute a rating-weighted genre score blended with active interest.
-  ///
-  /// 1. For each candidate genre that the user has reviewed, weight by
-  ///    the user's average rating and preference strength for that genre.
-  /// 2. Blend with the user's explicit genre interest weights (if set).
-  ///    When the user has set genre weights in Profile/Preferences, we
-  ///    prioritize them more strongly (75% vs 25%) so highest-weighted
-  ///    preferences drive the ranking.
-  /// 3. Top-genre bonus: if the candidate matches one of the user's top 3
-  ///    highest-weighted genres, add extra boost.
-  /// 4. Scale by the candidate review's own quality score.
-  static double _computeWeightedGenreScore({
-    required Set<String> candidateGenres,
-    required Map<String, GenrePreference> genrePreferences,
-    required EnhancedUserPreferences? userPrefs,
-    required double candidateReviewScore,
-  }) {
-    // Step 1: Rating-weighted genre score from review history
-    final overlapping = candidateGenres.where(
-      (g) => genrePreferences.containsKey(g),
-    );
-
-    double genreScore = 0.0;
-    if (overlapping.isNotEmpty) {
-      double weightSum = 0.0;
-      for (final g in overlapping) {
-        final pref = genrePreferences[g]!;
-        weightSum +=
-            (pref.averageRating / 5.0) * 0.7 + pref.preferenceStrength * 0.7;
-      }
-      genreScore = weightSum / overlapping.length;
-    }
-
-    // Step 2: Blend with active genre interest from user preferences
-    // When user has explicit genre weights, prioritize them (highest-weighted)
-    double blendedGenreScore = genreScore;
-    final genreWeights = userPrefs?.genreWeights ?? {};
-    if (genreWeights.isNotEmpty) {
-      double interestScore = 0.0;
-      for (final g in candidateGenres) {
-        final w = genreWeights[g];
-        if (w != null && w > interestScore) {
-          interestScore = w;
-        }
-      }
-      // Prioritize explicit preferences: 25% review-based, 75% profile weights
-      blendedGenreScore = genreScore * 0.15 + interestScore * 0.85;
-
-      // Step 2b: Top-genre bonus — if candidate matches user's top 3 genres by weight
-      final topGenresByWeight = genreWeights.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      final top3Genres = topGenresByWeight.take(3).map((e) => e.key).toSet();
-      final hasTopGenre = candidateGenres.any((g) => top3Genres.contains(g));
-      if (hasTopGenre && interestScore >= 0.6) {
-        blendedGenreScore = (blendedGenreScore * 0.85 + 0.15).clamp(0.0, 1.0);
-      }
-    }
-
-    // Step 3: Factor in candidate review quality
-    if (candidateReviewScore >= 3.5) {
-      final candidateQuality = (candidateReviewScore - 3.5) / 1.5;
-      return blendedGenreScore * (0.6 + candidateQuality * 0.4);
-    } else {
-      return blendedGenreScore * 0.2;
-    }
-  }
-
   /// Load cached recommendations from Firestore (1-hour TTL).
   static Future<List<ScoredReview>?> _getCachedRecommendations(
     String userId,
+    {String? preferencesSignature}
   ) async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -415,6 +352,11 @@ class ReviewRecommendationService {
       if (!doc.exists || doc.data() == null) return null;
 
       final data = doc.data()!;
+      if (preferencesSignature != null &&
+          (data['preferencesSignature'] as String?) != preferencesSignature) {
+        return null;
+      }
+
       final lastUpdated = (data['lastUpdated'] as Timestamp?)?.toDate();
       if (lastUpdated == null ||
           DateTime.now().difference(lastUpdated) > _cacheTtl) {
@@ -471,6 +413,7 @@ class ReviewRecommendationService {
   static Future<void> _cacheRecommendations(
     String userId,
     List<ScoredReview> results,
+    {String? preferencesSignature}
   ) async {
     try {
       final items = results.map((sr) {
@@ -512,6 +455,7 @@ class ReviewRecommendationService {
         'items': items,
         'lastUpdated': FieldValue.serverTimestamp(),
         'count': results.length,
+        'preferencesSignature': preferencesSignature,
       });
 
       debugPrint('[REC] Cached ${results.length} recommendations');
@@ -519,4 +463,36 @@ class ReviewRecommendationService {
       debugPrint('[REC] Error caching recommendations: $e');
     }
   }
+
+  static String _buildPreferencesSignature(EnhancedUserPreferences? userPrefs) {
+    if (userPrefs == null) return 'none';
+
+    final likedEntries = _extractLikedGenreWeights(userPrefs).entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final liked = likedEntries
+        .map((e) => '${e.key}:${e.value.toStringAsFixed(3)}')
+        .join('|');
+
+    final disliked = _extractDislikedGenres(userPrefs).toList()..sort();
+    final dislikedPart = disliked.join('|');
+
+    return 'liked=$liked;disliked=$dislikedPart';
+  }
+}
+
+class _GenreMatchResult {
+  final bool hasMatch;
+  final int matchCount;
+  final double weightScore;
+
+  const _GenreMatchResult({
+    required this.hasMatch,
+    required this.matchCount,
+    required this.weightScore,
+  });
+
+  const _GenreMatchResult.empty()
+      : hasMatch = false,
+        matchCount = 0,
+        weightScore = 0.0;
 }
