@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
@@ -114,52 +116,102 @@ class MainNavState extends ConsumerState<MainNav> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
-        title: Text(
-          'MIXTAKES',
-          style: GoogleFonts.gasoekOne(
-            textStyle: const TextStyle(
-              color: Colors.red,
+        backgroundColor: Color.fromARGB(4, 131, 131, 131),
+        elevation: 0,
+        title: Padding(
+          padding: const EdgeInsets.all(0.0),
+          child: Text(
+            'MIXTAKES',
+            style: GoogleFonts.gasoekOne(
+              textStyle: TextStyle(
+                color: Colors.red,
+                shadows: [
+                  Shadow(
+                    blurRadius: 15.0, // shadow blur
+                    color: Colors.red[600]!, // shadow color
+                    offset: Offset(2.0, 2.0), // how much shadow will be shown
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 28),
-        toolbarHeight: 56.0,
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 46),
+        toolbarHeight: 70.0,
       ),
       body: _pages[currentPageIndex],
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: _onItemTapped,
-        selectedIndex: currentPageIndex,
-        indicatorColor: Colors.white,
-        destinations: <Widget>[
-          const NavigationDestination(
-            selectedIcon: Icon(Ionicons.home),
-            icon: Icon(Ionicons.home_outline),
-            label: 'Home',
+      bottomNavigationBar: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        minimum: const EdgeInsets.all(15),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.all(Radius.circular(10)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    width: 0.8,
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.03),
+                    blurRadius: 18,
+                    spreadRadius: 0.5,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: NavigationBar(
+                onDestinationSelected: _onItemTapped,
+                selectedIndex: currentPageIndex,
+                indicatorColor: Colors.white.withValues(alpha: 0.7),
+                indicatorShape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(16), // Set the border radius
+                ),
+                backgroundColor: Colors.transparent,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+                destinations: <Widget>[
+                  const NavigationDestination(
+                    selectedIcon: Icon(Ionicons.home),
+                    icon: Icon(Ionicons.home_outline),
+                    label: '',
+                  ),
+                  const NavigationDestination(
+                    selectedIcon: Icon(Ionicons.planet_outline),
+                    icon: Icon(Ionicons.planet),
+                    label: '',
+                  ),
+                  NavigationDestination(
+                    selectedIcon: Icon(Ionicons.add_circle,
+                        size: 30.0, color: Colors.greenAccent[700]),
+                    icon: Icon(Ionicons.add_circle_outline,
+                        size: 40, color: Colors.greenAccent[700]),
+                    label: '',
+                  ),
+                  const NavigationDestination(
+                    selectedIcon: Icon(Ionicons.flash),
+                    icon: Icon(Ionicons.flash_outline),
+                    label: '',
+                  ),
+                  const NavigationDestination(
+                    selectedIcon: Icon(Ionicons.person_circle),
+                    icon: Icon(Ionicons.person_circle_outline),
+                    label: '',
+                  ),
+                ],
+              ),
+            ),
           ),
-          const NavigationDestination(
-            selectedIcon: Icon(Ionicons.planet_outline),
-            icon: Icon(Ionicons.planet),
-            label: 'Discovery',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Ionicons.add_circle,
-                size: 30.0, color: Colors.greenAccent[700]),
-            icon: Icon(Ionicons.add_circle_outline,
-                size: 40, color: Colors.greenAccent[700]),
-            label: 'Add',
-          ),
-          const NavigationDestination(
-            selectedIcon: Icon(Ionicons.flash),
-            icon: Icon(Ionicons.flash_outline),
-            label: 'Trending',
-          ),
-          NavigationDestination(
-            selectedIcon: const Icon(Ionicons.person_circle),
-            icon: const Icon(Ionicons.person_circle_outline),
-            label: _getProfileLabel(),
-          ),
-        ],
+        ),
       ),
     );
   }

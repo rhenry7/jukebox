@@ -195,6 +195,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    // Keep action buttons clear of the persistent bottom nav glass overlay.
+    final bottomNavClearance = mediaQuery.viewPadding.bottom + 112.0;
+
     // If user is already signed in, show loading while redirecting
     if (_auth.currentUser != null) {
       return const Scaffold(
@@ -203,193 +207,206 @@ class _SignInScreenState extends State<SignInScreen> {
     }
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Walking music man image
-            Center(
-              child: Image.asset(
-                'lib/assets/images/walking_music_man.png',
-                height: 350,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return const SizedBox(height: 150);
-                },
-              ),
-            ),
-            const SizedBox(height: 32),
-            // Email field with focus-aware styling
-            Container(
-              decoration: BoxDecoration(
-                color: _emailFocusNode.hasFocus
-                    ? Colors.grey[900]?.withOpacity(0.3)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: TextField(
-                controller: _emailController,
-                focusNode: _emailFocusNode,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  labelStyle: TextStyle(
-                    color: _emailFocusNode.hasFocus
-                        ? Colors.red[600]
-                        : Colors.grey,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, bottomNavClearance),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  // Walking music man image
+                  Center(
+                    child: Image.asset(
+                      'lib/assets/images/walking_music_man.png',
+                      height: 350,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox(height: 150);
+                      },
+                    ),
                   ),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
+                  const SizedBox(height: 32),
+                  // Email field with focus-aware styling
+                  Container(
+                    decoration: BoxDecoration(
                       color: _emailFocusNode.hasFocus
-                          ? Colors.red[600]!
-                          : Colors.grey,
-                      width: _emailFocusNode.hasFocus ? 2 : 1,
+                          ? Colors.grey[900]?.withOpacity(0.3)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: TextField(
+                      controller: _emailController,
+                      focusNode: _emailFocusNode,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        labelStyle: TextStyle(
+                          color: _emailFocusNode.hasFocus
+                              ? Colors.red[600]
+                              : Colors.grey,
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: _emailFocusNode.hasFocus
+                                ? Colors.red[600]!
+                                : Colors.grey,
+                            width: _emailFocusNode.hasFocus ? 2 : 1,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.red[600]!,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      enabled: !_isLoading,
                     ),
                   ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.red[600]!,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                enabled: !_isLoading,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Password field with focus-aware styling
-            Container(
-              decoration: BoxDecoration(
-                color: _passwordFocusNode.hasFocus
-                    ? Colors.grey[900]?.withOpacity(0.3)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: TextField(
-                controller: _passwordController,
-                focusNode: _passwordFocusNode,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  labelStyle: TextStyle(
-                    color: _passwordFocusNode.hasFocus
-                        ? Colors.red[600]
-                        : Colors.grey,
-                  ),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
+                  const SizedBox(height: 16),
+                  // Password field with focus-aware styling
+                  Container(
+                    decoration: BoxDecoration(
                       color: _passwordFocusNode.hasFocus
-                          ? Colors.red[600]!
-                          : Colors.grey,
-                      width: _passwordFocusNode.hasFocus ? 2 : 1,
+                          ? Colors.grey[900]?.withOpacity(0.3)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: TextField(
+                      controller: _passwordController,
+                      focusNode: _passwordFocusNode,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        labelStyle: TextStyle(
+                          color: _passwordFocusNode.hasFocus
+                              ? Colors.red[600]
+                              : Colors.grey,
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: _passwordFocusNode.hasFocus
+                                ? Colors.red[600]!
+                                : Colors.grey,
+                            width: _passwordFocusNode.hasFocus ? 2 : 1,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.red[600]!,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      obscureText: true,
+                      enabled: !_isLoading,
                     ),
                   ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.red[600]!,
-                      width: 2,
-                    ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSignIn,
+                          style: ButtonStyle(
+                            backgroundColor:
+                                WidgetStateProperty.all(Colors.white),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.red),
+                                  ),
+                                )
+                              : const Text('Sign In'),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (BuildContext context) =>
+                                        const ProfileSignUp(),
+                                  ),
+                                );
+                              },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              WidgetStateProperty.all(Colors.green),
+                        ),
+                        child: const Text('Sign Up'),
+                      ),
+                    ],
                   ),
-                ),
-                obscureText: true,
-                enabled: !_isLoading,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleSignIn,
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(Colors.white),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.red),
+                  const SizedBox(height: 24),
+                  // Divider with "or" text
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: Colors.grey)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('or',
+                            style: TextStyle(
+                                color: Colors.grey[500], fontSize: 14)),
+                      ),
+                      const Expanded(child: Divider(color: Colors.grey)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Google Sign-In button
+                  SizedBox(
+                    width: double.infinity,
+                    child: _isGoogleLoading
+                        ? const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
                             ),
                           )
-                        : const Text('Sign In'),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (BuildContext context) =>
-                                  const ProfileSignUp(),
+                        : ElevatedButton.icon(
+                            onPressed: (_isLoading || _isGoogleLoading)
+                                ? null
+                                : _handleGoogleSignIn,
+                            icon: const Icon(Ionicons.logo_google,
+                                size: 20, color: Colors.white),
+                            label: const Text(
+                              'Sign in with Google',
+                              style: TextStyle(color: Colors.white),
                             ),
-                          );
-                        },
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStateProperty.all(Colors.green),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                          ),
                   ),
-                  child: const Text('Sign Up'),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 24),
-            // Divider with "or" text
-            Row(
-              children: [
-                const Expanded(child: Divider(color: Colors.grey)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('or',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 14)),
-                ),
-                const Expanded(child: Divider(color: Colors.grey)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Google Sign-In button
-            SizedBox(
-              width: double.infinity,
-              child: _isGoogleLoading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-                    )
-                  : ElevatedButton.icon(
-                      onPressed: (_isLoading || _isGoogleLoading)
-                          ? null
-                          : _handleGoogleSignIn,
-                      icon: const Icon(Ionicons.logo_google,
-                          size: 20, color: Colors.white),
-                      label: const Text(
-                        'Sign in with Google',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                    ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

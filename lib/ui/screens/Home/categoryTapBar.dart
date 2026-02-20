@@ -13,6 +13,7 @@ class CategoryTapBar extends StatelessWidget {
       initialIndex: 0,
       length: 3,
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(80.0),
           child: Container(
@@ -29,16 +30,8 @@ class CategoryTapBar extends StatelessWidget {
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(10),
                 color: Colors.red[600],
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 255, 9, 9).withAlpha(100),
-                    blurRadius: 36.0,
-                    spreadRadius: 10.0,
-                    offset: const Offset(1.0, 5.0),
-                  ),
-                ],
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
@@ -48,7 +41,6 @@ class CategoryTapBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.people_outline_outlined, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'Friends',
@@ -65,7 +57,6 @@ class CategoryTapBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.public_outlined, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'Community',
@@ -82,7 +73,6 @@ class CategoryTapBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'For You',

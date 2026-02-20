@@ -30,16 +30,8 @@ class DiscoveryTapBar extends StatelessWidget {
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(10),
                 color: Colors.red[600],
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 255, 9, 9).withAlpha(100),
-                    blurRadius: 36.0,
-                    spreadRadius: 10.0,
-                    offset: const Offset(1.0, 5.0),
-                  ),
-                ],
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
@@ -49,7 +41,6 @@ class DiscoveryTapBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.rocket_launch_rounded, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'Recommended',
@@ -66,7 +57,6 @@ class DiscoveryTapBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.play_circle_fill_outlined, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'Playlists',
@@ -83,7 +73,6 @@ class DiscoveryTapBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.explore, size: 18),
                       SizedBox(width: 6),
                       Text(
                         'Explore',
