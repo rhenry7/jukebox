@@ -74,9 +74,8 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
             splashFactory: NoSplash.splashFactory,
             overlayColor: WidgetStateProperty.all(Colors.transparent),
             indicator: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              color: Colors.white,
-            ),
+                borderRadius: BorderRadius.circular(999),
+                color: Colors.grey.shade300),
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
             labelPadding: EdgeInsets.zero,

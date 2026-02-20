@@ -75,7 +75,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
             overlayColor: WidgetStateProperty.all(Colors.transparent),
             indicator: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: Colors.white,
+              color: Colors.grey.shade300,
             ),
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
