@@ -49,15 +49,15 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
       alignment: Alignment.centerLeft,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFF17181D),
+          color: Colors.white10,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.12),
+            color: Colors.white.withOpacity(0.12),
             width: 0.8,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
+              color: Colors.black.withOpacity(0.28),
               blurRadius: 18,
               spreadRadius: 1,
               offset: const Offset(0, 8),
@@ -67,8 +67,8 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
         child: Padding(
           padding: const EdgeInsets.all(6.0),
           child: TabBar(
-            labelColor: const Color(0xFF17181D),
-            unselectedLabelColor: Colors.white.withValues(alpha: 0.92),
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.white.withOpacity(0.92),
             isScrollable: false,
             tabAlignment: TabAlignment.fill,
             splashFactory: NoSplash.splashFactory,

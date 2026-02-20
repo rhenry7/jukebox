@@ -177,16 +177,16 @@ class MainNavState extends ConsumerState<MainNav> {
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: Colors.white.withOpacity(0.05),
                   border: Border(
                     top: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: Colors.white.withOpacity(0.18),
                       width: 0.8,
                     ),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.03),
+                      color: Colors.white.withOpacity(0.03),
                       blurRadius: 18,
                       spreadRadius: 0.5,
                       offset: const Offset(0, -2),
@@ -196,7 +196,7 @@ class MainNavState extends ConsumerState<MainNav> {
                 child: NavigationBar(
                   onDestinationSelected: _onItemTapped,
                   selectedIndex: currentPageIndex,
-                  indicatorColor: Colors.white.withValues(alpha: 0.7),
+                  indicatorColor: Colors.white.withOpacity(0.7),
                   indicatorShape: RoundedRectangleBorder(
                     borderRadius:
                         BorderRadius.circular(16), // Set the border radius
