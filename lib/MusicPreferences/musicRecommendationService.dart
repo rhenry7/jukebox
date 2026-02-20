@@ -28,7 +28,7 @@ class MusicRecommendationService {
   // Cache for recent recommendations to avoid duplicates
   static final Set<String> _recentRecommendations = <String>{};
   static const int _maxRecentRecommendations = 50;
-  
+
   // Cache for validation results to avoid re-validating the same tracks
   static final Map<String, bool> _validationCache = <String, bool>{};
   static const int _maxValidationCacheSize = 200;
@@ -38,16 +38,20 @@ class MusicRecommendationService {
     int count = 10,
     List<String>? excludeSongs,
     bool useEnhancedAlgorithm = true, // Enable enhanced discovery algorithm
-    bool skipValidation = false, // OPTIMIZATION: Skip validation for faster results (use with caution)
-    String validationMode = 'spotify-only', // 'spotify-only' (fast, no MusicBrainz), 'hybrid' (MusicBrainz+Spotify), 'none' (skip)
-    int validateTopN = 0, // OPTIMIZATION: Only validate top N (0 = validate all)
-    bool skipMetadataEnrichment = false, // OPTIMIZATION: Skip Spotify metadata (images, etc.) for speed
+    bool skipValidation =
+        false, // OPTIMIZATION: Skip validation for faster results (use with caution)
+    String validationMode =
+        'spotify-only', // 'spotify-only' (fast, no MusicBrainz), 'hybrid' (MusicBrainz+Spotify), 'none' (skip)
+    int validateTopN =
+        0, // OPTIMIZATION: Only validate top N (0 = validate all)
+    bool skipMetadataEnrichment =
+        false, // OPTIMIZATION: Skip Spotify metadata (images, etc.) for speed
   }) async {
     try {
       final userId = FirebaseAuth.instance.currentUser != null
           ? FirebaseAuth.instance.currentUser!.uid
           : '';
-      
+
       if (userId.isEmpty) {
         throw const MusicRecommendationException('User not logged in');
       }
@@ -55,10 +59,13 @@ class MusicRecommendationService {
       // NEW: Analyze all user reviews for deep personalization (with caching)
       UserReviewProfile? reviewProfile;
       try {
-        debugPrint('Analyzing user reviews for personalized recommendations...');
+        debugPrint(
+            'Analyzing user reviews for personalized recommendations...');
         // Use cached version if available (faster)
-        reviewProfile = await ReviewAnalysisService.analyzeUserReviews(userId, forceRefresh: false);
-        debugPrint('Review analysis complete: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} avg rating');
+        reviewProfile = await ReviewAnalysisService.analyzeUserReviews(userId,
+            forceRefresh: false);
+        debugPrint(
+            'Review analysis complete: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} avg rating');
       } catch (e) {
         debugPrint('Error analyzing reviews (will use basic method): $e');
       }
@@ -100,50 +107,70 @@ class MusicRecommendationService {
           EnhancedUserPreferences.fromJson(doc.data()!);
 
       final List<MusicRecommendation> allRecommendations = [];
+      final Map<String, Set<String>> recommendationSources =
+          <String, Set<String>>{};
+
+      void addRecommendationsWithSource(
+        Iterable<MusicRecommendation> recommendations,
+        String source,
+      ) {
+        for (final recommendation in recommendations) {
+          allRecommendations.add(recommendation);
+          final key = _recommendationKey(recommendation);
+          recommendationSources.putIfAbsent(key, () => <String>{}).add(source);
+        }
+      }
 
       // 1. Get AI-based recommendations (improved prompt with review analysis)
       try {
         final prompt = _buildEnhancedPrompt(
-          preferences, 
-          count, 
-          excludeSongs, 
+          preferences,
+          count,
+          excludeSongs,
           reviewList,
-          reviewProfile,  // Pass review analysis
+          reviewProfile, // Pass review analysis
         );
         debugPrint('Fetching AI recommendations with review analysis...');
         final response = await _makeApiRequest(prompt);
         final aiRecommendations = _parseRecommendations(response);
-        
+
         // OPTIMIZATION: Only validate AI recommendations (Spotify recs are already validated)
         if (skipValidation || validationMode == 'none') {
           // Skip validation for faster results
-          debugPrint('Skipping validation for faster results (${aiRecommendations.length} AI recommendations)');
-          allRecommendations.addAll(aiRecommendations);
+          debugPrint(
+              'Skipping validation for faster results (${aiRecommendations.length} AI recommendations)');
+          addRecommendationsWithSource(aiRecommendations, 'ai');
         } else {
           // Determine which recommendations to validate
-          final recsToValidate = validateTopN > 0 && validateTopN < aiRecommendations.length
-              ? aiRecommendations.take(validateTopN).toList()
-              : aiRecommendations;
-          
-          final recsToSkip = validateTopN > 0 && validateTopN < aiRecommendations.length
-              ? aiRecommendations.skip(validateTopN).toList()
-              : <MusicRecommendation>[];
-          
+          final recsToValidate =
+              validateTopN > 0 && validateTopN < aiRecommendations.length
+                  ? aiRecommendations.take(validateTopN).toList()
+                  : aiRecommendations;
+
+          final recsToSkip =
+              validateTopN > 0 && validateTopN < aiRecommendations.length
+                  ? aiRecommendations.skip(validateTopN).toList()
+                  : <MusicRecommendation>[];
+
           if (recsToValidate.isNotEmpty) {
-            debugPrint('Validating ${recsToValidate.length} AI recommendations (mode: $validationMode)...');
-            final validatedRecommendations = await _validateRecommendationsOptimized(
+            debugPrint(
+                'Validating ${recsToValidate.length} AI recommendations (mode: $validationMode)...');
+            final validatedRecommendations =
+                await _validateRecommendationsOptimized(
               recsToValidate,
               validationMode: validationMode,
               skipMetadataEnrichment: skipMetadataEnrichment,
             );
-            allRecommendations.addAll(validatedRecommendations);
-            debugPrint('Got ${validatedRecommendations.length} validated AI recommendations (${recsToValidate.length - validatedRecommendations.length} filtered out)');
+            addRecommendationsWithSource(validatedRecommendations, 'ai');
+            debugPrint(
+                'Got ${validatedRecommendations.length} validated AI recommendations (${recsToValidate.length - validatedRecommendations.length} filtered out)');
           }
-          
+
           // Add unvalidated recommendations if validating only top N
           if (recsToSkip.isNotEmpty) {
-            debugPrint('Skipping validation for ${recsToSkip.length} lower-priority recommendations');
-            allRecommendations.addAll(recsToSkip);
+            debugPrint(
+                'Skipping validation for ${recsToSkip.length} lower-priority recommendations');
+            addRecommendationsWithSource(recsToSkip, 'ai');
           }
         }
       } catch (e) {
@@ -154,13 +181,15 @@ class MusicRecommendationService {
       if (useEnhancedAlgorithm) {
         try {
           debugPrint('Finding similar users...');
-          final similarUsers = await RecommendationEnhancements.findSimilarUsers(userId);
+          final similarUsers =
+              await RecommendationEnhancements.findSimilarUsers(userId);
           if (similarUsers.isNotEmpty) {
             debugPrint('Found ${similarUsers.length} similar users');
             final collaborativeRecs = await RecommendationEnhancements
                 .getCollaborativeRecommendations(userId, similarUsers);
-            allRecommendations.addAll(collaborativeRecs);
-            debugPrint('Got ${collaborativeRecs.length} collaborative recommendations');
+            addRecommendationsWithSource(collaborativeRecs, 'collaborative');
+            debugPrint(
+                'Got ${collaborativeRecs.length} collaborative recommendations');
           }
         } catch (e) {
           debugPrint('Error getting collaborative recommendations: $e');
@@ -168,11 +197,13 @@ class MusicRecommendationService {
 
         // 3. Get Spotify API recommendations (if user has saved tracks/artists)
         try {
-          if (preferences.savedTracks.isNotEmpty || preferences.favoriteArtists.isNotEmpty) {
+          if (preferences.savedTracks.isNotEmpty ||
+              preferences.favoriteArtists.isNotEmpty) {
             debugPrint('Fetching Spotify recommendations...');
-            final spotifyRecs = await RecommendationEnhancements
-                .getSpotifyRecommendations(preferences, count ~/ 2);
-            allRecommendations.addAll(spotifyRecs);
+            final spotifyRecs =
+                await RecommendationEnhancements.getSpotifyRecommendations(
+                    preferences, count ~/ 2);
+            addRecommendationsWithSource(spotifyRecs, 'spotify');
             debugPrint('Got ${spotifyRecs.length} Spotify recommendations');
           }
         } catch (e) {
@@ -182,10 +213,11 @@ class MusicRecommendationService {
 
       // Remove duplicates and saved tracks
       var filteredRecs = removeDuplication(allRecommendations, preferences);
-      
+
       // Remove excluded songs
       if (excludeSongs != null && excludeSongs.isNotEmpty) {
-        final excludeSet = excludeSongs.map((s) => s.toLowerCase().trim()).toSet();
+        final excludeSet =
+            excludeSongs.map((s) => s.toLowerCase().trim()).toSet();
         filteredRecs = filteredRecs.where((rec) {
           final key = '${rec.artist}|${rec.song}'.toLowerCase();
           return !excludeSet.contains(key);
@@ -197,10 +229,12 @@ class MusicRecommendationService {
         // Fetch user signals for signal-aggregated scoring (Phase 1+2)
         List<UserSignal> userSignals = [];
         try {
-          userSignals = await SignalCollectionService.getRecentSignals(limit: 200);
+          userSignals =
+              await SignalCollectionService.getRecentSignals(limit: 200);
           debugPrint('Fetched ${userSignals.length} user signals for scoring');
         } catch (e) {
-          debugPrint('Error fetching signals (will use review-only scoring): $e');
+          debugPrint(
+              'Error fetching signals (will use review-only scoring): $e');
         }
 
         // Fetch feedback-calibrated weights (Phase 4)
@@ -208,30 +242,45 @@ class MusicRecommendationService {
         try {
           final componentWeights =
               await RecommendationOutcomeService.getAdjustedWeights();
-          if (componentWeights != RecommendationOutcomeService.defaultComponentWeights) {
-            adjustedSignalWeights = null; // signal weights remain default for now
-            debugPrint('Using feedback-calibrated component weights: $componentWeights');
+          if (componentWeights !=
+              RecommendationOutcomeService.defaultComponentWeights) {
+            adjustedSignalWeights =
+                null; // signal weights remain default for now
+            debugPrint(
+                'Using feedback-calibrated component weights: $componentWeights');
           }
         } catch (e) {
           debugPrint('Error fetching adjusted weights: $e');
         }
 
         final scoredRecs = filteredRecs.map((rec) {
+          final sourceHints =
+              recommendationSources[_recommendationKey(rec)] ?? <String>{};
           final score = _scoreRecommendationFromReviews(
             rec,
             reviewProfile!,
             signals: userSignals,
             adjustedWeights: adjustedSignalWeights,
+            sourceHints: sourceHints,
           );
-          return {'rec': rec, 'score': score};
+          return {'rec': rec, 'score': score, 'sources': sourceHints};
         }).toList();
 
         // Sort by combined score
-        scoredRecs.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
+        scoredRecs.sort(
+            (a, b) => (b['score'] as double).compareTo(a['score'] as double));
+        final strictMatchThreshold = 0.58;
+        final strongMatches = scoredRecs
+            .where(
+                (entry) => (entry['score'] as double) >= strictMatchThreshold)
+            .toList();
 
-        // Take top scored recommendations
-        filteredRecs = scoredRecs
-            .take((count * 1.5).round()) // Take more for diversity filtering
+        // Prefer strongly profile-aligned songs first, then backfill if needed.
+        final sortedForSelection =
+            strongMatches.length >= count ? strongMatches : scoredRecs;
+        filteredRecs = sortedForSelection
+            .take((count * 1.5)
+                .round()) // Keep headroom for later diversity filters
             .map((e) => e['rec'] as MusicRecommendation)
             .toList();
       }
@@ -244,7 +293,8 @@ class MusicRecommendationService {
             reviews,
           );
           if (tasteVector != null) {
-            debugPrint('[SEMANTIC] Taste vector loaded — scoring ${filteredRecs.length} candidates');
+            debugPrint(
+                '[SEMANTIC] Taste vector loaded — scoring ${filteredRecs.length} candidates');
             final candidates = filteredRecs
                 .map((r) => CandidateInfo(
                       artist: r.artist,
@@ -297,7 +347,8 @@ class MusicRecommendationService {
             debugPrint('[SEMANTIC] Re-ranked with semantic scoring');
           }
         } catch (e) {
-          debugPrint('[SEMANTIC] Error in semantic scoring (continuing without): $e');
+          debugPrint(
+              '[SEMANTIC] Error in semantic scoring (continuing without): $e');
         }
       }
 
@@ -313,13 +364,13 @@ class MusicRecommendationService {
             discoveryRatio = 0.5; // More safe bets
           }
         }
-        
+
         filteredRecs = RecommendationEnhancements.balanceRecommendations(
           filteredRecs,
           preferences,
           discoveryRatio: discoveryRatio,
         );
-        
+
         // Ensure diversity in final selection
         filteredRecs = RecommendationEnhancements.ensureDiversity(
           filteredRecs,
@@ -330,11 +381,11 @@ class MusicRecommendationService {
 
       // Take requested count
       filteredRecs = filteredRecs.take(count).toList();
-      
+
       // 5. Enrich recommendations with MusicBrainz genres (hybrid approach)
       debugPrint('Enriching recommendations with MusicBrainz genres...');
       filteredRecs = await _enrichRecommendationsWithGenres(filteredRecs);
-      
+
       // Start fetching album images in the background (non-blocking)
       _fetchAlbumImagesInBackground(filteredRecs);
 
@@ -344,7 +395,8 @@ class MusicRecommendationService {
       // 8. Resolve stale outcomes in background (Phase 4)
       RecommendationOutcomeService.resolveStaleOutcomes();
 
-      debugPrint('Returning ${filteredRecs.length} final recommendations with genres');
+      debugPrint(
+          'Returning ${filteredRecs.length} final recommendations with genres');
       return filteredRecs;
     } catch (e) {
       throw MusicRecommendationException('Failed to get recommendations: $e');
@@ -363,7 +415,7 @@ class MusicRecommendationService {
       ..._recentRecommendations,
       ...excludeSongs ?? [],
     ];
-    
+
     // Build review analysis insights
     String reviewAnalysisSection = '';
     if (reviewProfile != null) {
@@ -372,13 +424,15 @@ class MusicRecommendationService {
           : reviewProfile.ratingPattern.averageRating <= 2.5
               ? 'User is critical - recommend safer, highly-regarded albums'
               : 'User has balanced ratings - mix of safe and discovery';
-      
+
       final topGenres = reviewProfile.genrePreferences.entries.toList()
-        ..sort((a, b) => b.value.preferenceStrength.compareTo(a.value.preferenceStrength));
-      
+        ..sort((a, b) =>
+            b.value.preferenceStrength.compareTo(a.value.preferenceStrength));
+
       final topArtists = reviewProfile.artistPreferences.entries.toList()
-        ..sort((a, b) => b.value.preferenceScore.compareTo(a.value.preferenceScore));
-      
+        ..sort((a, b) =>
+            b.value.preferenceScore.compareTo(a.value.preferenceScore));
+
       reviewAnalysisSection = '''
 
 DEEP REVIEW ANALYSIS (from ${reviewProfile.ratingPattern.ratingDistribution.values.fold<int>(0, (sum, count) => sum + count)} total reviews):
@@ -436,6 +490,7 @@ DISCOVERY REQUIREMENTS:
    - Songs in dislikedTracks list
    - Recently recommended songs: ${excludeList.take(10).join(", ")}
    - Songs from artists they've already saved (unless it's a new release)
+   - Generic chart/top-50 picks UNLESS they strongly match top review-derived genres/artists
 
 5. DISCOVERY BALANCE:
    - 60%: New discoveries (artists/genres they haven't explored much)
@@ -458,9 +513,10 @@ Format:
   /// Legacy method for backward compatibility
   static String _buildPrompt(EnhancedUserPreferences preferences, int count,
       List<String>? excludeSongs, List<dynamic> reviews) {
-    return _buildEnhancedPrompt(preferences, count, excludeSongs, reviews, null);
+    return _buildEnhancedPrompt(
+        preferences, count, excludeSongs, reviews, null);
   }
-  
+
   /// Score recommendation based on review analysis and user signals.
   ///
   /// Upgraded from pure hand-tuned weights to a hybrid approach:
@@ -472,41 +528,129 @@ Format:
     UserReviewProfile reviewProfile, {
     List<UserSignal> signals = const [],
     Map<String, double>? adjustedWeights,
+    Set<String> sourceHints = const <String>{},
   }) {
-    double reviewScore = 0.5; // Base review score
-
-    // Genre match from reviews (weighted by preference strength)
-    for (final genre in recommendation.genres) {
-      final genrePref = reviewProfile.genrePreferences[genre];
-      if (genrePref != null) {
-        reviewScore += genrePref.preferenceStrength * 0.3;
+    final normalizedCandidateGenres = recommendation.genres
+        .map((genre) => genre.toLowerCase().trim())
+        .where((genre) => genre.isNotEmpty)
+        .toSet();
+    final normalizedGenrePreferences = <String, double>{};
+    for (final entry in reviewProfile.genrePreferences.entries) {
+      final normalizedGenre = entry.key.toLowerCase().trim();
+      if (normalizedGenre.isEmpty) continue;
+      final existing = normalizedGenrePreferences[normalizedGenre] ?? 0.0;
+      final next = entry.value.preferenceStrength.clamp(0.0, 1.0);
+      if (next > existing) {
+        normalizedGenrePreferences[normalizedGenre] = next;
       }
     }
 
-    // Artist similarity (if similar to highly-rated artists)
-    final artist = recommendation.artist.toLowerCase();
+    final normalizedArtistPreferences = <String, double>{};
+    for (final entry in reviewProfile.artistPreferences.entries) {
+      final normalizedArtist = entry.key.toLowerCase().trim();
+      if (normalizedArtist.isEmpty) continue;
+      final existing = normalizedArtistPreferences[normalizedArtist] ?? 0.0;
+      final next = entry.value.preferenceScore.clamp(0.0, 1.0);
+      if (next > existing) {
+        normalizedArtistPreferences[normalizedArtist] = next;
+      }
+    }
+
+    final candidateArtist = recommendation.artist.toLowerCase().trim();
+    double reviewScore = 0.12; // Low base to force explicit profile matching.
+
+    // Genre relevance (primary signal)
+    double genreScore = 0.0;
+    if (normalizedCandidateGenres.isNotEmpty) {
+      double aggregateGenreScore = 0.0;
+      for (final genre in normalizedCandidateGenres) {
+        aggregateGenreScore +=
+            _bestGenrePreferenceScore(genre, normalizedGenrePreferences);
+      }
+      genreScore = (aggregateGenreScore / normalizedCandidateGenres.length)
+          .clamp(0.0, 1.0);
+      reviewScore += genreScore * 0.45;
+    } else {
+      // Missing genre metadata makes a recommendation less trustworthy.
+      reviewScore -= 0.08;
+    }
+
+    // Artist relevance (primary signal)
+    double artistScore = 0.0;
+    for (final entry in normalizedArtistPreferences.entries) {
+      if (_artistMatches(candidateArtist, entry.key)) {
+        final directArtistScore = entry.value;
+        if (directArtistScore > artistScore) {
+          artistScore = directArtistScore;
+        }
+      }
+    }
     for (final topArtist in reviewProfile.ratingPattern.highlyRatedArtists) {
-      final topArtistLower = topArtist.toLowerCase();
-      if (artist.contains(topArtistLower) || topArtistLower.contains(artist)) {
-        reviewScore += 0.2;
+      if (_artistMatches(candidateArtist, topArtist)) {
+        if (artistScore < 0.75) {
+          artistScore = 0.75;
+        }
+        break;
+      }
+    }
+    reviewScore += artistScore * 0.42;
+
+    // Recency trends
+    if (reviewProfile.temporalPatterns.recentTrends.isNotEmpty &&
+        normalizedCandidateGenres.isNotEmpty) {
+      final trendGenres = reviewProfile.temporalPatterns.recentTrends
+          .map((genre) => genre.toLowerCase().trim())
+          .where((genre) => genre.isNotEmpty)
+          .toSet();
+      final hasTrendGenre =
+          normalizedCandidateGenres.any((genre) => trendGenres.contains(genre));
+      if (hasTrendGenre) {
+        reviewScore += 0.08;
+      }
+    }
+
+    // Soft sentiment/rating confidence bonus
+    final averageRatingScore =
+        (reviewProfile.ratingPattern.averageRating / 5.0).clamp(0.0, 1.0);
+    final sentimentScore =
+        reviewProfile.reviewSentiment.sentimentScore.clamp(0.0, 1.0);
+    reviewScore += ((averageRatingScore * 0.6) + (sentimentScore * 0.4)) * 0.05;
+
+    // Penalize historically disliked artists.
+    for (final lowRatedArtist in reviewProfile.ratingPattern.lowRatedArtists) {
+      if (_artistMatches(candidateArtist, lowRatedArtist)) {
+        reviewScore -= 0.32;
         break;
       }
     }
 
-    // Check if artist is in user's top artist preferences
-    final artistPref = reviewProfile.artistPreferences[recommendation.artist];
-    if (artistPref != null && artistPref.preferenceScore > 0.7) {
-      reviewScore += 0.15;
+    // Penalize recommendations that do not match key genre/artist signals.
+    if (normalizedCandidateGenres.isNotEmpty) {
+      final hasStrongGenreMatch = normalizedCandidateGenres.any(
+        (genre) =>
+            _bestGenrePreferenceScore(genre, normalizedGenrePreferences) >=
+            0.55,
+      );
+      if (!hasStrongGenreMatch) {
+        reviewScore -= 0.16;
+      }
+    }
+    if (genreScore < 0.35 && artistScore < 0.35) {
+      reviewScore -= 0.10;
     }
 
-    // Recent trends match
-    if (reviewProfile.temporalPatterns.recentTrends.isNotEmpty) {
-      final hasTrendGenre = recommendation.genres.any(
-        (genre) => reviewProfile.temporalPatterns.recentTrends.contains(genre),
-      );
-      if (hasTrendGenre) {
-        reviewScore += 0.1;
+    // Source priors: reduce generic source bias and reward profile-conditioned picks.
+    if (sourceHints.contains('spotify') && sourceHints.length == 1) {
+      reviewScore -= 0.08;
+      if (genreScore >= 0.7 || artistScore >= 0.7) {
+        reviewScore += 0.04;
       }
+    }
+    if (sourceHints.contains('ai')) {
+      reviewScore += 0.04;
+    }
+    if (sourceHints.contains('collaborative') && artistScore >= 0.5) {
+      reviewScore += 0.03;
     }
 
     reviewScore = reviewScore.clamp(0.0, 1.0);
@@ -520,11 +664,57 @@ Format:
         adjustedWeights: adjustedWeights,
       );
 
-      // Blend: 60% review-based, 40% signal-based
-      return (reviewScore * 0.6 + signalScore * 0.4).clamp(0.0, 1.0);
+      // Blend: keep review-derived profile fit as the dominant signal.
+      return (reviewScore * 0.75 + signalScore * 0.25).clamp(0.0, 1.0);
     }
 
     return reviewScore;
+  }
+
+  static String _recommendationKey(MusicRecommendation recommendation) {
+    return '${recommendation.artist.toLowerCase().trim()}|${recommendation.song.toLowerCase().trim()}';
+  }
+
+  static bool _artistMatches(String candidateArtist, String knownArtist) {
+    final candidate = candidateArtist.toLowerCase().trim();
+    final known = knownArtist.toLowerCase().trim();
+    if (candidate.isEmpty || known.isEmpty) return false;
+    if (candidate == known) return true;
+    if (candidate.contains(known) || known.contains(candidate)) return true;
+
+    final candidatePrimary = candidate.split(',').first.trim();
+    final knownPrimary = known.split(',').first.trim();
+    if (candidatePrimary.isEmpty || knownPrimary.isEmpty) return false;
+    if (candidatePrimary == knownPrimary) return true;
+    return candidatePrimary.contains(knownPrimary) ||
+        knownPrimary.contains(candidatePrimary);
+  }
+
+  static double _bestGenrePreferenceScore(
+    String candidateGenre,
+    Map<String, double> normalizedGenrePreferences,
+  ) {
+    final genre = candidateGenre.toLowerCase().trim();
+    if (genre.isEmpty || normalizedGenrePreferences.isEmpty) return 0.0;
+
+    double best = normalizedGenrePreferences[genre] ?? 0.0;
+    for (final entry in normalizedGenrePreferences.entries) {
+      final preferenceGenre = entry.key;
+      if (preferenceGenre == genre) {
+        if (entry.value > best) {
+          best = entry.value;
+        }
+        continue;
+      }
+
+      if (preferenceGenre.contains(genre) || genre.contains(preferenceGenre)) {
+        final partialScore = entry.value * 0.82;
+        if (partialScore > best) {
+          best = partialScore;
+        }
+      }
+    }
+    return best.clamp(0.0, 1.0);
   }
 
   static Future<String> _makeApiRequest(String prompt) async {
@@ -583,7 +773,7 @@ Format:
           response.replaceAll('```json', '').replaceAll('```', '').trim();
 
       final dynamic decoded = jsonDecode(cleanResponse);
-      
+
       // Handle both array and single object responses
       List<dynamic> parsed;
       if (decoded is List) {
@@ -591,7 +781,8 @@ Format:
       } else if (decoded is Map) {
         parsed = [decoded];
       } else {
-        throw ParseException('Unexpected response format: ${decoded.runtimeType}');
+        throw ParseException(
+            'Unexpected response format: ${decoded.runtimeType}');
       }
 
       final recommendations = parsed
@@ -673,9 +864,10 @@ Format:
       // Check cache first and separate cached vs uncached recommendations
       final uncachedRecs = <MusicRecommendation>[];
       final cachedResults = <MusicRecommendation?>[];
-      
+
       for (final rec in recommendations) {
-        final cacheKey = '${rec.song.toLowerCase().trim()}|${rec.artist.toLowerCase().trim()}';
+        final cacheKey =
+            '${rec.song.toLowerCase().trim()}|${rec.artist.toLowerCase().trim()}';
         if (_validationCache.containsKey(cacheKey)) {
           // Use cached result
           if (_validationCache[cacheKey] == true) {
@@ -688,28 +880,32 @@ Format:
           cachedResults.add(null); // Placeholder, will be filled by validation
         }
       }
-      
-      debugPrint('Validation cache hit: ${recommendations.length - uncachedRecs.length}/${recommendations.length}');
-      
+
+      debugPrint(
+          'Validation cache hit: ${recommendations.length - uncachedRecs.length}/${recommendations.length}');
+
       // Only validate uncached recommendations
       if (uncachedRecs.isNotEmpty) {
         // Validate uncached recommendations (with rate limiting for MusicBrainz if needed)
         final validationResults = validationMode == 'spotify-only'
-            ? await _validateBatchSpotifyOnly(uncachedRecs, spotify, skipMetadataEnrichment)
-            : await _validateBatchWithRateLimit(uncachedRecs, spotify, skipMetadataEnrichment);
-        
+            ? await _validateBatchSpotifyOnly(
+                uncachedRecs, spotify, skipMetadataEnrichment)
+            : await _validateBatchWithRateLimit(
+                uncachedRecs, spotify, skipMetadataEnrichment);
+
         // Update cache and results
         int uncachedIndex = 0;
         for (int i = 0; i < recommendations.length; i++) {
           if (cachedResults[i] == null && uncachedIndex < uncachedRecs.length) {
             final rec = uncachedRecs[uncachedIndex];
-            final cacheKey = '${rec.song.toLowerCase().trim()}|${rec.artist.toLowerCase().trim()}';
+            final cacheKey =
+                '${rec.song.toLowerCase().trim()}|${rec.artist.toLowerCase().trim()}';
             final validated = validationResults[uncachedIndex];
-            
+
             // Cache the result
             _validationCache[cacheKey] = validated != null;
             _updateValidationCacheSize();
-            
+
             cachedResults[i] = validated;
             uncachedIndex++;
           }
@@ -730,7 +926,7 @@ Format:
       return [];
     }
   }
-  
+
   /// Validates a batch of recommendations with rate limiting for MusicBrainz
   static Future<List<MusicRecommendation?>> _validateBatchWithRateLimit(
     List<MusicRecommendation> recommendations,
@@ -738,22 +934,23 @@ Format:
     bool skipMetadataEnrichment,
   ) async {
     final results = <MusicRecommendation?>[];
-    
+
     // Process in smaller batches to respect MusicBrainz rate limits (1 req/sec)
     for (int i = 0; i < recommendations.length; i++) {
       final rec = recommendations[i];
-      final result = await _validateSingleRecommendation(spotify, rec, skipMetadataEnrichment: skipMetadataEnrichment);
+      final result = await _validateSingleRecommendation(spotify, rec,
+          skipMetadataEnrichment: skipMetadataEnrichment);
       results.add(result);
-      
+
       // Small delay between MusicBrainz requests (rate limit: 1 req/sec)
       if (i < recommendations.length - 1) {
         await Future.delayed(const Duration(milliseconds: 1100));
       }
     }
-    
+
     return results;
   }
-  
+
   /// Fast validation using Spotify only (no MusicBrainz rate limiting)
   static Future<List<MusicRecommendation?>> _validateBatchSpotifyOnly(
     List<MusicRecommendation> recommendations,
@@ -762,10 +959,11 @@ Format:
   ) async {
     // Validate all in parallel (Spotify has no rate limit for search)
     return Future.wait(
-      recommendations.map((rec) => _validateSingleRecommendationSpotifyOnly(spotify, rec, skipMetadataEnrichment)),
+      recommendations.map((rec) => _validateSingleRecommendationSpotifyOnly(
+          spotify, rec, skipMetadataEnrichment)),
     );
   }
-  
+
   /// Fast Spotify-only validation (no MusicBrainz check)
   static Future<MusicRecommendation?> _validateSingleRecommendationSpotifyOnly(
     SpotifyApi spotify,
@@ -774,10 +972,10 @@ Format:
   ) async {
     try {
       // Only check Spotify (much faster, no rate limits)
-      final trackQuery = 'track:"${recommendation.song}" artist:"${recommendation.artist.split(',').first.trim()}"';
+      final trackQuery =
+          'track:"${recommendation.song}" artist:"${recommendation.artist.split(',').first.trim()}"';
       final trackSearchResults = await spotify.search
-          .get(trackQuery, types: [SearchType.track])
-          .first(1);
+          .get(trackQuery, types: [SearchType.track]).first(1);
 
       for (final page in trackSearchResults) {
         if (page.items != null) {
@@ -788,14 +986,14 @@ Format:
                 // Just return the original (validated existence)
                 return recommendation;
               }
-              
+
               // Extract metadata
               final artistName = item.artists?.isNotEmpty == true
                   ? item.artists!.map((a) => a.name).join(', ')
                   : recommendation.artist;
-              
+
               final albumName = item.album?.name ?? recommendation.album;
-              
+
               final imageUrl = item.album?.images?.isNotEmpty == true
                   ? (item.album!.images!.first.url ?? recommendation.imageUrl)
                   : recommendation.imageUrl;
@@ -811,21 +1009,23 @@ Format:
           }
         }
       }
-      
+
       // Not found on Spotify - reject (might be hallucination)
-      debugPrint('⚠️  Track not found on Spotify: "${recommendation.song}" by "${recommendation.artist}"');
+      debugPrint(
+          '⚠️  Track not found on Spotify: "${recommendation.song}" by "${recommendation.artist}"');
       return null;
     } catch (e) {
       debugPrint('Error validating with Spotify: $e');
       return null;
     }
   }
-  
+
   /// Maintains validation cache size
   static void _updateValidationCacheSize() {
     if (_validationCache.length > _maxValidationCacheSize) {
       // Remove oldest entries (simple FIFO - remove first 20%)
-      final keysToRemove = _validationCache.keys.take(_maxValidationCacheSize ~/ 5).toList();
+      final keysToRemove =
+          _validationCache.keys.take(_maxValidationCacheSize ~/ 5).toList();
       for (final key in keysToRemove) {
         _validationCache.remove(key);
       }
@@ -836,7 +1036,8 @@ Format:
   /// 1. First checks MusicBrainz (broader coverage, free, no rate limits)
   /// 2. Then checks Spotify (to get metadata like images, ensures track is playable)
   /// Returns only recommendations that exist in MusicBrainz (Spotify is optional for metadata)
-  static Future<List<MusicRecommendation>> _validateRecommendationsAgainstSpotify(
+  static Future<List<MusicRecommendation>>
+      _validateRecommendationsAgainstSpotify(
     List<MusicRecommendation> recommendations,
   ) async {
     // Use optimized version
@@ -852,26 +1053,29 @@ Format:
   }) async {
     try {
       // Step 1: Check MusicBrainz first (broader coverage, free, no rate limits)
-      debugPrint('Checking MusicBrainz for "${recommendation.song}" by "${recommendation.artist}"...');
+      debugPrint(
+          'Checking MusicBrainz for "${recommendation.song}" by "${recommendation.artist}"...');
       final existsInMusicBrainz = await MusicBrainzService.validateTrackExists(
         recommendation.song,
         recommendation.artist,
       );
-      
+
       if (!existsInMusicBrainz) {
         // Track doesn't exist in MusicBrainz - likely a hallucination
-        debugPrint('⚠️  AI hallucination detected: "${recommendation.song}" by "${recommendation.artist}" not found in MusicBrainz');
+        debugPrint(
+            '⚠️  AI hallucination detected: "${recommendation.song}" by "${recommendation.artist}" not found in MusicBrainz');
         return null;
       }
-      
+
       // Step 2: Track exists in MusicBrainz, now try Spotify to get metadata (images, etc.)
-      debugPrint('Track found in MusicBrainz, checking Spotify for metadata...');
+      debugPrint(
+          'Track found in MusicBrainz, checking Spotify for metadata...');
       try {
         // Try searching for the track on Spotify (most accurate)
-        final trackQuery = 'track:"${recommendation.song}" artist:"${recommendation.artist.split(',').first.trim()}"';
+        final trackQuery =
+            'track:"${recommendation.song}" artist:"${recommendation.artist.split(',').first.trim()}"';
         final trackSearchResults = await spotify.search
-            .get(trackQuery, types: [SearchType.track])
-            .first(1);
+            .get(trackQuery, types: [SearchType.track]).first(1);
 
         for (final page in trackSearchResults) {
           if (page.items != null) {
@@ -881,26 +1085,28 @@ Format:
                 final artistName = item.artists?.isNotEmpty == true
                     ? item.artists!.map((a) => a.name).join(', ')
                     : recommendation.artist;
-                
+
                 final albumName = item.album?.name ?? recommendation.album;
-                
+
                 final imageUrl = item.album?.images?.isNotEmpty == true
                     ? (item.album!.images!.first.url ?? recommendation.imageUrl)
                     : recommendation.imageUrl;
 
-                debugPrint('✓ Track found on Spotify with metadata: "${recommendation.song}" by "${recommendation.artist}"');
-                
+                debugPrint(
+                    '✓ Track found on Spotify with metadata: "${recommendation.song}" by "${recommendation.artist}"');
+
                 if (skipMetadataEnrichment) {
                   // Just return original (validated existence, skip metadata)
                   return recommendation;
                 }
-                
+
                 return MusicRecommendation(
                   song: item.name ?? recommendation.song,
                   artist: artistName,
                   album: albumName,
                   imageUrl: imageUrl,
-                  genres: recommendation.genres, // Keep existing genres, will be enriched later
+                  genres: recommendation
+                      .genres, // Keep existing genres, will be enriched later
                 );
               }
             }
@@ -908,10 +1114,10 @@ Format:
         }
 
         // If exact search didn't find it, try a more lenient search (without quotes for fuzzy matching)
-        final lenientQuery = '${recommendation.song} ${recommendation.artist.split(',').first.trim()}';
+        final lenientQuery =
+            '${recommendation.song} ${recommendation.artist.split(',').first.trim()}';
         final lenientSearchResults = await spotify.search
-            .get(lenientQuery, types: [SearchType.track])
-            .first(1);
+            .get(lenientQuery, types: [SearchType.track]).first(1);
 
         for (final page in lenientSearchResults) {
           if (page.items != null) {
@@ -923,35 +1129,38 @@ Format:
                 final trackArtistLower = item.artists?.isNotEmpty == true
                     ? (item.artists!.first.name?.toLowerCase() ?? '')
                     : '';
-                final recArtistLower = recommendation.artist.split(',').first.trim().toLowerCase();
-                
+                final recArtistLower =
+                    recommendation.artist.split(',').first.trim().toLowerCase();
+
                 // Check if names are similar (contains or is contained)
-                final nameMatch = trackNameLower.contains(recNameLower) || 
-                                 recNameLower.contains(trackNameLower) ||
-                                 trackNameLower == recNameLower;
+                final nameMatch = trackNameLower.contains(recNameLower) ||
+                    recNameLower.contains(trackNameLower) ||
+                    trackNameLower == recNameLower;
                 final artistMatch = trackArtistLower.contains(recArtistLower) ||
-                                   recArtistLower.contains(trackArtistLower) ||
-                                   trackArtistLower == recArtistLower;
-                
+                    recArtistLower.contains(trackArtistLower) ||
+                    trackArtistLower == recArtistLower;
+
                 if (nameMatch && artistMatch) {
                   // Found a matching track on Spotify with fuzzy matching
                   final artistName = item.artists?.isNotEmpty == true
                       ? item.artists!.map((a) => a.name).join(', ')
                       : recommendation.artist;
-                  
+
                   final albumName = item.album?.name ?? recommendation.album;
-                  
+
                   final imageUrl = item.album?.images?.isNotEmpty == true
-                      ? (item.album!.images!.first.url ?? recommendation.imageUrl)
+                      ? (item.album!.images!.first.url ??
+                          recommendation.imageUrl)
                       : recommendation.imageUrl;
 
-                  debugPrint('✓ Track found on Spotify (fuzzy match) with metadata: "${recommendation.song}" by "${recommendation.artist}"');
-                  
+                  debugPrint(
+                      '✓ Track found on Spotify (fuzzy match) with metadata: "${recommendation.song}" by "${recommendation.artist}"');
+
                   if (skipMetadataEnrichment) {
                     // Just return original (validated existence, skip metadata)
                     return recommendation;
                   }
-                  
+
                   return MusicRecommendation(
                     song: item.name ?? recommendation.song,
                     artist: artistName,
@@ -964,18 +1173,22 @@ Format:
             }
           }
         }
-        
+
         // Track exists in MusicBrainz but not on Spotify - still valid, return as-is
-        debugPrint('✓ Track exists in MusicBrainz but not on Spotify (may not be playable): "${recommendation.song}" by "${recommendation.artist}"');
+        debugPrint(
+            '✓ Track exists in MusicBrainz but not on Spotify (may not be playable): "${recommendation.song}" by "${recommendation.artist}"');
         return recommendation; // Return as-is since we can't get Spotify metadata
       } catch (e) {
-        debugPrint('Error checking Spotify (but track exists in MusicBrainz): $e');
+        debugPrint(
+            'Error checking Spotify (but track exists in MusicBrainz): $e');
         // Track exists in MusicBrainz, so it's valid even if Spotify check fails
-        debugPrint('✓ Track validated in MusicBrainz (Spotify check failed): "${recommendation.song}" by "${recommendation.artist}"');
+        debugPrint(
+            '✓ Track validated in MusicBrainz (Spotify check failed): "${recommendation.song}" by "${recommendation.artist}"');
         return recommendation;
       }
     } catch (e) {
-      debugPrint('Error validating "${recommendation.song}" by "${recommendation.artist}": $e');
+      debugPrint(
+          'Error validating "${recommendation.song}" by "${recommendation.artist}": $e');
       // If validation fails for this specific track, exclude it to be safe
       return null;
     }
@@ -986,11 +1199,11 @@ Format:
     List<MusicRecommendation> recommendations,
   ) async {
     final enrichedRecs = <MusicRecommendation>[];
-    
+
     for (final rec in recommendations) {
       // If already has genres, keep them but try to enrich
       List<String> genres = List.from(rec.genres);
-      
+
       // Only fetch from cache/API if we don't have genres or have very few
       if (genres.isEmpty || genres.length < 2) {
         try {
@@ -999,12 +1212,12 @@ Format:
             rec.song,
             rec.artist.split(',').first.trim(), // Use first artist if multiple
           );
-          
+
           if (cachedGenres.isNotEmpty) {
             // Combine existing genres with cached genres (avoid duplicates)
-            final cachedGenresSet = cachedGenres.map((g) => g.toLowerCase().trim()).toSet();
-            final existingGenresSet = genres.map((g) => g.toLowerCase().trim()).toSet();
-            
+            final cachedGenresSet =
+                cachedGenres.map((g) => g.toLowerCase().trim()).toSet();
+
             // Merge genres
             genres = cachedGenres.toList();
             // Add any existing genres that weren't in cached genres
@@ -1013,33 +1226,36 @@ Format:
                 genres.add(existing);
               }
             }
-            
-            debugPrint('Enriched ${rec.song} with ${genres.length} genres (from cache/API)');
+
+            debugPrint(
+                'Enriched ${rec.song} with ${genres.length} genres (from cache/API)');
           }
         } catch (e) {
           debugPrint('Error enriching ${rec.song} with genres: $e');
           // Continue with existing genres if enrichment fails
         }
       }
-      
+
       // If still no genres, try to get from Spotify artist
       if (genres.isEmpty) {
         try {
           final credentials = SpotifyApiCredentials(clientId, clientSecret);
           final spotify = SpotifyApi(credentials);
-          
+
           // Search for artist to get artist-level genres
           final artistName = rec.artist.split(',').first.trim();
           final searchResults = await spotify.search
-              .get(artistName, types: [SearchType.artist])
-              .first(1);
-          
+              .get(artistName, types: [SearchType.artist]).first(1);
+
           for (final page in searchResults) {
             if (page.items != null) {
               for (final item in page.items!) {
-                if (item is Artist && item.genres != null && item.genres!.isNotEmpty) {
+                if (item is Artist &&
+                    item.genres != null &&
+                    item.genres!.isNotEmpty) {
                   genres = item.genres!.toList();
-                  debugPrint('Got ${genres.length} artist genres from Spotify for ${rec.song}');
+                  debugPrint(
+                      'Got ${genres.length} artist genres from Spotify for ${rec.song}');
                   break;
                 }
               }
@@ -1050,7 +1266,7 @@ Format:
           debugPrint('Error getting Spotify artist genres for ${rec.song}: $e');
         }
       }
-      
+
       // Create enriched recommendation
       enrichedRecs.add(MusicRecommendation(
         song: rec.song,
@@ -1060,7 +1276,7 @@ Format:
         genres: genres,
       ));
     }
-    
+
     return enrichedRecs;
   }
 
@@ -1086,8 +1302,7 @@ Format:
             // Search for the track on Spotify
             final query = 'track:"${rec.song}" artist:"${rec.artist}"';
             final searchResults = await spotify.search
-                .get(query, types: [SearchType.track])
-                .first(1);
+                .get(query, types: [SearchType.track]).first(1);
 
             // Extract album image from search results
             for (final page in searchResults) {
@@ -1110,8 +1325,7 @@ Format:
             if (imageUrl == null && rec.album.isNotEmpty) {
               final albumQuery = 'album:"${rec.album}" artist:"${rec.artist}"';
               final albumSearchResults = await spotify.search
-                  .get(albumQuery, types: [SearchType.album])
-                  .first(1);
+                  .get(albumQuery, types: [SearchType.album]).first(1);
 
               for (final page in albumSearchResults) {
                 if (page.items != null) {
@@ -1137,7 +1351,8 @@ Format:
               genres: rec.genres,
             );
           } catch (e) {
-            debugPrint('Error fetching image for ${rec.song} by ${rec.artist}: $e');
+            debugPrint(
+                'Error fetching image for ${rec.song} by ${rec.artist}: $e');
             // Return original recommendation if fetch fails
             return rec;
           }
@@ -1169,10 +1384,10 @@ Format:
       String? imageUrl;
 
       // Search for the track on Spotify
-      final query = 'track:"${recommendation.song}" artist:"${recommendation.artist}"';
-      final searchResults = await spotify.search
-          .get(query, types: [SearchType.track])
-          .first(1);
+      final query =
+          'track:"${recommendation.song}" artist:"${recommendation.artist}"';
+      final searchResults =
+          await spotify.search.get(query, types: [SearchType.track]).first(1);
 
       // Extract album image from search results
       for (final page in searchResults) {
@@ -1195,8 +1410,7 @@ Format:
         final albumQuery =
             'album:"${recommendation.album}" artist:"${recommendation.artist}"';
         final albumSearchResults = await spotify.search
-            .get(albumQuery, types: [SearchType.album])
-            .first(1);
+            .get(albumQuery, types: [SearchType.album]).first(1);
 
         for (final page in albumSearchResults) {
           if (page.items != null) {

@@ -196,11 +196,8 @@ class MainNavState extends ConsumerState<MainNav> {
                 child: NavigationBar(
                   onDestinationSelected: _onItemTapped,
                   selectedIndex: currentPageIndex,
-                  indicatorColor: Colors.white.withOpacity(0.7),
-                  indicatorShape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(16), // Set the border radius
-                  ),
+                  indicatorColor: Colors.white.withOpacity(1),
+                  indicatorShape: const CircleBorder(),
                   backgroundColor: Colors.transparent,
                   labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
                   destinations: <Widget>[
