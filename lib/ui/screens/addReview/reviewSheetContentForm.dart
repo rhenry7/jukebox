@@ -57,6 +57,7 @@ class _MyReviewSheetContentFormState
   Timer? _searchDebounce;
   String _searchFilter = 'all'; // 'all', 'song', 'album'
   String? _searchError; // User-facing error message for search failures
+  bool _showRequiredError = false; // Glow when submit fails validation
 
   @override
   void initState() {
@@ -71,6 +72,14 @@ class _MyReviewSheetContentFormState
 
     // Listen to search input changes
     searchParams.addListener(_onSearchChanged);
+    // Clear required-error glow when user types in required fields
+    void clearRequiredError() {
+      if (_showRequiredError && mounted) {
+        setState(() => _showRequiredError = false);
+      }
+    }
+    reviewController.addListener(clearRequiredError);
+    _tagsController.addListener(clearRequiredError);
   }
 
   @override
@@ -433,12 +442,20 @@ class _MyReviewSheetContentFormState
     }
 
     final String review = reviewController.text.trim();
+    final tags = _tagsFromController;
 
-    // Basic validation
-    if (review.isEmpty && ratingScore == 0) {
+    // Required: write your review and at least one tag
+    if (review.isEmpty || tags.isEmpty) {
+      setState(() => _showRequiredError = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add a rating or write a review'),
+        SnackBar(
+          content: Text(
+            review.isEmpty && tags.isEmpty
+                ? 'Please write your review and add at least one tag'
+                : review.isEmpty
+                    ? 'Please write your review before submitting'
+                    : 'Please add at least one tag (e.g. rock, indie)',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -455,7 +472,7 @@ class _MyReviewSheetContentFormState
         _selectedTrackImageUrl.isNotEmpty
             ? _selectedTrackImageUrl
             : widget.albumImageUrl,
-        _tagsFromController.isEmpty ? null : _tagsFromController,
+        tags, // stored as genres (required, validated above)
       );
 
       // Log review_submit signal (strongest explicit signal)
@@ -469,7 +486,7 @@ class _MyReviewSheetContentFormState
         artist: submittedArtist,
         track: submittedTrack,
         rating: ratingScore,
-        tags: _tagsFromController,
+        genres: tags,
       );
 
       // Check if this review matches a pending recommendation (Phase 4)
@@ -657,49 +674,81 @@ class _MyReviewSheetContentFormState
   /// Tappable review preview — opens the full-screen editor on tap.
   Widget _buildReviewTextField() {
     final hasText = reviewController.text.trim().isNotEmpty;
+    final showError = _showRequiredError && !hasText;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: GestureDetector(
         onTap: _openReviewEditor,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           width: double.infinity,
           constraints: const BoxConstraints(minHeight: 120, maxWidth: 500),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.grey[900],
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[700]!),
+            border: Border.all(
+              color: showError ? Colors.orange : Colors.grey[700]!,
+              width: showError ? 2 : 1,
+            ),
+            boxShadow: showError
+                ? [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.4),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: hasText
-                    ? Text(
-                        reviewController.text,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          height: 1.4,
-                        ),
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    : const Text(
-                        'What did you think?\nTap to write your review…',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 15,
-                          height: 1.4,
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                hasText ? Icons.edit_outlined : Icons.rate_review_outlined,
-                color: Colors.white38,
-                size: 20,
+              if (showError)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Required',
+                    style: TextStyle(
+                      color: Colors.orange[400],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: hasText
+                        ? Text(
+                            reviewController.text,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              height: 1.4,
+                            ),
+                            maxLines: 5,
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : const Text(
+                            'What did you think?\nTap to write your review…',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 15,
+                              height: 1.4,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    hasText ? Icons.edit_outlined : Icons.rate_review_outlined,
+                    color: Colors.white38,
+                    size: 20,
+                  ),
+                ],
               ),
             ],
           ),
@@ -710,28 +759,67 @@ class _MyReviewSheetContentFormState
 
   /// Tags input field (comma-separated).
   Widget _buildTagsField() {
+    final tagsEmpty = _tagsFromController.isEmpty;
+    final showError = _showRequiredError && tagsEmpty;
+    final errorBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.orange, width: 2),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextFormField(
-          controller: _tagsController,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Tags',
-            labelStyle: const TextStyle(color: Colors.white70),
-            hintText: 'rock, indie, workout (comma-separated)',
-            hintStyle: const TextStyle(color: Colors.white30),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.white30),
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              'Required',
+              style: TextStyle(
+                color: Colors.orange[400],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.white30),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: showError
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.4),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                )
+              : null,
+          child: TextFormField(
+            controller: _tagsController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Tags',
+              labelStyle: const TextStyle(color: Colors.white70),
+              hintText: 'rock, indie, workout (comma-separated)',
+              hintStyle: const TextStyle(color: Colors.white30),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white30),
+              ),
+              enabledBorder: showError
+                  ? errorBorder
+                  : OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white30),
+                    ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: showError ? Colors.orange : Colors.red,
+                  width: 2,
+                ),
+              ),
             ),
           ),
         ),

@@ -409,16 +409,14 @@ void main() {
               'replies': 0,
               'reposts': 0,
               'date': Timestamp.fromDate(DateTime(2024, 5, 1)),
-              'genres': ['psychedelic rock', 'indie'],
-              'tags': ['chill', 'summer vibes'],
+              'genres': ['psychedelic rock', 'indie', 'chill', 'summer vibes'],
             },
           ]);
 
       final reviews = await service.fetchUserReviews('user1');
 
       expect(reviews.length, 1);
-      expect(reviews.first.genres, ['psychedelic rock', 'indie']);
-      expect(reviews.first.tags, ['chill', 'summer vibes']);
+      expect(reviews.first.genres, containsAll(['psychedelic rock', 'indie', 'chill', 'summer vibes']));
     });
 
     test('review with null genres and tags reads back as null', () async {
@@ -444,7 +442,6 @@ void main() {
       final reviews = await service.fetchUserReviews('user1');
 
       expect(reviews.first.genres, isNull);
-      expect(reviews.first.tags, isNull);
     });
   });
 }

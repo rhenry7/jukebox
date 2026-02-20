@@ -412,12 +412,9 @@ class FriendsReviewList extends ConsumerWidget {
   }
 }
 
-/// Merges MusicBrainz genres and user-created tags, deduped by lowercase.
+/// Returns genres for the review (deduped by lowercase).
 List<String> _allTagsForReview(Review review) {
-  final combined = <String>[
-    ...(review.genres ?? <String>[]),
-    ...(review.tags ?? <String>[]),
-  ];
+  final combined = review.genres ?? <String>[];
   final seen = <String>{};
   return combined.map((t) => t.trim()).where((t) => t.isNotEmpty).where((t) {
     final lower = t.toLowerCase();
@@ -1032,7 +1029,6 @@ extension ReviewCopyWith on Review {
     int? reposts,
     String? title,
     List<String>? genres,
-    List<String>? tags,
   }) {
     return Review(
       displayName: displayName ?? this.displayName,
@@ -1048,7 +1044,6 @@ extension ReviewCopyWith on Review {
       reposts: reposts ?? this.reposts,
       title: title ?? this.title,
       genres: genres ?? this.genres,
-      tags: tags ?? this.tags,
     );
   }
 }

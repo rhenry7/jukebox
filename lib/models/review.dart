@@ -1,5 +1,49 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Merges genres and tags (legacy) from Firestore, deduped by lowercase.
+List<String>? _mergedGenresFromFirestore(Map<String, dynamic> data) {
+  final g = data['genres'] as List?;
+  final t = data['tags'] as List?;
+  if (g == null && t == null) return null;
+  final combined = [
+    ...?g?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
+    ...?t?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
+  ];
+  if (combined.isEmpty) return null;
+  final seen = <String>{};
+  final result = <String>[];
+  for (final s in combined) {
+    final lower = s.toLowerCase();
+    if (!seen.contains(lower)) {
+      seen.add(lower);
+      result.add(s);
+    }
+  }
+  return result.isEmpty ? null : result;
+}
+
+/// Merges genres and tags (legacy) from JSON, deduped by lowercase.
+List<String>? _mergedGenresFromJson(Map<String, dynamic> json) {
+  final g = json['genres'] as List?;
+  final t = json['tags'] as List?;
+  if (g == null && t == null) return null;
+  final combined = [
+    ...?g?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
+    ...?t?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
+  ];
+  if (combined.isEmpty) return null;
+  final seen = <String>{};
+  final result = <String>[];
+  for (final s in combined) {
+    final lower = s.toLowerCase();
+    if (!seen.contains(lower)) {
+      seen.add(lower);
+      result.add(s);
+    }
+  }
+  return result.isEmpty ? null : result;
+}
+
 class Review {
   final String displayName;
   final String userId;
@@ -13,8 +57,7 @@ class Review {
   final int replies;
   final int reposts;
   final String title;
-  final List<String>? genres; // Optional genres for the track
-  final List<String>? tags; // User-added tags (genre, mood, etc.)
+  final List<String>? genres; // Genres for the track (user-added + MusicBrainz, merged)
 
   Review({
     required this.displayName,
@@ -30,7 +73,6 @@ class Review {
     required this.reposts,
     required this.title,
     this.genres,
-    this.tags,
   });
 
   // Factory method to create a Review from Firestore document data
@@ -49,12 +91,7 @@ class Review {
       likes: data['likes'] ?? 0,
       replies: data['replies'] ?? 0,
       reposts: data['reposts'] ?? 0,
-      genres: data['genres'] != null 
-          ? List<String>.from(data['genres'] as List)
-          : null,
-      tags: data['tags'] != null 
-          ? List<String>.from(data['tags'] as List)
-          : null,
+      genres: _mergedGenresFromFirestore(data),
     );
   }
 
@@ -72,12 +109,7 @@ class Review {
       likes: json['likes'] ?? 0,
       replies: json['replies'] ?? 0,
       reposts: json['reposts'] ?? 0,
-      genres: json['genres'] != null 
-          ? List<String>.from(json['genres'] as List)
-          : null,
-      tags: json['tags'] != null 
-          ? List<String>.from(json['tags'] as List)
-          : null,
+      genres: _mergedGenresFromJson(json),
     );
   }
 
@@ -96,7 +128,6 @@ class Review {
       'replies': replies,
       'reposts': reposts,
       'genres': genres,
-      'tags': tags,
     };
   }
 }

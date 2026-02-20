@@ -14,7 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// - Pull all community reviews (no cache).
 /// - Filter to reviews that match at least one favorite genre.
 class NewRecommendationService {
-  static const String _cacheKeyPrefix = 'for_you_review_recs_v1';
+  static const String _cacheKeyPrefix = 'for_you_review_recs_v3';
 
   static Future<List<ScoredReview>> getRecommendedReviews(
     String userId, {
@@ -61,20 +61,27 @@ class NewRecommendationService {
     final matched = <ScoredReview>[];
     for (final reviewWithDocId in allReviews) {
       final review = reviewWithDocId.review;
-      final reviewGenres = _extractReviewGenres(review);
+      final filtered = _filterReviewToClosestFavoriteGenres(
+        review: review,
+        favoriteGenres: favoriteGenres,
+      );
+      if (filtered == null) continue;
 
-      final matchedCount = favoriteGenres
-          .where((favorite) => reviewGenres.any((g) => _isGenreMatch(favorite, g)))
-          .length;
-      if (matchedCount == 0) continue;
-
-      final genreScore = (matchedCount / favoriteGenres.length).clamp(0.0, 1.0);
+      final coverageScore =
+          (filtered.matchCount / favoriteGenres.length).clamp(0.0, 1.0);
+      final genreScore =
+          ((coverageScore * 0.6) + (filtered.matchStrength * 0.4))
+              .clamp(0.0, 1.0);
       final ratingScore = (review.score / 5.0).clamp(0.0, 1.0);
       final finalScore = (genreScore * 0.8) + (ratingScore * 0.2);
 
       matched.add(
         ScoredReview(
-          reviewWithDocId: reviewWithDocId,
+          reviewWithDocId: ReviewWithDocId(
+            review: filtered.review,
+            docId: reviewWithDocId.docId,
+            fullReviewId: reviewWithDocId.fullReviewId,
+          ),
           finalScore: finalScore,
           genreScore: genreScore,
         ),
@@ -137,20 +144,10 @@ class NewRecommendationService {
   static Set<String> _extractFavoriteGenres(EnhancedUserPreferences? prefs) {
     if (prefs == null) return <String>{};
 
-    final favorites = prefs.favoriteGenres
+    return prefs.favoriteGenres
         .map(_normalizeGenre)
         .where((g) => g.isNotEmpty)
         .toSet();
-
-    // Fallback to strong genre weights to keep matching resilient even if
-    // favoriteGenres list is out of sync.
-    final weightedFavorites = prefs.genreWeights.entries
-        .where((e) => e.value >= 0.6)
-        .map((e) => _normalizeGenre(e.key))
-        .where((g) => g.isNotEmpty)
-        .toSet();
-
-    return {...favorites, ...weightedFavorites};
   }
 
   static Future<List<ReviewWithDocId>> _fetchAllCommunityReviews(
@@ -185,17 +182,78 @@ class NewRecommendationService {
     }
   }
 
-  static Set<String> _extractReviewGenres(Review review) {
-    return <String>{
-      ...(review.genres ?? const <String>[]),
-      ...(review.tags ?? const <String>[]),
-    }.map(_normalizeGenre).where((g) => g.isNotEmpty).toSet();
+  static _FilteredReview? _filterReviewToClosestFavoriteGenres({
+    required Review review,
+    required Set<String> favoriteGenres,
+  }) {
+    final matchedTags = <String>[];
+    final seen = <String>{};
+    double totalMatchScore = 0.0;
+    int matchCount = 0;
+
+    void collectMatches(List<String>? source, List<String> target) {
+      if (source == null || source.isEmpty) return;
+      for (final value in source) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty) continue;
+
+        final score = _closestFavoriteScore(trimmed, favoriteGenres);
+        if (score < 0.55) continue;
+
+        final key = trimmed.toLowerCase();
+        if (!seen.add(key)) continue;
+
+        target.add(trimmed);
+        totalMatchScore += score;
+        matchCount++;
+      }
+    }
+
+    collectMatches(review.genres, matchedTags);
+
+    if (matchCount == 0) return null;
+
+    final filteredReview = Review(
+      displayName: review.displayName,
+      userId: review.userId,
+      artist: review.artist,
+      review: review.review,
+      score: review.score,
+      date: review.date,
+      albumImageUrl: review.albumImageUrl,
+      userImageUrl: review.userImageUrl,
+      likes: review.likes,
+      replies: review.replies,
+      reposts: review.reposts,
+      title: review.title,
+      // For this path, matching is based on user-created review genres only.
+      genres: matchedTags.isEmpty ? null : matchedTags,
+    );
+
+    return _FilteredReview(
+      review: filteredReview,
+      matchCount: matchCount,
+      matchStrength: (totalMatchScore / matchCount).clamp(0.0, 1.0),
+    );
   }
 
-  static bool _isGenreMatch(String favoriteGenre, String reviewGenre) {
-    return favoriteGenre == reviewGenre ||
-        favoriteGenre.contains(reviewGenre) ||
-        reviewGenre.contains(favoriteGenre);
+  static double _closestFavoriteScore(
+    String reviewGenre,
+    Set<String> favoriteGenres,
+  ) {
+    final reviewNormalized = _normalizeGenre(reviewGenre);
+    if (reviewNormalized.isEmpty || favoriteGenres.isEmpty) return 0.0;
+
+    double best = 0.0;
+    for (final favorite in favoriteGenres) {
+      if (favorite == reviewNormalized) return 1.0;
+
+      if (favorite.contains(reviewNormalized) ||
+          reviewNormalized.contains(favorite)) {
+        if (best < 0.85) best = 0.85;
+      }
+    }
+    return best;
   }
 
   static String _normalizeGenre(String input) {
@@ -216,12 +274,8 @@ class NewRecommendationService {
         .where((g) => g.isNotEmpty)
         .toList()
       ..sort();
-    final weighted = prefs.genreWeights.entries
-        .map((e) => '${_normalizeGenre(e.key)}:${e.value.toStringAsFixed(3)}')
-        .toList()
-      ..sort();
 
-    return 'f=${favoriteGenres.join(",")};d=${dislikedGenres.join(",")};w=${weighted.join(",")}';
+    return 'f=${favoriteGenres.join(",")};d=${dislikedGenres.join(",")}';
   }
 
   static Future<List<ScoredReview>?> _loadCachedRecommendations({
@@ -298,4 +352,16 @@ class NewRecommendationService {
       debugPrint('[NEW_REC] Error saving local cache: $e');
     }
   }
+}
+
+class _FilteredReview {
+  final Review review;
+  final int matchCount;
+  final double matchStrength;
+
+  const _FilteredReview({
+    required this.review,
+    required this.matchCount,
+    required this.matchStrength,
+  });
 }

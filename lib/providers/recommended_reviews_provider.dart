@@ -5,7 +5,7 @@ import 'package:flutter_test_project/services/review_recommendation_service.dart
 
 /// Fetches personalized review recommendations for the current user.
 ///
-/// Uses the NLP-based recommendation engine (taste profile + embeddings).
+/// Filters community reviews by genre preferences and rating (3.5+).
 /// Auto-disposes when the widget tree no longer listens.
 final recommendedReviewsProvider =
     FutureProvider.autoDispose<List<ScoredReview>>((ref) async {
@@ -34,11 +34,8 @@ final refreshRecommendationsProvider = Provider<Future<void> Function()>((ref) {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) return;
 
-    debugPrint('[REC_PROVIDER] Force-refreshing recommendations');
-    await ReviewRecommendationService.getRecommendedReviews(
-      userId,
-      forceRefresh: true,
-    );
+    debugPrint('[REC_PROVIDER] Refreshing recommendations');
+    await ReviewRecommendationService.getRecommendedReviews(userId);
     ref.invalidate(recommendedReviewsProvider);
   };
 });

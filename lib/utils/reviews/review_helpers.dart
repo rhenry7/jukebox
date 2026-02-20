@@ -20,7 +20,7 @@ Future<List<Review>> fetchUserReviews() async {
 
 Future<void> submitReview(String review, double score, String artist,
     String title, bool liked, String albumImageUrl,
-    [List<String>? tags]) async {
+    [List<String>? genres]) async {
   // album display image url
   debugPrint(artist);
   final User? user = FirebaseAuth.instance.currentUser;
@@ -36,8 +36,6 @@ Future<void> submitReview(String review, double score, String artist,
     }));
     
     try {
-      // Try to get genres from cache (non-blocking, but try to include in review)
-      final cachedGenres = await GenreCacheService.getCachedGenres(title, artist);
       
       final docRef = await FirebaseFirestore.instance
           .collection('users')
@@ -54,8 +52,8 @@ Future<void> submitReview(String review, double score, String artist,
         'liked': liked,
         'date': FieldValue.serverTimestamp(), // Adds server timestamp
         'albumImageUrl': albumImageUrl,
-        if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
-        if (tags != null && tags.isNotEmpty) 'tags': tags,
+       // if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
+        if (genres != null && genres.isNotEmpty) 'genres': genres,
       });
       
       debugPrint('✅ Review saved successfully! Document ID: ${docRef.id}');

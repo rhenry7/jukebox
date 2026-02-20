@@ -19,7 +19,7 @@ Future<DocumentReference?> submitReviewTestable({
   required String title,
   required bool liked,
   required String albumImageUrl,
-  List<String>? tags,
+  List<String>? genres,
 }) async {
   final User? user = auth.currentUser;
   if (user == null) return null;
@@ -40,7 +40,7 @@ Future<DocumentReference?> submitReviewTestable({
     'liked': liked,
     'date': FieldValue.serverTimestamp(),
     'albumImageUrl': albumImageUrl,
-    if (tags != null && tags.isNotEmpty) 'tags': tags,
+    if (genres != null && genres.isNotEmpty) 'genres': genres,
   });
   return docRef;
 }
@@ -106,7 +106,7 @@ void main() {
       expect(data['albumImageUrl'], 'https://example.com/image.jpg');
     });
 
-    test('includes tags when provided', () async {
+    test('includes genres when provided', () async {
       final docRef = await submitReviewTestable(
         firestore: fakeFirestore,
         auth: mockAuth,
@@ -116,16 +116,16 @@ void main() {
         title: 'Song',
         liked: false,
         albumImageUrl: '',
-        tags: ['rock', 'indie', 'workout'],
+        genres: ['rock', 'indie', 'workout'],
       );
 
       final doc = await docRef!.get();
       final data = doc.data() as Map<String, dynamic>;
 
-      expect(data['tags'], ['rock', 'indie', 'workout']);
+      expect(data['genres'], ['rock', 'indie', 'workout']);
     });
 
-    test('does not include tags field when tags are empty', () async {
+    test('does not include genres field when genres are empty', () async {
       final docRef = await submitReviewTestable(
         firestore: fakeFirestore,
         auth: mockAuth,
@@ -135,13 +135,13 @@ void main() {
         title: 'Song',
         liked: false,
         albumImageUrl: '',
-        tags: [],
+        genres: [],
       );
 
       final doc = await docRef!.get();
       final data = doc.data() as Map<String, dynamic>;
 
-      expect(data.containsKey('tags'), false);
+      expect(data.containsKey('genres'), false);
     });
 
     test('returns null when user is not signed in', () async {
@@ -298,8 +298,7 @@ void main() {
         'likes': 5,
         'replies': 1,
         'reposts': 0,
-        'genres': ['Rock'],
-        'tags': ['energetic', 'classic'],
+        'genres': ['Rock', 'energetic', 'classic'],
       });
 
       final snapshot = await fakeFirestore
@@ -314,8 +313,7 @@ void main() {
       expect(review.artist, 'Artist');
       expect(review.title, 'Song');
       expect(review.score, 4.5);
-      expect(review.genres, ['Rock']);
-      expect(review.tags, ['energetic', 'classic']);
+      expect(review.genres, containsAll(['Rock', 'energetic', 'classic']));
     });
   });
 

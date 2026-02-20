@@ -103,7 +103,6 @@ class SignalCollectionService {
     required String track,
     required double rating,
     List<String> genres = const [],
-    List<String> tags = const [],
   }) {
     _enqueue({
       'type': reviewSubmit,
@@ -113,7 +112,7 @@ class SignalCollectionService {
       'sourceContext': 'review',
       'metadata': {
         'rating': rating,
-        'tags': tags,
+        'genres': genres,
       },
     });
   }
