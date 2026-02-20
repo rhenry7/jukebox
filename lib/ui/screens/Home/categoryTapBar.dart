@@ -18,80 +18,75 @@ class CategoryTapBar extends StatefulWidget {
 }
 
 class _CategoryTapBarState extends State<CategoryTapBar> {
-  static const Duration _headerTweenDuration = Duration(milliseconds: 100);
+  static const Duration _headerTweenDuration = Duration(milliseconds: 280);
   bool _isTabBarVisible = true;
+
+  Widget _buildPillTab(String label) {
+    return Tab(
+      child: SizedBox(
+        height: 42,
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildTabBarHeader() {
     return Container(
       padding: const EdgeInsets.only(
-        left: 16.0,
-        right: 16.0,
+        left: 14.0,
+        right: 14.0,
         top: 8.0,
-        bottom: 24.0,
+        bottom: 16.0,
       ),
       alignment: Alignment.centerLeft,
-      child: TabBar(
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white70,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.red[600],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF17181D),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+            width: 0.8,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 18,
+              spreadRadius: 1,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-        tabs: const [
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(width: 6),
-                Text(
-                  'Friends',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+        child: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: TabBar(
+            labelColor: const Color(0xFF17181D),
+            unselectedLabelColor: Colors.white.withValues(alpha: 0.92),
+            isScrollable: false,
+            tabAlignment: TabAlignment.fill,
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
+            indicator: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: Colors.white,
             ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
+            labelPadding: EdgeInsets.zero,
+            tabs: [
+              _buildPillTab('Friends'),
+              _buildPillTab('Community'),
+              _buildPillTab('For You'),
+            ],
           ),
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(width: 6),
-                Text(
-                  'Community',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(width: 6),
-                Text(
-                  'For You',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
