@@ -78,6 +78,7 @@ class _MyReviewSheetContentFormState
         setState(() => _showRequiredError = false);
       }
     }
+
     reviewController.addListener(clearRequiredError);
     _tagsController.addListener(clearRequiredError);
   }
@@ -479,9 +480,8 @@ class _MyReviewSheetContentFormState
       final submittedArtist = _selectedTrackArtist.isNotEmpty
           ? _selectedTrackArtist
           : widget.artist;
-      final submittedTrack = _selectedTrackTitle.isNotEmpty
-          ? _selectedTrackTitle
-          : widget.title;
+      final submittedTrack =
+          _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title;
       SignalCollectionService.logReviewSubmit(
         artist: submittedArtist,
         track: submittedTrack,
@@ -734,7 +734,9 @@ class _MyReviewSheetContentFormState
                             overflow: TextOverflow.ellipsis,
                           )
                         : const Text(
-                            'What did you think?\nTap to write your review…',
+                            'Better reviews lead to better recommendations, so '
+                            'tell me how you feel, how you really-really feel'
+                            '',
                             style: TextStyle(
                               color: Colors.white38,
                               fontSize: 15,

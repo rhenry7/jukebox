@@ -196,19 +196,23 @@ class MainNavState extends ConsumerState<MainNav> {
                 child: NavigationBar(
                   onDestinationSelected: _onItemTapped,
                   selectedIndex: currentPageIndex,
-                  indicatorColor: Colors.white.withOpacity(1),
+                  indicatorColor: Colors.white.withOpacity(0),
                   indicatorShape: const CircleBorder(),
                   backgroundColor: Colors.transparent,
                   labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
                   destinations: <Widget>[
-                    const NavigationDestination(
-                      selectedIcon: Icon(Ionicons.home),
-                      icon: Icon(Ionicons.home_outline),
+                    NavigationDestination(
+                      selectedIcon:
+                          const Icon(Ionicons.home, color: Colors.white),
+                      icon:
+                          Icon(Ionicons.home_outline, color: Colors.grey[500]!),
                       label: '',
                     ),
-                    const NavigationDestination(
-                      selectedIcon: Icon(Ionicons.planet_outline),
-                      icon: Icon(Ionicons.planet),
+                    NavigationDestination(
+                      selectedIcon:
+                          const Icon(Ionicons.planet, color: Colors.white),
+                      icon: Icon(Ionicons.planet_outline,
+                          color: Colors.grey[500]!),
                       label: '',
                     ),
                     NavigationDestination(
@@ -218,14 +222,17 @@ class MainNavState extends ConsumerState<MainNav> {
                           size: 40, color: Colors.greenAccent[700]),
                       label: '',
                     ),
-                    const NavigationDestination(
-                      selectedIcon: Icon(Ionicons.flash),
-                      icon: Icon(Ionicons.flash_outline),
+                    NavigationDestination(
+                      selectedIcon:
+                          const Icon(Ionicons.flash, color: Colors.white),
+                      icon: Icon(Ionicons.flash_outline,
+                          color: Colors.grey[500]!),
                       label: '',
                     ),
-                    const NavigationDestination(
-                      selectedIcon: Icon(Ionicons.person_circle),
-                      icon: Icon(Ionicons.person_circle_outline),
+                    NavigationDestination(
+                      selectedIcon: const Icon(Ionicons.person_circle, color: Colors.white),
+                      icon: Icon(Ionicons.person_circle_outline,
+                          color: Colors.grey[500]!),
                       label: '',
                     ),
                   ],

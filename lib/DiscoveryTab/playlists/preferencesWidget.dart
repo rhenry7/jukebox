@@ -57,8 +57,7 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
   Future<void> _onPlaylistLiked(String playlistId) async {
     // Update user preferences based on liked playlist
     try {
-      final updatedPreferences =
-          await _playlistService.updatePreferencesFromHistory(
+      await _playlistService.updatePreferencesFromHistory(
         widget.userPreferences,
         [playlistId], // liked playlists
         [], // disliked playlists
@@ -68,7 +67,7 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
       // await _saveUserPreferences(updatedPreferences);
 
       // Optionally refresh recommendations
-      _loadPersonalizedPlaylists();
+      await _loadPersonalizedPlaylists();
     } catch (e) {
       debugPrint('Error updating preferences: $e');
     }
@@ -95,47 +94,38 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            DiscoBallLoading(),
-            SizedBox(height: 16),
-            Text('Finding playlists for you...'),
-          ],
-        ),
+      return _buildScrollableCenteredState(
+        children: const [
+          DiscoBallLoading(),
+          SizedBox(height: 16),
+          Text('Finding playlists for you...'),
+        ],
       );
     }
 
     if (_error.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(_error, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadPersonalizedPlaylists,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return _buildScrollableCenteredState(
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(_error, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadPersonalizedPlaylists,
+            child: const Text('Retry'),
+          ),
+        ],
       );
     }
 
     if (_playlists.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.playlist_play, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No playlists found'),
-            Text('Try updating your music preferences'),
-          ],
-        ),
+      return _buildScrollableCenteredState(
+        children: const [
+          Icon(Icons.playlist_play, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('No playlists found'),
+          Text('Try updating your music preferences'),
+        ],
       );
     }
 
@@ -148,6 +138,32 @@ class _PersonalizedPlaylistsTabState extends State<PersonalizedPlaylistsTab> {
           playlist: playlist,
           onTap: () => _onPlaylistTapped(playlist),
           onLike: () => _onPlaylistLiked(playlist.id!),
+        );
+      },
+    );
+  }
+
+  Widget _buildScrollableCenteredState({
+    required List<Widget> children,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: children,
+                ),
+              ),
+            ),
+          ),
         );
       },
     );
@@ -269,7 +285,8 @@ class PlaylistCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.music_note, size: 16, color: Colors.grey),
+                        const Icon(Icons.music_note,
+                            size: 16, color: Colors.grey),
                         const SizedBox(width: 4),
                         Text(
                           '${playlist.tracks?.total ?? 0} tracks',
@@ -280,7 +297,8 @@ class PlaylistCard extends StatelessWidget {
                         ),
                         if (playlist.followers?.total != null) ...[
                           const SizedBox(width: 12),
-                          const Icon(Icons.people, size: 16, color: Colors.grey),
+                          const Icon(Icons.people,
+                              size: 16, color: Colors.grey),
                           const SizedBox(width: 4),
                           Text(
                             _formatFollowerCount(playlist.followers!.total!),

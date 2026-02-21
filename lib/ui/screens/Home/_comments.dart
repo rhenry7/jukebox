@@ -849,7 +849,7 @@ class _UserProfileSheetState extends ConsumerState<_UserProfileSheet> {
                     color: Colors.white, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isFriend ? Colors.red[700] : Colors.blue[700],
+                backgroundColor: isFriend ? Colors.red[700] : Colors.green[700],
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30)),
@@ -904,24 +904,44 @@ class _LikeButton extends ConsumerWidget {
                   }
                 }
               : null,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Flex(
+            direction: Axis.horizontal,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? Colors.red : Colors.white70,
-                size: 18,
-              ),
-              if (likeCount > 0) ...[
-                const SizedBox(width: 4),
-                Text(
-                  _formatLikeCount(likeCount),
-                  style: TextStyle(
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
                     color: isLiked ? Colors.red : Colors.white70,
-                    fontSize: 12,
+                    size: 24,
                   ),
-                ),
-              ],
+                  if (likeCount > 0) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatLikeCount(likeCount),
+                      style: TextStyle(
+                        color: isLiked ? Colors.red : Colors.white70,
+                        fontSize: 8,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              // TODO: add feature for resharing/reposting another users review
+              // Column(
+              //   mainAxisSize: MainAxisSize.min,
+              //   children: [
+              //     Icon(
+              //       isLiked
+              //           ? Icons.repeat
+              //           : Icons
+              //               .repeat_on, // change from "isLiked" to "isRepeated"
+              //       color: isLiked ? Colors.red : Colors.white70,
+              //       size: 24,
+              //     ),
+              //   ],
+              // )
             ],
           ),
         );
