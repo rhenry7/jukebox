@@ -145,7 +145,7 @@ class MainNavState extends ConsumerState<MainNav> {
                       color: Colors.red,
                       shadows: [
                         Shadow(
-                          blurRadius: 15.0, // shadow blur
+                          blurRadius: 25.0, // shadow blur
                           color: Colors.red[600]!, // shadow color
                           offset: const Offset(2.0, 2.0), // shadow displacement
                         ),
@@ -230,7 +230,8 @@ class MainNavState extends ConsumerState<MainNav> {
                       label: '',
                     ),
                     NavigationDestination(
-                      selectedIcon: const Icon(Ionicons.person_circle, color: Colors.white),
+                      selectedIcon: const Icon(Ionicons.person_circle,
+                          color: Colors.white),
                       icon: Icon(Ionicons.person_circle_outline,
                           color: Colors.grey[500]!),
                       label: '',
