@@ -19,7 +19,24 @@ class CategoryTapBar extends StatefulWidget {
 
 class _CategoryTapBarState extends State<CategoryTapBar> {
   static const Duration _headerTweenDuration = Duration(milliseconds: 280);
+  static const double _scrollToggleThreshold = 14.0;
+  static const List<String> _genreOptions = <String>[
+    'All',
+    'Chill',
+    'Rap',
+    'Rock',
+    'Electronic',
+    'Classy',
+    'Reggae',
+    'Soul Funk',
+    'Jazz',
+    'Acoustic',
+  ];
+
   bool _isTabBarVisible = true;
+  final Set<String> _selectedGenres = <String>{};
+  double _accumulatedScrollDelta = 0.0;
+  double? _lastScrollPixels;
 
   Widget _buildPillTab(String label) {
     return Tab(
@@ -91,6 +108,69 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
     );
   }
 
+  Widget _buildGenreFilterRow() {
+    return Container(
+      padding: const EdgeInsets.only(
+        left: 14.0,
+        right: 14.0,
+        bottom: 12.0,
+      ),
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _genreOptions.map((genre) {
+            final key = genre.toLowerCase();
+            final selected = key == 'all'
+                ? _selectedGenres.isEmpty
+                : _selectedGenres.contains(key);
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 10.0),
+              child: FilterChip(
+                label: Text(
+                  genre,
+                  style: TextStyle(
+                    color: selected ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                selected: selected,
+                onSelected: (_) => _toggleGenreFilter(genre),
+                showCheckmark: false,
+                backgroundColor: Colors.white10,
+                selectedColor: Colors.grey.shade300,
+                side: BorderSide(
+                  color: Colors.white.withOpacity(0.12),
+                  width: 0.8,
+                ),
+                shape: const StadiumBorder(),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _toggleGenreFilter(String genre) {
+    final key = genre.toLowerCase();
+    setState(() {
+      if (key == 'all') {
+        _selectedGenres.clear();
+        return;
+      }
+
+      if (_selectedGenres.contains(key)) {
+        _selectedGenres.remove(key);
+      } else {
+        _selectedGenres.add(key);
+      }
+    });
+  }
+
   void _setBarsVisible(bool visible) {
     if (_isTabBarVisible == visible) {
       return;
@@ -101,15 +181,59 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
     widget.onChromeVisibilityChanged?.call(visible);
   }
 
-  bool _onScrollNotification(UserScrollNotification notification) {
+  bool _onScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) {
       return false;
     }
 
-    if (notification.direction == ScrollDirection.reverse) {
-      _setBarsVisible(false);
-    } else if (notification.direction == ScrollDirection.forward) {
+    if (notification is ScrollStartNotification) {
+      _lastScrollPixels = notification.metrics.pixels;
+      _accumulatedScrollDelta = 0.0;
+      return false;
+    }
+
+    if (notification is ScrollUpdateNotification) {
+      final currentPixels = notification.metrics.pixels;
+      final lastPixels = _lastScrollPixels;
+      _lastScrollPixels = currentPixels;
+      if (lastPixels == null) {
+        return false;
+      }
+
+      final delta = currentPixels - lastPixels;
+      if (delta.abs() < 0.1) {
+        return false;
+      }
+
+      final sameDirection = _accumulatedScrollDelta == 0.0 ||
+          (_accumulatedScrollDelta.isNegative == delta.isNegative);
+      _accumulatedScrollDelta =
+          sameDirection ? (_accumulatedScrollDelta + delta) : delta;
+
+      if (_accumulatedScrollDelta.abs() >= _scrollToggleThreshold) {
+        if (_accumulatedScrollDelta > 0) {
+          _setBarsVisible(false);
+        } else {
+          _setBarsVisible(true);
+        }
+        _accumulatedScrollDelta = 0.0;
+      }
+      return false;
+    }
+
+    // If user settles at the end of a list, bring chrome back automatically.
+    // Restrict to idle to avoid animation jitter while actively dragging.
+    if (notification is UserScrollNotification &&
+        notification.metrics.extentAfter <= 1.0 &&
+        notification.direction == ScrollDirection.idle) {
+      _accumulatedScrollDelta = 0.0;
       _setBarsVisible(true);
+      return false;
+    }
+
+    if (notification is ScrollEndNotification) {
+      _accumulatedScrollDelta = 0.0;
+      _lastScrollPixels = null;
     }
 
     return false;
@@ -136,7 +260,13 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                 curve:
                     _isTabBarVisible ? Curves.easeOutCubic : Curves.easeInCubic,
                 tween: Tween<double>(end: _isTabBarVisible ? 1.0 : 0.0),
-                child: _buildTabBarHeader(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildTabBarHeader(),
+                    _buildGenreFilterRow(),
+                  ],
+                ),
                 builder: (context, value, child) {
                   final visibility = value.clamp(0.0, 1.0);
                   return Align(
@@ -154,13 +284,19 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
               ),
             ),
             Expanded(
-              child: NotificationListener<UserScrollNotification>(
+              child: NotificationListener<ScrollNotification>(
                 onNotification: _onScrollNotification,
-                child: const TabBarView(
+                child: TabBarView(
                   children: [
-                    FriendsReviewsCollection(),
-                    CommunityReviewsCollection(),
-                    RecommendedReviewsCollection(),
+                    FriendsReviewsCollection(
+                      selectedGenres: Set<String>.from(_selectedGenres),
+                    ),
+                    CommunityReviewsCollection(
+                      selectedGenres: Set<String>.from(_selectedGenres),
+                    ),
+                    RecommendedReviewsCollection(
+                      selectedGenres: Set<String>.from(_selectedGenres),
+                    ),
                   ],
                 ),
               ),

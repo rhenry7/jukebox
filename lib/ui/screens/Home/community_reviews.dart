@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
-import '../../../GIFs/gifs.dart';
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/community_reviews_provider.dart';
@@ -15,7 +15,12 @@ import '_comments.dart' show ReviewCardWithGenres;
 
 /// Community reviews widget - shows all users' reviews with lazy loading
 class CommunityReviewsCollection extends ConsumerStatefulWidget {
-  const CommunityReviewsCollection({super.key});
+  const CommunityReviewsCollection({
+    super.key,
+    this.selectedGenres = const <String>{},
+  });
+
+  final Set<String> selectedGenres;
 
   @override
   ConsumerState<CommunityReviewsCollection> createState() =>
@@ -26,8 +31,9 @@ class _CommunityReviewsCollectionState
     extends ConsumerState<CommunityReviewsCollection> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
-  int _previousItemCount = 0;
-  double _previousScrollPosition = 0.0;
+  bool _hasMoreItems = true;
+  Future<List<ReviewWithDocId>>? _genreFilteredFuture;
+  String _genreRequestKey = '';
 
   @override
   void initState() {
@@ -44,9 +50,14 @@ class _CommunityReviewsCollectionState
   }
 
   void _onScroll() {
-    // Load more when user scrolls near the bottom (80% of the way)
+    if (widget.selectedGenres.isNotEmpty) return;
+    if (!_hasMoreItems) return;
+
+    // Load more only while actively scrolling down near the bottom.
     if (!_isLoadingMore &&
         _scrollController.hasClients &&
+        _scrollController.position.userScrollDirection ==
+            ScrollDirection.reverse &&
         _scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent * 0.8) {
       _loadMore();
@@ -55,16 +66,6 @@ class _CommunityReviewsCollectionState
 
   Future<void> _loadMore() async {
     if (_isLoadingMore) return;
-
-    // Save current scroll position and item count before loading
-    if (_scrollController.hasClients) {
-      _previousScrollPosition = _scrollController.position.pixels;
-      // Get current item count from the provider
-      final currentLimit = ref.read(communityReviewsLimitProvider);
-      final currentReviewsAsync =
-          ref.read(communityReviewsProvider(currentLimit));
-      _previousItemCount = currentReviewsAsync.value?.length ?? 0;
-    }
 
     setState(() {
       _isLoadingMore = true;
@@ -81,37 +82,6 @@ class _CommunityReviewsCollectionState
         _isLoadingMore = false;
       });
     }
-  }
-
-  void _restoreScrollPosition(int newItemCount) {
-    // Only restore if we actually loaded more items (lazy loading scenario)
-    if (newItemCount > _previousItemCount && _scrollController.hasClients) {
-      final wasNearBottom = _previousScrollPosition >=
-          (_scrollController.position.maxScrollExtent * 0.9);
-
-      // Use post-frame callback to restore position after rebuild completes
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients && mounted) {
-          // Wait one more frame to ensure list is fully built
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients && mounted) {
-              if (wasNearBottom) {
-                // If user was near bottom, scroll to new bottom to show new items
-                _scrollController.animateTo(
-                  _scrollController.position.maxScrollExtent,
-                  duration: const Duration(milliseconds: 100),
-                  curve: Curves.easeOut,
-                );
-              } else {
-                // Otherwise, restore the exact previous position
-                _scrollController.jumpTo(_previousScrollPosition);
-              }
-            }
-          });
-        }
-      });
-    }
-    _previousItemCount = newItemCount;
   }
 
   @override
@@ -183,12 +153,104 @@ class _CommunityReviewsCollectionState
       );
     }
 
+    if (widget.selectedGenres.isNotEmpty) {
+      _hasMoreItems = false;
+      _ensureGenreFilteredFuture();
+
+      return FutureBuilder<List<ReviewWithDocId>>(
+        future: _genreFilteredFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return ListView.builder(
+              itemCount: 3,
+              itemBuilder: (_, __) => const ReviewCardSkeleton(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            debugPrint(
+                '❌ Error loading full community genre query: ${snapshot.error}');
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Error loading community reviews',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    snapshot.error.toString(),
+                    style: const TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _refreshGenreFilteredFuture,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final filteredReviews = snapshot.data ?? <ReviewWithDocId>[];
+          if (filteredReviews.isEmpty) {
+            final selectedLabels = widget.selectedGenres.join(', ');
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.tune, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No reviews for selected genres',
+                      style: TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      selectedLabels.isEmpty
+                          ? 'Try choosing a different genre filter.'
+                          : 'Try adjusting: $selectedLabels',
+                      style: const TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: _refreshGenreFilteredFuture,
+            color: Colors.red[600],
+            child: Column(
+              children: [
+                const Gap(10),
+                Expanded(
+                  child: CommunityReviewList(
+                    key: ValueKey(
+                        'community_genre_reviews_${filteredReviews.length}'),
+                    reviews: filteredReviews,
+                    scrollController: _scrollController,
+                    isLoadingMore: false,
+                    onLoadMore: () {},
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
     return reviewsAsync.when(
       data: (reviews) {
-        // Restore scroll position after new items are loaded (only if we're loading more)
-        if (_isLoadingMore || reviews.length > _previousItemCount) {
-          _restoreScrollPosition(reviews.length);
-        }
+        _hasMoreItems = reviews.length >= limit;
 
         if (reviews.isEmpty) {
           return Center(
@@ -259,13 +321,17 @@ class _CommunityReviewsCollectionState
           ),
         );
       },
-      loading: () => ListView.builder(
-        itemCount: 3,
-        itemBuilder: (context, index) {
-          return const ReviewCardSkeleton();
-        },
-      ),
+      loading: () {
+        _hasMoreItems = false;
+        return ListView.builder(
+          itemCount: 3,
+          itemBuilder: (context, index) {
+            return const ReviewCardSkeleton();
+          },
+        );
+      },
       error: (error, stackTrace) {
+        _hasMoreItems = false;
         debugPrint('❌ Error loading community reviews: $error');
         return Center(
           child: Column(
@@ -295,6 +361,87 @@ class _CommunityReviewsCollectionState
         );
       },
     );
+  }
+
+  void _ensureGenreFilteredFuture() {
+    final key = _genresKey(widget.selectedGenres);
+    if (_genreRequestKey == key && _genreFilteredFuture != null) {
+      return;
+    }
+    _genreRequestKey = key;
+    _genreFilteredFuture = _fetchFullCommunityGenreFilteredReviews(
+      widget.selectedGenres,
+    );
+  }
+
+  Future<void> _refreshGenreFilteredFuture() async {
+    setState(() {
+      _genreRequestKey = '';
+      _genreFilteredFuture = _fetchFullCommunityGenreFilteredReviews(
+        widget.selectedGenres,
+      );
+    });
+    await _genreFilteredFuture;
+  }
+
+  String _genresKey(Set<String> selectedGenres) {
+    final sorted = selectedGenres.toList()..sort();
+    return sorted.join('|');
+  }
+
+  Future<List<ReviewWithDocId>> _fetchFullCommunityGenreFilteredReviews(
+    Set<String> selectedGenres,
+  ) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collectionGroup('reviews')
+        .orderBy('date', descending: true)
+        .get();
+
+    final reviews = <ReviewWithDocId>[];
+    for (final doc in snapshot.docs) {
+      try {
+        final review = Review.fromFirestore(doc.data());
+        reviews.add(
+          ReviewWithDocId(
+            review: review,
+            docId: doc.id,
+            fullReviewId: doc.reference.path,
+          ),
+        );
+      } catch (e) {
+        debugPrint('[COMMUNITY] Error parsing full-query review ${doc.id}: $e');
+      }
+    }
+
+    return _filterReviewsByGenres(reviews, selectedGenres);
+  }
+
+  List<ReviewWithDocId> _filterReviewsByGenres(
+    List<ReviewWithDocId> reviews,
+    Set<String> selectedGenres,
+  ) {
+    if (selectedGenres.isEmpty) return reviews;
+
+    return reviews.where((reviewWithDocId) {
+      final reviewGenres = reviewWithDocId.review.genres;
+      if (reviewGenres == null || reviewGenres.isEmpty) return false;
+
+      final normalizedReviewGenres = reviewGenres
+          .map((genre) => genre.toLowerCase().trim())
+          .where((genre) => genre.isNotEmpty)
+          .toList();
+
+      for (final selected in selectedGenres) {
+        for (final reviewGenre in normalizedReviewGenres) {
+          if (reviewGenre == selected ||
+              reviewGenre.contains(selected) ||
+              selected.contains(reviewGenre)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }).toList();
   }
 }
 

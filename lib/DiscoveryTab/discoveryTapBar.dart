@@ -19,7 +19,10 @@ class DiscoveryTapBar extends StatefulWidget {
 
 class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
   static const Duration _headerTweenDuration = Duration(milliseconds: 280);
+  static const double _scrollToggleThreshold = 14.0;
   bool _isTabBarVisible = true;
+  double _accumulatedScrollDelta = 0.0;
+  double? _lastScrollPixels;
 
   Widget _buildPillTab(String label) {
     return Tab(
@@ -100,15 +103,59 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
     widget.onChromeVisibilityChanged?.call(visible);
   }
 
-  bool _onScrollNotification(UserScrollNotification notification) {
+  bool _onScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) {
       return false;
     }
 
-    if (notification.direction == ScrollDirection.reverse) {
-      _setChromeVisible(false);
-    } else if (notification.direction == ScrollDirection.forward) {
+    if (notification is ScrollStartNotification) {
+      _lastScrollPixels = notification.metrics.pixels;
+      _accumulatedScrollDelta = 0.0;
+      return false;
+    }
+
+    if (notification is ScrollUpdateNotification) {
+      final currentPixels = notification.metrics.pixels;
+      final lastPixels = _lastScrollPixels;
+      _lastScrollPixels = currentPixels;
+      if (lastPixels == null) {
+        return false;
+      }
+
+      final delta = currentPixels - lastPixels;
+      if (delta.abs() < 0.1) {
+        return false;
+      }
+
+      final sameDirection = _accumulatedScrollDelta == 0.0 ||
+          (_accumulatedScrollDelta.isNegative == delta.isNegative);
+      _accumulatedScrollDelta =
+          sameDirection ? (_accumulatedScrollDelta + delta) : delta;
+
+      if (_accumulatedScrollDelta.abs() >= _scrollToggleThreshold) {
+        if (_accumulatedScrollDelta > 0) {
+          _setChromeVisible(false);
+        } else {
+          _setChromeVisible(true);
+        }
+        _accumulatedScrollDelta = 0.0;
+      }
+      return false;
+    }
+
+    // If user settles at the end of a list, bring chrome back automatically.
+    // Restrict to idle to avoid animation jitter while actively dragging.
+    if (notification is UserScrollNotification &&
+        notification.metrics.extentAfter <= 1.0 &&
+        notification.direction == ScrollDirection.idle) {
+      _accumulatedScrollDelta = 0.0;
       _setChromeVisible(true);
+      return false;
+    }
+
+    if (notification is ScrollEndNotification) {
+      _accumulatedScrollDelta = 0.0;
+      _lastScrollPixels = null;
     }
 
     return false;
@@ -153,7 +200,7 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
               ),
             ),
             Expanded(
-              child: NotificationListener<UserScrollNotification>(
+              child: NotificationListener<ScrollNotification>(
                 onNotification: _onScrollNotification,
                 child: const TabBarView(
                   children: [
