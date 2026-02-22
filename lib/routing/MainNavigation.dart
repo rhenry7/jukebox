@@ -139,15 +139,15 @@ class MainNavState extends ConsumerState<MainNav> {
               title: Padding(
                 padding: const EdgeInsets.all(0.0),
                 child: Text(
-                  'MIXTAKES',
+                  'JUKEBOXD',
                   style: GoogleFonts.gasoekOne(
                     textStyle: TextStyle(
                       color: Colors.red,
                       shadows: [
                         Shadow(
-                          blurRadius: 25.0, // shadow blur
-                          color: Colors.red[600]!, // shadow color
-                          offset: const Offset(2.0, 2.0), // shadow displacement
+                          blurRadius: 20.0, // shadow blur
+                          color: Colors.red[800]!, // shadow color
+                          offset: const Offset(5.0, 5.0), // shadow displacement
                         ),
                       ],
                     ),

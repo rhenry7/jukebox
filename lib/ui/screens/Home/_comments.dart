@@ -525,7 +525,7 @@ class ReviewCardWidget extends ConsumerWidget {
                             formatRelativeTime(review.date),
                             style: const TextStyle(
                               color: Colors.white70,
-                              fontSize: 7,
+                              fontSize: 14,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -550,6 +550,42 @@ class ReviewCardWidget extends ConsumerWidget {
               overflow: TextOverflow.visible,
             ),
           ],
+          // Tags: MusicBrainz genres + user-created tags (pills at the bottom)
+          ...() {
+            final allTags = _allTagsForReview(review);
+            if (allTags.isEmpty) return <Widget>[];
+            return [
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: allTags.take(10).map((tag) {
+                  return Chip(
+                    label: Text(
+                      tag,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    side: BorderSide(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ];
+          }(),
           // Username row - tappable to show user profile / add friend
           if (review.displayName.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -632,42 +668,6 @@ class ReviewCardWidget extends ConsumerWidget {
               }),
             ),
           ],
-          // Tags: MusicBrainz genres + user-created tags (pills at the bottom)
-          ...() {
-            final allTags = _allTagsForReview(review);
-            if (allTags.isEmpty) return <Widget>[];
-            return [
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8.0,
-                runSpacing: 8.0,
-                children: allTags.take(10).map((tag) {
-                  return Chip(
-                    label: Text(
-                      tag,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    backgroundColor: Colors.white.withOpacity(0.1),
-                    side: BorderSide(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ];
-          }(),
         ],
       ),
     );

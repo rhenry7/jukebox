@@ -124,7 +124,7 @@ class _FriendsReviewsCollectionState
                 icon: const Icon(Icons.public),
                 label: const Text('Go to Community'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[600],
+                  backgroundColor: Colors.red[700],
                   foregroundColor: Colors.white,
                 ),
               ),

@@ -1,4 +1,3 @@
-
 String formatDateTimeDifference(String isoDateTime) {
   final DateTime dateTime = DateTime.parse(isoDateTime);
   final Duration difference = DateTime.now().difference(dateTime);
@@ -16,29 +15,17 @@ String formatDateTimeDifference(String isoDateTime) {
 
 /// Format relative time in a human-readable way (e.g., "8 minutes ago", "2 days ago")
 String formatRelativeTime(DateTime? dateTime) {
-  if (dateTime == null) return '';
-  
-  final now = DateTime.now();
-  final difference = now.difference(dateTime);
-  
-  if (difference.inDays >= 365) {
-    final years = (difference.inDays / 365).floor();
-    return years == 1 ? '1 year ago' : '$years years ago';
-  } else if (difference.inDays >= 30) {
-    final months = (difference.inDays / 30).floor();
-    return months == 1 ? '1 month ago' : '$months months ago';
-  } else if (difference.inDays >= 1) {
-    final days = difference.inDays;
-    return days == 1 ? '1 day ago' : '$days days ago';
-  } else if (difference.inHours >= 1) {
-    final hours = difference.inHours;
-    return hours == 1 ? '1 hour ago' : '$hours hours ago';
-  } else if (difference.inMinutes >= 1) {
-    final minutes = difference.inMinutes;
-    return minutes == 1 ? '1 minute ago' : '$minutes minutes ago';
-  } else {
-    return 'just now';
-  }
+  if (dateTime == null) return '—';
+
+  final diff = DateTime.now().difference(dateTime);
+
+  if (diff.inSeconds < 60) return '${diff.inSeconds}s';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+  if (diff.inHours < 24) return '${diff.inHours}h';
+  if (diff.inDays < 7) return '${diff.inDays}d';
+  if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w';
+  if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo';
+  return '${(diff.inDays / 365).floor()}y';
 }
 
 String getCurrentDate() {
