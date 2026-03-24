@@ -446,30 +446,28 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
                               }
                               return Column(
                                 children: [
-                                  const SizedBox(height: 16),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 0, horizontal: 16),
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        onPressed: _refreshRecommendations,
+                                        icon: const Icon(Icons.refresh),
+                                        label: const Text('Refresh'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.grey[900],
+                                          foregroundColor: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 16,
+                                  ),
                                   Expanded(
                                     child: TrackRecommendationFromPreferences(
                                         albums: snapshot.data!),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(15.0),
-                                    child: SizedBox(
-                                        width: 300,
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(left: 10.0),
-                                          child: FilledButton.tonalIcon(
-                                              style: ButtonStyle(
-                                                backgroundColor:
-                                                    WidgetStateProperty.all(
-                                                        Colors.white12),
-                                              ),
-                                              onPressed:
-                                                  _refreshRecommendations,
-                                              icon: const Icon(Icons.refresh,
-                                                  color: Colors.white),
-                                              label: const Text('')),
-                                        )),
                                   ),
                                 ],
                               );

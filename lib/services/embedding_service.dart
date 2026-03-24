@@ -13,16 +13,17 @@ import 'package:http/http.dart' as http;
 ///   - Keywords miss meaning. "incredible energy, makes me want to dance" and
 ///     "great workout vibe, perfect beats" express the same taste but share zero
 ///     keywords. Embeddings capture this semantic similarity.
-///   - We use OpenAI's `text-embedding-3-small` (1536 dims, ~$0.02/1M tokens).
+///   - We use OpenAI's `text-embedding-3-large` (up to 3072 dims) for higher
+///     semantic precision in music taste matching.
 ///     A typical review is ~50 tokens, so embedding 100 reviews costs fractions
 ///     of a cent.
 ///   - The user's taste vector is the weighted average of their review embeddings
 ///     (weighted by rating). It is cached in Firestore and refreshed incrementally.
 class EmbeddingService {
   static const _embeddingEndpoint = 'https://api.openai.com/v1/embeddings';
-  static const _embeddingModel = 'text-embedding-3-small';
-  static const _embeddingModelFallback = 'text-embedding-ada-002';
-  static const int _embeddingDimensions = 1536;
+  static const _embeddingModel = 'text-embedding-3-large';
+  static const _embeddingModelFallback = 'text-embedding-3-small';
+  static const int _embeddingDimensions = 3072;
   static const _timeout = Duration(seconds: 20);
 
   // ─── Generate a single embedding ─────────────────────────────
@@ -30,7 +31,8 @@ class EmbeddingService {
   /// Generate an embedding vector for [text] using OpenAI.
   ///
   /// Returns a list of [_embeddingDimensions] doubles, or `null` on failure.
-  /// Falls back to text-embedding-ada-002 if text-embedding-3-small is not available.
+  /// Falls back to `text-embedding-3-small` if `text-embedding-3-large`
+  /// is not available.
   static Future<List<double>?> generateEmbedding(String text) async {
     if (text.trim().isEmpty) return null;
     if (openAIKey.isEmpty) {
@@ -43,6 +45,15 @@ class EmbeddingService {
   static Future<List<double>?> _generateEmbeddingWithModel(
       String text, String model) async {
     try {
+      final requestBody = <String, dynamic>{
+        'model': model,
+        'input': text.length > 8000 ? text.substring(0, 8000) : text,
+      };
+      final dimensions = _dimensionsForModel(model);
+      if (dimensions != null) {
+        requestBody['dimensions'] = dimensions;
+      }
+
       final response = await http
           .post(
             Uri.parse(_embeddingEndpoint),
@@ -50,10 +61,7 @@ class EmbeddingService {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $openAIKey',
             },
-            body: jsonEncode({
-              'model': model,
-              'input': text.length > 8000 ? text.substring(0, 8000) : text,
-            }),
+            body: jsonEncode(requestBody),
           )
           .timeout(_timeout);
 
@@ -63,7 +71,7 @@ class EmbeddingService {
             .map((e) => (e as num).toDouble())
             .toList();
         return embedding;
-      } else if (response.statusCode == 403) {
+      } else if (response.statusCode == 403 || response.statusCode == 404) {
         final body = response.body;
         if (body.contains('model_not_found')) {
           if (model == _embeddingModel) {
@@ -85,28 +93,46 @@ class EmbeddingService {
   static bool _loggedNoEmbeddingAccess = false;
 
   /// Generate embeddings for multiple texts in a single API call.
-  /// Falls back to text-embedding-ada-002 if text-embedding-3-small is not available.
+  /// Falls back to `text-embedding-3-small` if `text-embedding-3-large`
+  /// is not available.
   static Future<List<List<double>?>> generateBatchEmbeddings(
       List<String> texts) async {
     if (texts.isEmpty) return [];
     if (openAIKey.isEmpty) return List.filled(texts.length, null);
 
-    final result =
-        await _generateBatchEmbeddingsWithModel(texts, _embeddingModel);
-    if (result != null) return result;
-
-    debugPrint('[EMBED] text-embedding-3-small not available, trying ada-002');
-    final fallback =
-        await _generateBatchEmbeddingsWithModel(texts, _embeddingModelFallback);
-    if (fallback != null) return fallback;
+    final result = await _generateBatchEmbeddingsResolved(texts);
+    if (result != null) return result.embeddings;
 
     if (!_loggedNoEmbeddingAccess) {
       _loggedNoEmbeddingAccess = true;
       debugPrint(
           '[EMBED] No embedding model available. Enable at platform.openai.com '
-          '→ Settings → Model access: text-embedding-3-small or text-embedding-ada-002');
+          '→ Settings → Model access: text-embedding-3-large or text-embedding-3-small');
     }
     return List<List<double>?>.filled(texts.length, null);
+  }
+
+  static Future<_BatchEmbeddingResult?> _generateBatchEmbeddingsResolved(
+    List<String> texts,
+  ) async {
+    final primary =
+        await _generateBatchEmbeddingsWithModel(texts, _embeddingModel);
+    if (primary != null) {
+      return _BatchEmbeddingResult(model: _embeddingModel, embeddings: primary);
+    }
+
+    debugPrint(
+      '[EMBED] $_embeddingModel unavailable, trying $_embeddingModelFallback',
+    );
+    final fallback =
+        await _generateBatchEmbeddingsWithModel(texts, _embeddingModelFallback);
+    if (fallback != null) {
+      return _BatchEmbeddingResult(
+        model: _embeddingModelFallback,
+        embeddings: fallback,
+      );
+    }
+    return null;
   }
 
   static Future<List<List<double>?>?> _generateBatchEmbeddingsWithModel(
@@ -114,6 +140,14 @@ class EmbeddingService {
     try {
       final cleanTexts =
           texts.map((t) => t.length > 8000 ? t.substring(0, 8000) : t).toList();
+      final requestBody = <String, dynamic>{
+        'model': model,
+        'input': cleanTexts,
+      };
+      final dimensions = _dimensionsForModel(model);
+      if (dimensions != null) {
+        requestBody['dimensions'] = dimensions;
+      }
 
       final response = await http
           .post(
@@ -122,10 +156,7 @@ class EmbeddingService {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $openAIKey',
             },
-            body: jsonEncode({
-              'model': model,
-              'input': cleanTexts,
-            }),
+            body: jsonEncode(requestBody),
           )
           .timeout(const Duration(seconds: 30));
 
@@ -137,7 +168,7 @@ class EmbeddingService {
               .toList();
         }).toList();
         return embeddings;
-      } else if (response.statusCode == 403) {
+      } else if (response.statusCode == 403 || response.statusCode == 404) {
         if (response.body.contains('model_not_found')) {
           return null; // Caller will retry with fallback or log once
         }
@@ -151,57 +182,27 @@ class EmbeddingService {
     }
   }
 
+  static int? _dimensionsForModel(String model) {
+    if (model == _embeddingModel) return _embeddingDimensions;
+    if (model == _embeddingModelFallback) return 1536;
+    return null;
+  }
+
   // ─── Taste Vector Generation ─────────────────────────────────
 
   /// Generate a taste vector by averaging review embeddings, weighted by rating.
   ///
   /// Higher-rated reviews contribute more to the taste vector. The result
   /// captures what the user *likes* semantically, not just keywords.
-  static Future<List<double>?> generateTasteVector(List<Review> reviews) async {
-    if (reviews.isEmpty) return null;
-
-    // Build text snippets for embedding
-    final textsWithWeights = <MapEntry<String, double>>[];
-    for (final review in reviews) {
-      final text =
-          '${review.artist} - ${review.title}. ${review.review}'.trim();
-      if (text.length < 10) continue;
-
-      // Weight by normalized rating (0.0 to 1.0)
-      final weight = review.score / 5.0;
-      textsWithWeights.add(MapEntry(text, weight));
-    }
-
-    if (textsWithWeights.isEmpty) return null;
-
-    // Generate embeddings in batch
-    final texts = textsWithWeights.map((e) => e.key).toList();
-    final embeddings = await generateBatchEmbeddings(texts);
-
-    // Weighted average
-    final tasteVector = List<double>.filled(_embeddingDimensions, 0.0);
-    double totalWeight = 0.0;
-
-    for (int i = 0; i < embeddings.length; i++) {
-      final embedding = embeddings[i];
-      if (embedding == null) continue;
-
-      final weight = textsWithWeights[i].value;
-      totalWeight += weight;
-
-      for (int d = 0; d < _embeddingDimensions; d++) {
-        tasteVector[d] += embedding[d] * weight;
-      }
-    }
-
-    if (totalWeight == 0) return null;
-
-    // Normalize
-    for (int d = 0; d < _embeddingDimensions; d++) {
-      tasteVector[d] /= totalWeight;
-    }
-
-    return tasteVector;
+  static Future<List<double>?> generateTasteVector(
+    List<Review> reviews, {
+    TasteEmbeddingMetadata? metadata,
+  }) async {
+    final result = await _generateTasteVectorResult(
+      reviews,
+      metadata: metadata,
+    );
+    return result?.vector;
   }
 
   // ─── Taste Vector Caching ────────────────────────────────────
@@ -214,51 +215,111 @@ class EmbeddingService {
     String userId,
     List<Review> reviews, {
     bool forceRefresh = false,
+    TasteEmbeddingMetadata? metadata,
   }) async {
+    final metadataSignature = metadata?.signature ?? 'none';
+    final allowIncrementalUpdate = metadata == null || metadata.isEmpty;
+
     if (!forceRefresh) {
       // Try to load from cache
       final cached = await _loadCachedTasteVector(userId);
       if (cached != null) {
-        debugPrint('[EMBED] Using cached taste vector '
-            '(${cached.reviewCount} reviews, dims=${cached.vector.length})');
+        final cacheModelSupported = cached.model == _embeddingModel;
+        final metadataMatches = cached.metadataSignature == metadataSignature;
+        final dimensionsMatch = cached.dimensions == cached.vector.length;
 
-        // Check if we need incremental update
-        if (cached.reviewCount >= reviews.length) {
-          return cached.vector;
-        }
+        if (!cacheModelSupported || !metadataMatches || !dimensionsMatch) {
+          debugPrint(
+            '[EMBED] Cached vector is stale '
+            '(model=${cached.model}, dims=${cached.dimensions}, '
+            'metadataMatch=$metadataMatches) — regenerating',
+          );
+        } else {
+          debugPrint('[EMBED] Using cached taste vector '
+              '(${cached.reviewCount} reviews, dims=${cached.vector.length}, model=${cached.model})');
 
-        // Incremental blend: only embed new reviews and blend with existing
-        final newReviews = reviews.take(reviews.length - cached.reviewCount).toList();
-        if (newReviews.length <= 5) {
-          debugPrint('[EMBED] Incremental update: ${newReviews.length} new reviews');
-          final updated =
-              await _incrementalBlend(cached.vector, cached.reviewCount, newReviews);
-          if (updated != null) {
-            await _cacheTasteVector(userId, updated, reviews.length);
-            return updated;
+          // Check if we need incremental update
+          if (cached.reviewCount >= reviews.length) {
+            return cached.vector;
           }
+
+          // Incremental blend: only embed new reviews and blend with existing.
+          // Disabled when metadata is included because the metadata context must
+          // be re-applied uniformly across the full corpus.
+          final newReviews =
+              reviews.take(reviews.length - cached.reviewCount).toList();
+          if (allowIncrementalUpdate && newReviews.length <= 5) {
+            debugPrint(
+              '[EMBED] Incremental update: ${newReviews.length} new reviews',
+            );
+            final updated = await _incrementalBlend(
+              cached.vector,
+              cached.reviewCount,
+              newReviews,
+              existingModel:
+                  cached.model.isEmpty ? _embeddingModel : cached.model,
+              metadata: metadata,
+            );
+            if (updated != null) {
+              await _cacheTasteVector(
+                userId,
+                updated.vector,
+                reviews.length,
+                model: updated.model,
+                metadataSignature: metadataSignature,
+              );
+              return updated.vector;
+            }
+          }
+          // Fall through to full regeneration if incremental fails
         }
-        // Fall through to full regeneration if incremental fails
       }
     }
 
     // Full generation
-    debugPrint('[EMBED] Generating full taste vector from ${reviews.length} reviews');
-    final vector = await generateTasteVector(reviews);
-    if (vector != null) {
-      await _cacheTasteVector(userId, vector, reviews.length);
+    debugPrint(
+        '[EMBED] Generating full taste vector from ${reviews.length} reviews');
+    final result = await _generateTasteVectorResult(
+      reviews,
+      metadata: metadata,
+    );
+    if (result != null) {
+      await _cacheTasteVector(
+        userId,
+        result.vector,
+        reviews.length,
+        model: result.model,
+        metadataSignature: metadataSignature,
+      );
     }
-    return vector;
+    return result?.vector;
   }
 
   /// Incrementally blend new review embeddings into the existing taste vector.
-  static Future<List<double>?> _incrementalBlend(
+  static Future<_TasteVectorBuildResult?> _incrementalBlend(
     List<double> existingVector,
     int existingCount,
-    List<Review> newReviews,
-  ) async {
-    final newVector = await generateTasteVector(newReviews);
-    if (newVector == null) return existingVector;
+    List<Review> newReviews, {
+    required String existingModel,
+    TasteEmbeddingMetadata? metadata,
+  }) async {
+    final newResult = await _generateTasteVectorResult(
+      newReviews,
+      metadata: metadata,
+    );
+    if (newResult == null) {
+      return _TasteVectorBuildResult(
+        vector: existingVector,
+        model: existingModel,
+        dimensions: existingVector.length,
+      );
+    }
+
+    final newVector = newResult.vector;
+    if (newVector.length != existingVector.length) {
+      // Mixed dimensions cannot be blended safely.
+      return null;
+    }
 
     // Weighted blend: existing contributes proportionally to its review count
     final totalCount = existingCount + newReviews.length;
@@ -267,10 +328,15 @@ class EmbeddingService {
 
     final blended = List<double>.filled(existingVector.length, 0.0);
     for (int i = 0; i < blended.length; i++) {
-      blended[i] = existingVector[i] * existingWeight + newVector[i] * newWeight;
+      blended[i] =
+          existingVector[i] * existingWeight + newVector[i] * newWeight;
     }
 
-    return blended;
+    return _TasteVectorBuildResult(
+      vector: blended,
+      model: newResult.model,
+      dimensions: blended.length,
+    );
   }
 
   static Future<_CachedTasteVector?> _loadCachedTasteVector(
@@ -288,12 +354,20 @@ class EmbeddingService {
       final data = doc.data()!;
       final vectorData = data['tasteVector'] as List<dynamic>?;
       final reviewCount = data['reviewCount'] as int? ?? 0;
+      final dimensions =
+          (data['dimensions'] as num?)?.toInt() ?? vectorData?.length ?? 0;
+      final model = (data['model'] as String?)?.trim() ?? '';
+      final metadataSignature =
+          (data['metadataSignature'] as String?)?.trim() ?? 'none';
 
       if (vectorData == null || vectorData.isEmpty) return null;
 
       return _CachedTasteVector(
         vector: vectorData.map((e) => (e as num).toDouble()).toList(),
         reviewCount: reviewCount,
+        dimensions: dimensions,
+        model: model,
+        metadataSignature: metadataSignature,
       );
     } catch (e) {
       debugPrint('[EMBED] Error loading cached taste vector: $e');
@@ -304,8 +378,10 @@ class EmbeddingService {
   static Future<void> _cacheTasteVector(
     String userId,
     List<double> vector,
-    int reviewCount,
-  ) async {
+    int reviewCount, {
+    required String model,
+    required String metadataSignature,
+  }) async {
     try {
       await FirebaseFirestore.instance
           .collection('users')
@@ -316,14 +392,107 @@ class EmbeddingService {
         'tasteVector': vector,
         'reviewCount': reviewCount,
         'lastUpdated': FieldValue.serverTimestamp(),
-        'dimensions': _embeddingDimensions,
-        'model': _embeddingModel,
+        'dimensions': vector.length,
+        'model': model,
+        'metadataSignature': metadataSignature,
       }, SetOptions(merge: true));
 
-      debugPrint('[EMBED] Cached taste vector ($reviewCount reviews)');
+      debugPrint('[EMBED] Cached taste vector '
+          '($reviewCount reviews, model=$model, dims=${vector.length})');
     } catch (e) {
       debugPrint('[EMBED] Error caching taste vector: $e');
     }
+  }
+
+  static Future<_TasteVectorBuildResult?> _generateTasteVectorResult(
+    List<Review> reviews, {
+    TasteEmbeddingMetadata? metadata,
+  }) async {
+    if (reviews.isEmpty) return null;
+
+    final metadataContext = metadata?.toEmbeddingContext() ?? '';
+
+    // Build text snippets for embedding.
+    final textsWithWeights = <MapEntry<String, double>>[];
+    for (final review in reviews) {
+      final reviewText = _buildReviewEmbeddingText(
+        review,
+        metadataContext: metadataContext,
+      );
+      if (reviewText.length < 10) continue;
+
+      // Weight by normalized rating (0.0 to 1.0), with a floor so very low
+      // ratings still contribute to "what to avoid".
+      final weight = (review.score / 5.0).clamp(0.2, 1.0).toDouble();
+      textsWithWeights.add(MapEntry(reviewText, weight));
+    }
+
+    if (textsWithWeights.isEmpty) return null;
+
+    // Include one dedicated metadata embedding so profile-level Spotify
+    // signals influence the taste vector even with sparse reviews.
+    if (metadataContext.isNotEmpty) {
+      textsWithWeights.add(
+        MapEntry('User Spotify taste context: $metadataContext', 0.8),
+      );
+    }
+
+    final texts = textsWithWeights.map((e) => e.key).toList();
+    final batchResult = await _generateBatchEmbeddingsResolved(texts);
+    if (batchResult == null) return null;
+
+    List<double>? tasteVector;
+    double totalWeight = 0.0;
+
+    for (int i = 0; i < batchResult.embeddings.length; i++) {
+      final embedding = batchResult.embeddings[i];
+      if (embedding == null || embedding.isEmpty) continue;
+
+      if (tasteVector == null) {
+        tasteVector = List<double>.filled(embedding.length, 0.0);
+      }
+      if (embedding.length != tasteVector.length) {
+        debugPrint(
+          '[EMBED] Skipping embedding with unexpected dimensions '
+          '(${embedding.length}, expected ${tasteVector.length})',
+        );
+        continue;
+      }
+
+      final weight = textsWithWeights[i].value;
+      totalWeight += weight;
+
+      for (int d = 0; d < tasteVector.length; d++) {
+        tasteVector[d] += embedding[d] * weight;
+      }
+    }
+
+    if (tasteVector == null || totalWeight == 0) return null;
+
+    for (int d = 0; d < tasteVector.length; d++) {
+      tasteVector[d] /= totalWeight;
+    }
+
+    return _TasteVectorBuildResult(
+      vector: tasteVector,
+      model: batchResult.model,
+      dimensions: tasteVector.length,
+    );
+  }
+
+  static String _buildReviewEmbeddingText(
+    Review review, {
+    required String metadataContext,
+  }) {
+    final genres = review.genres == null || review.genres!.isEmpty
+        ? ''
+        : ' Genres: ${review.genres!.join(", ")}.';
+    final base =
+        'Artist: ${review.artist}. Track: ${review.title}. Rating: ${review.score}/5.$genres Review: ${review.review}';
+    if (metadataContext.isEmpty) {
+      return base.trim();
+    }
+    return '$base Spotify context: $metadataContext'.trim();
   }
 
   // ─── Candidate Scoring ───────────────────────────────────────
@@ -346,7 +515,8 @@ class EmbeddingService {
     if (candidateEmbedding == null) return 0.5; // Neutral fallback
 
     // Cosine similarity maps [-1, 1] → remap to [0, 1]
-    final cosine = ScoringUtils.cosineSimilarity(tasteVector, candidateEmbedding);
+    final cosine =
+        ScoringUtils.cosineSimilarity(tasteVector, candidateEmbedding);
     return ((cosine + 1.0) / 2.0).clamp(0.0, 1.0);
   }
 
@@ -356,7 +526,7 @@ class EmbeddingService {
   /// it uses a single batch embedding call.
   static Future<List<double>> scoreCandidatesBatch({
     required List<double> tasteVector,
-    required List<_CandidateInfo> candidates,
+    required List<CandidateInfo> candidates,
   }) async {
     if (candidates.isEmpty) return [];
 
@@ -424,10 +594,38 @@ class EmbeddingService {
 class _CachedTasteVector {
   final List<double> vector;
   final int reviewCount;
+  final int dimensions;
+  final String model;
+  final String metadataSignature;
 
   const _CachedTasteVector({
     required this.vector,
     required this.reviewCount,
+    required this.dimensions,
+    required this.model,
+    required this.metadataSignature,
+  });
+}
+
+class _BatchEmbeddingResult {
+  final String model;
+  final List<List<double>?> embeddings;
+
+  const _BatchEmbeddingResult({
+    required this.model,
+    required this.embeddings,
+  });
+}
+
+class _TasteVectorBuildResult {
+  final List<double> vector;
+  final String model;
+  final int dimensions;
+
+  const _TasteVectorBuildResult({
+    required this.vector,
+    required this.model,
+    required this.dimensions,
   });
 }
 
@@ -446,5 +644,77 @@ class CandidateInfo {
   });
 }
 
-/// Private alias used internally by EmbeddingService.
-typedef _CandidateInfo = CandidateInfo;
+/// Additional Spotify-derived metadata that can be fused into the user's
+/// taste embedding input for higher-fidelity personalization.
+class TasteEmbeddingMetadata {
+  final List<String> topTracks;
+  final List<String> savedArtists;
+  final List<String> playlistNames;
+  final List<String> recentTrackContexts;
+
+  const TasteEmbeddingMetadata({
+    this.topTracks = const [],
+    this.savedArtists = const [],
+    this.playlistNames = const [],
+    this.recentTrackContexts = const [],
+  });
+
+  bool get isEmpty =>
+      topTracks.isEmpty &&
+      savedArtists.isEmpty &&
+      playlistNames.isEmpty &&
+      recentTrackContexts.isEmpty;
+
+  String get signature {
+    final payload = <String, List<String>>{
+      'topTracks': _normalizeAndLimit(topTracks, 12),
+      'savedArtists': _normalizeAndLimit(savedArtists, 12),
+      'playlistNames': _normalizeAndLimit(playlistNames, 12),
+      'recentTrackContexts': _normalizeAndLimit(recentTrackContexts, 16),
+    };
+    return jsonEncode(payload);
+  }
+
+  String toEmbeddingContext() {
+    if (isEmpty) return '';
+
+    final sections = <String>[];
+
+    final tracks = _normalizeAndLimit(topTracks, 10);
+    if (tracks.isNotEmpty) {
+      sections.add('Top tracks: ${tracks.join(", ")}.');
+    }
+
+    final artists = _normalizeAndLimit(savedArtists, 10);
+    if (artists.isNotEmpty) {
+      sections.add('Saved artists: ${artists.join(", ")}.');
+    }
+
+    final playlists = _normalizeAndLimit(playlistNames, 8);
+    if (playlists.isNotEmpty) {
+      sections.add('Playlist themes: ${playlists.join(", ")}.');
+    }
+
+    final contexts = _normalizeAndLimit(recentTrackContexts, 10);
+    if (contexts.isNotEmpty) {
+      sections.add('Recent listening patterns: ${contexts.join(", ")}.');
+    }
+
+    return sections.join(' ');
+  }
+
+  static List<String> _normalizeAndLimit(List<String> values, int maxItems) {
+    if (values.isEmpty || maxItems <= 0) return const <String>[];
+    final seen = <String>{};
+    final output = <String>[];
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) continue;
+      final normalized = trimmed.toLowerCase();
+      if (!seen.add(normalized)) continue;
+      output.add(trimmed);
+      if (output.length >= maxItems) break;
+    }
+    return output;
+  }
+}

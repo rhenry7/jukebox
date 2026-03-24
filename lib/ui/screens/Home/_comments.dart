@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:ionicons/ionicons.dart';
 
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
@@ -480,9 +481,6 @@ class ReviewCardWidget extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        // Like Button (top right) - only show in community tab
-                        if (showLikeButton && reviewId != null)
-                          _LikeButton(reviewId: reviewId!),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -524,11 +522,11 @@ class ReviewCardWidget extends ConsumerWidget {
                           Text(
                             formatRelativeTime(review.date),
                             style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
+                                color: Colors.white70,
+                                fontSize: 14,
+                                fontStyle: FontStyle.normal,
+                                letterSpacing: 0.5),
+                          )
                       ],
                     ),
                   ],
@@ -544,7 +542,7 @@ class ReviewCardWidget extends ConsumerWidget {
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14.0,
-                fontStyle: FontStyle.italic,
+                fontStyle: FontStyle.normal,
               ),
               maxLines: null,
               overflow: TextOverflow.visible,
@@ -668,6 +666,30 @@ class ReviewCardWidget extends ConsumerWidget {
               }),
             ),
           ],
+          Padding(
+            padding: const EdgeInsets.all(5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                // LIKES
+                // Like Button (top right) - only show in community tab
+                if (showLikeButton && reviewId != null)
+                  _LikeButton(reviewId: reviewId!),
+                // REPOSTS
+                _buildActionButton(
+                  icon: Ionicons.repeat,
+                  count: review.reposts.toString() ?? '0',
+                  onPressed: () => {},
+                ),
+                // SHARES
+                _buildActionButton(
+                  icon: Ionicons.paper_plane_outline,
+                  count: review.likes.toString() ?? '0',
+                  onPressed: () => {},
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -906,10 +928,9 @@ class _LikeButton extends ConsumerWidget {
               : null,
           child: Flex(
             direction: Axis.horizontal,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
+              Row(
                 children: [
                   Icon(
                     isLiked ? Icons.favorite : Icons.favorite_border,
@@ -922,26 +943,13 @@ class _LikeButton extends ConsumerWidget {
                       _formatLikeCount(likeCount),
                       style: TextStyle(
                         color: isLiked ? Colors.red : Colors.white70,
-                        fontSize: 8,
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                   ],
                 ],
-              ),
-              // TODO: add feature for resharing/reposting another users review
-              // Column(
-              //   mainAxisSize: MainAxisSize.min,
-              //   children: [
-              //     Icon(
-              //       isLiked
-              //           ? Icons.repeat
-              //           : Icons
-              //               .repeat_on, // change from "isLiked" to "isRepeated"
-              //       color: isLiked ? Colors.red : Colors.white70,
-              //       size: 24,
-              //     ),
-              //   ],
-              // )
+              )
             ],
           ),
         );
@@ -1066,4 +1074,26 @@ extension ReviewCopyWith on Review {
       genres: genres ?? this.genres,
     );
   }
+}
+
+Widget _buildActionButton({
+  required IconData icon,
+  required String count,
+  required VoidCallback onPressed,
+}) {
+  return Padding(
+    padding: const EdgeInsets.all(0),
+    child: Row(
+      children: [
+        IconButton(
+          icon: Icon(icon, color: Colors.white),
+          onPressed: onPressed,
+        ),
+        Text(
+          count,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ],
+    ),
+  );
 }

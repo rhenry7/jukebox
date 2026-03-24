@@ -76,7 +76,7 @@ class MusicRecommendationService {
           .doc(userId)
           .collection('reviews')
           .orderBy('date', descending: true)
-          .limit(10)
+          .limit(60)
           .get()
           .then((snapshot) => snapshot.docs
               .map((doc) => Review.fromFirestore(doc.data()))
@@ -288,9 +288,14 @@ class MusicRecommendationService {
       // 4b. Semantic scoring via taste vector embeddings (Phase 3)
       if (filteredRecs.isNotEmpty) {
         try {
+          final embeddingMetadata = await _buildTasteEmbeddingMetadata(
+            userId,
+            preferences,
+          );
           final tasteVector = await EmbeddingService.getTasteVector(
             userId,
             reviews,
+            metadata: embeddingMetadata,
           );
           if (tasteVector != null) {
             debugPrint(
@@ -345,6 +350,15 @@ class MusicRecommendationService {
             }
             filteredRecs = blended;
             debugPrint('[SEMANTIC] Re-ranked with semantic scoring');
+
+            // 4c. LLM rerank pass over top semantic candidates.
+            filteredRecs = await _rerankWithTasteProfileLlm(
+              recommendations: filteredRecs,
+              preferences: preferences,
+              reviews: reviews,
+              reviewProfile: reviewProfile,
+              targetCount: count,
+            );
           }
         } catch (e) {
           debugPrint(
@@ -715,6 +729,256 @@ Format:
       }
     }
     return best.clamp(0.0, 1.0);
+  }
+
+  static Future<TasteEmbeddingMetadata?> _buildTasteEmbeddingMetadata(
+    String userId,
+    EnhancedUserPreferences preferences,
+  ) async {
+    try {
+      final topTracks = <String>[
+        ...preferences.savedTracks.take(16),
+      ];
+      final savedArtists = <String>[
+        ...preferences.favoriteArtists.take(16),
+      ];
+      final recentTrackContexts = <String>[];
+
+      for (final history in preferences.recentlyPlayed.take(20)) {
+        final trackLabel =
+            '${history.trackName.trim()} - ${history.artistName.trim()}';
+        if (history.trackName.trim().isNotEmpty &&
+            history.artistName.trim().isNotEmpty) {
+          topTracks.add(trackLabel);
+          savedArtists.add(history.artistName.trim());
+        }
+
+        final context =
+            history.context.trim().isEmpty ? 'unknown' : history.context.trim();
+        final genres = history.genres.where((g) => g.trim().isNotEmpty).take(2);
+        final genrePart = genres.isEmpty ? '' : ', genres: ${genres.join("/")}';
+        recentTrackContexts.add('$trackLabel (context: $context$genrePart)');
+      }
+
+      final playlistNames = await _fetchUserPlaylistNames(userId);
+      final metadata = TasteEmbeddingMetadata(
+        topTracks: topTracks,
+        savedArtists: savedArtists,
+        playlistNames: playlistNames,
+        recentTrackContexts: recentTrackContexts,
+      );
+      return metadata.isEmpty ? null : metadata;
+    } catch (e) {
+      debugPrint('[SEMANTIC] Error building embedding metadata: $e');
+      return null;
+    }
+  }
+
+  static Future<List<String>> _fetchUserPlaylistNames(
+    String userId, {
+    int limit = 12,
+  }) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('playlists')
+          .where('userId', isEqualTo: userId)
+          .limit(limit)
+          .get();
+      return snapshot.docs
+          .map((doc) => (doc.data()['name'] as String?)?.trim() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList();
+    } catch (e) {
+      debugPrint('[SEMANTIC] Error fetching playlist names: $e');
+      return [];
+    }
+  }
+
+  static Future<List<MusicRecommendation>> _rerankWithTasteProfileLlm({
+    required List<MusicRecommendation> recommendations,
+    required EnhancedUserPreferences preferences,
+    required List<Review> reviews,
+    required UserReviewProfile? reviewProfile,
+    required int targetCount,
+  }) async {
+    if (openAIKey.isEmpty || recommendations.length < 4) {
+      return recommendations;
+    }
+
+    int rerankWindow = targetCount * 4;
+    if (rerankWindow < 12) rerankWindow = 12;
+    if (rerankWindow > 40) rerankWindow = 40;
+    if (rerankWindow > recommendations.length) {
+      rerankWindow = recommendations.length;
+    }
+
+    final candidatePool = recommendations.take(rerankWindow).toList();
+    final remaining = recommendations.skip(rerankWindow).toList();
+
+    final topGenres = reviewProfile == null
+        ? <String>[]
+        : (reviewProfile.genrePreferences.entries.toList()
+              ..sort((a, b) => b.value.preferenceStrength
+                  .compareTo(a.value.preferenceStrength)))
+            .take(6)
+            .map((e) => e.key)
+            .toList();
+
+    final likedArtists = reviewProfile == null
+        ? preferences.favoriteArtists.take(8).toList()
+        : reviewProfile.ratingPattern.highlyRatedArtists.take(8).toList();
+    final dislikedArtists =
+        reviewProfile?.ratingPattern.lowRatedArtists.take(6).toList() ??
+            <String>[];
+
+    final reviewSnippets = reviews.take(8).map((r) {
+      final reviewText = r.review.replaceAll('\n', ' ').trim();
+      final clipped = reviewText.length > 140
+          ? '${reviewText.substring(0, 140)}...'
+          : reviewText;
+      return '- ${r.title} by ${r.artist} | ${r.score}/5 | "$clipped"';
+    }).join('\n');
+
+    final candidates = candidatePool.asMap().entries.map((entry) {
+      final rec = entry.value;
+      final genres =
+          rec.genres.isEmpty ? 'unknown' : rec.genres.take(4).join(', ');
+      return '${entry.key}: ${rec.song} by ${rec.artist} | genres: $genres';
+    }).join('\n');
+
+    final prompt = '''
+You are reranking candidate songs for a single user. Prioritize profile fit and review sentiment alignment over popularity.
+
+User taste profile:
+- Favorite genres: ${preferences.favoriteGenres.take(8).join(', ')}
+- Top review-derived genres: ${topGenres.join(', ')}
+- Liked artists: ${likedArtists.join(', ')}
+- Disliked artists: ${dislikedArtists.join(', ')}
+- Saved artists: ${preferences.favoriteArtists.take(8).join(', ')}
+
+Recent reviews:
+$reviewSnippets
+
+Candidate recommendations (index: song by artist | genres):
+$candidates
+
+Task:
+Return a JSON array of candidate indices, ordered best to worst for this user.
+Rules:
+1) Use each index at most once.
+2) Prefer songs consistent with review sentiment and genre/artist affinities.
+3) Penalize obvious popularity-only picks that weakly match the profile.
+4) Return ONLY valid JSON (example: [3,1,0,2]).
+''';
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_openAiEndpoint),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $openAIKey',
+            },
+            body: jsonEncode({
+              'model': _model,
+              'temperature': 0.15,
+              'max_tokens': 500,
+              'messages': [
+                {
+                  'role': 'system',
+                  'content':
+                      'You are a strict ranking assistant. Return only a JSON array of integer indices with no commentary.',
+                },
+                {
+                  'role': 'user',
+                  'content': prompt,
+                },
+              ],
+            }),
+          )
+          .timeout(_timeoutDuration);
+
+      if (response.statusCode != 200) {
+        debugPrint(
+            '[RERANK] API error ${response.statusCode}, skipping rerank: ${response.body}');
+        return recommendations;
+      }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final choices = body['choices'] as List<dynamic>?;
+      final firstChoice =
+          choices != null && choices.isNotEmpty ? choices.first : null;
+      final firstChoiceMap =
+          firstChoice is Map ? Map<String, dynamic>.from(firstChoice) : null;
+      final messageRaw = firstChoiceMap?['message'];
+      final message =
+          messageRaw is Map ? Map<String, dynamic>.from(messageRaw) : null;
+      final content = message?['content']?.toString() ?? '';
+      final orderedIndices =
+          _parseRerankIndices(content, maxIndexExclusive: candidatePool.length);
+      if (orderedIndices.isEmpty) {
+        debugPrint(
+            '[RERANK] Empty/invalid rerank response, using semantic order');
+        return recommendations;
+      }
+
+      final reRanked = <MusicRecommendation>[];
+      final seen = <int>{};
+      for (final index in orderedIndices) {
+        if (index >= 0 && index < candidatePool.length && seen.add(index)) {
+          reRanked.add(candidatePool[index]);
+        }
+      }
+      for (int i = 0; i < candidatePool.length; i++) {
+        if (!seen.contains(i)) {
+          reRanked.add(candidatePool[i]);
+        }
+      }
+
+      debugPrint(
+          '[RERANK] Applied LLM reranking to ${candidatePool.length} candidates');
+      return <MusicRecommendation>[
+        ...reRanked,
+        ...remaining,
+      ];
+    } catch (e) {
+      debugPrint('[RERANK] Error during LLM rerank, using semantic order: $e');
+      return recommendations;
+    }
+  }
+
+  static List<int> _parseRerankIndices(
+    String content, {
+    required int maxIndexExclusive,
+  }) {
+    if (content.trim().isEmpty || maxIndexExclusive <= 0) return const [];
+    try {
+      var clean =
+          content.replaceAll('```json', '').replaceAll('```', '').trim();
+
+      final start = clean.indexOf('[');
+      final end = clean.lastIndexOf(']');
+      if (start >= 0 && end > start) {
+        clean = clean.substring(start, end + 1);
+      }
+
+      final decoded = jsonDecode(clean);
+      if (decoded is! List) return const [];
+
+      final indices = <int>[];
+      final seen = <int>{};
+      for (final item in decoded) {
+        final value = item is int ? item : (item is num ? item.toInt() : null);
+        if (value == null) continue;
+        if (value < 0 || value >= maxIndexExclusive) continue;
+        if (seen.add(value)) {
+          indices.add(value);
+        }
+      }
+      return indices;
+    } catch (_) {
+      return const [];
+    }
   }
 
   static Future<String> _makeApiRequest(String prompt) async {
