@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/providers/recommended_albums_provider.dart';
-import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
+import 'package:flutter_test_project/ui/screens/Trending/album_detail_page.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:gap/gap.dart';
 
@@ -17,16 +17,11 @@ class RecommendedAlbumCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (BuildContext context) {
-            return MyReviewSheetContentForm(
-              title: album.title,
-              artist: album.artist,
-              albumImageUrl: album.albumImageUrl,
-            );
-          },
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AlbumDetailPage(album: album),
+          ),
         );
       },
       child: Container(
