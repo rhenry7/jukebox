@@ -102,12 +102,12 @@ class _AnalyticsContent extends StatelessWidget {
         children: [
           // Insights Summary Card
           if (insights != null) ...[
-            _InsightsSummaryCard(insights: insights!),
+            InsightsSummaryCard(insights: insights!),
             const SizedBox(height: 16),
           ],
 
           // Review Score Over Time Chart
-          _ReviewScoreChartCard(reviews: reviews),
+          ReviewScoreChartCard(reviews: reviews),
           const SizedBox(height: 16),
         ],
       ),
@@ -116,10 +116,10 @@ class _AnalyticsContent extends StatelessWidget {
 }
 
 /// Chart card showing review scores over time
-class _ReviewScoreChartCard extends StatelessWidget {
+class ReviewScoreChartCard extends StatelessWidget {
   final List<Review> reviews;
 
-  const _ReviewScoreChartCard({required this.reviews});
+  const ReviewScoreChartCard({super.key, required this.reviews});
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +153,7 @@ class _ReviewScoreChartCard extends StatelessWidget {
     final avgScore =
         reviews.map((r) => r.score).reduce((a, b) => a + b) / reviews.length;
 
-    return _ChartCard(
+    return ChartCard(
       title: 'Review Score Trend',
       value: avgScore.toStringAsFixed(1),
       subtitle: 'Average rating',
@@ -251,10 +251,10 @@ class _ReviewScoreChartCard extends StatelessWidget {
 }
 
 /// Insights summary card showing key profile data
-class _InsightsSummaryCard extends StatelessWidget {
+class InsightsSummaryCard extends StatelessWidget {
   final MusicProfileInsights insights;
 
-  const _InsightsSummaryCard({required this.insights});
+  const InsightsSummaryCard({super.key, required this.insights});
 
   @override
   Widget build(BuildContext context) {
@@ -291,7 +291,7 @@ class _InsightsSummaryCard extends StatelessWidget {
             const SizedBox(height: 16),
             // Favorite Artists
             if (insights.favoriteArtists.isNotEmpty) ...[
-              _InsightRow(
+              InsightRow(
                 label: 'Favorite Artists',
                 value: insights.favoriteArtists.length.toString(),
                 items: insights.favoriteArtists.take(5).toList(),
@@ -302,7 +302,7 @@ class _InsightsSummaryCard extends StatelessWidget {
             ],
             // Favorite Genres
             if (insights.favoriteGenres.isNotEmpty) ...[
-              _InsightRow(
+              InsightRow(
                 label: 'Favorite Genres',
                 value: insights.favoriteGenres.length.toString(),
                 items: insights.favoriteGenres.take(5).toList(),
@@ -353,14 +353,15 @@ class _InsightsSummaryCard extends StatelessWidget {
 }
 
 /// Insight row widget
-class _InsightRow extends StatelessWidget {
+class InsightRow extends StatelessWidget {
   final String label;
   final String value;
   final List<String> items;
   final IconData icon;
   final Color color;
 
-  const _InsightRow({
+  const InsightRow({
+    super.key,
     required this.label,
     required this.value,
     required this.items,
@@ -436,13 +437,14 @@ class _InsightRow extends StatelessWidget {
 }
 
 /// Reusable chart card container
-class _ChartCard extends StatelessWidget {
+class ChartCard extends StatelessWidget {
   final String title;
   final String value;
   final String subtitle;
   final Widget child;
 
-  const _ChartCard({
+  const ChartCard({
+    super.key,
     required this.title,
     required this.value,
     required this.subtitle,
