@@ -5,10 +5,10 @@ import 'package:flutter_test_project/services/review_recommendation_service.dart
 
 /// Fetches personalized review recommendations for the current user.
 ///
-/// Filters community reviews by genre preferences and rating (3.5+).
-/// Auto-disposes when the widget tree no longer listens.
+/// Keeps results alive across tab switches so the user doesn't wait again.
+/// Pull-to-refresh or explicit refresh will re-fetch.
 final recommendedReviewsProvider =
-    FutureProvider.autoDispose<List<ScoredReview>>((ref) async {
+    FutureProvider<List<ScoredReview>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return [];
 
@@ -28,14 +28,14 @@ final loadMoreRecommendedReviewsProvider = Provider<void Function()>((ref) {
   };
 });
 
-/// Force-refreshes recommendations (bypasses cache) and invalidates the provider.
+/// Force-refreshes recommendations by clearing the cache and re-fetching.
 final refreshRecommendationsProvider = Provider<Future<void> Function()>((ref) {
   return () async {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) return;
 
     debugPrint('[REC_PROVIDER] Refreshing recommendations');
-    await ReviewRecommendationService.getRecommendedReviews(userId);
+    ReviewRecommendationService.clearCache(userId);
     ref.invalidate(recommendedReviewsProvider);
   };
 });

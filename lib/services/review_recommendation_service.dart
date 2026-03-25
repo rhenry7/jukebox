@@ -38,37 +38,62 @@ class ReviewRecommendationService {
   static const _maxReviewsToSend = 150; // Limit for token budget
   static const _maxTopN = 50; // Max recommendations to request
   static const _reviewSnippetLength = 120; // Truncate long reviews
+  static const _cacheTtl = Duration(minutes: 15);
+
+  // In-memory cache keyed by userId
+  static final Map<String, _CachedResult> _cache = {};
 
   /// Get personalized review recommendations for a user.
   ///
-  /// 1. Fetches all community reviews from Firestore.
-  /// 2. Fetches user preferences and user's own reviews.
-  /// 3. Sends to OpenAI to rank by relevance.
-  /// 4. Falls back to genre filter if OpenAI fails or no API key.
+  /// Returns cached results if available and fresh. Otherwise:
+  /// 1. Fetches user preferences, own reviews, and community reviews in parallel.
+  /// 2. Sends to OpenAI to rank by relevance.
+  /// 3. Falls back to genre filter if OpenAI fails or no API key.
   static Future<List<ScoredReview>> getRecommendedReviews(
     String userId, {
     int limit = 400,
+    bool forceRefresh = false,
   }) async {
-    final userPrefs = await _fetchUserPreferences(userId);
-    final userOwnReviews = await _fetchUserOwnReviews(userId);
-    final allReviews = await _fetchAllReviews(userId, limit);
+    // Return cached results if fresh
+    if (!forceRefresh) {
+      final cached = _cache[userId];
+      if (cached != null && !cached.isExpired) {
+        debugPrint('[REC] Returning ${cached.results.length} cached recommendations');
+        return cached.results;
+      }
+    }
+
+    // Fetch all three data sources in parallel
+    final futures = await Future.wait([
+      _fetchUserPreferences(userId),
+      _fetchUserOwnReviews(userId),
+      _fetchAllReviews(userId, limit),
+    ]);
+
+    final userPrefs = futures[0] as EnhancedUserPreferences?;
+    final userOwnReviews = futures[1] as List<Review>;
+    final allReviews = futures[2] as List<ReviewWithDocId>;
 
     if (allReviews.isEmpty) {
       debugPrint('[REC] No community reviews found');
       return [];
     }
 
+    List<ScoredReview> results;
+
     // Try OpenAI first if API key is available
     if (openAIKey.isNotEmpty) {
       try {
-        final results = await _getOpenAIRecommendations(
+        final aiResults = await _getOpenAIRecommendations(
           userId: userId,
           communityReviews: allReviews,
           userPrefs: userPrefs,
           userOwnReviews: userOwnReviews,
         );
-        if (results.isNotEmpty) {
-          debugPrint('[REC] OpenAI returned ${results.length} recommendations');
+        if (aiResults.isNotEmpty) {
+          debugPrint('[REC] OpenAI returned ${aiResults.length} recommendations');
+          results = aiResults;
+          _cache[userId] = _CachedResult(results);
           return results;
         }
       } catch (e) {
@@ -79,7 +104,18 @@ class ReviewRecommendationService {
     }
 
     // Fallback: genre-based filter
-    return _fallbackGenreFilter(allReviews, userPrefs);
+    results = _fallbackGenreFilter(allReviews, userPrefs);
+    _cache[userId] = _CachedResult(results);
+    return results;
+  }
+
+  /// Clear the in-memory cache for a user (used before force refresh).
+  static void clearCache([String? userId]) {
+    if (userId != null) {
+      _cache.remove(userId);
+    } else {
+      _cache.clear();
+    }
   }
 
   static Future<List<ScoredReview>> _getOpenAIRecommendations({
@@ -335,6 +371,18 @@ TASK: Based on the user's preferences and their own review history, return a JSO
     }
   }
 
-  /// No-op: caching removed. Kept for API compatibility (e.g. MusicTaste).
-  static Future<void> clearRecommendationsCache(String userId) async {}
+  /// Clears in-memory recommendation cache. Kept for API compatibility.
+  static Future<void> clearRecommendationsCache(String userId) async {
+    clearCache(userId);
+  }
+}
+
+class _CachedResult {
+  final List<ScoredReview> results;
+  final DateTime _createdAt;
+
+  _CachedResult(this.results) : _createdAt = DateTime.now();
+
+  bool get isExpired =>
+      DateTime.now().difference(_createdAt) > ReviewRecommendationService._cacheTtl;
 }

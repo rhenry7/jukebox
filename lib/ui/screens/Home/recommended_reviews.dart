@@ -533,6 +533,7 @@ class _RecommendedReviewsCollectionState
     final snapshot = await FirebaseFirestore.instance
         .collectionGroup('reviews')
         .orderBy('date', descending: true)
+        .limit(400)
         .get();
 
     final allReviews = <ReviewWithDocId>[];
