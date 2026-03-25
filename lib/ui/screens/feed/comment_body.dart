@@ -55,167 +55,174 @@ class CommentsBody extends StatelessWidget {
             color: Colors.black,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // NAME AND TIME
-                  Padding(
-                    padding: const EdgeInsets.only(
-                        right: 8.0, left: 10.0, top: 10.0, bottom: 0.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // USER POST INFO ROW
-                        Row(
+              child: Row(
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      // NAME AND TIME
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            right: 8.0, left: 10.0, top: 10.0, bottom: 0.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.only(right: 5),
-                              child: Icon(
-                                Ionicons.person_circle_outline,
-                                color: Colors.white,
-                              ),
+                            // USER POST INFO ROW
+                            Row(
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 5),
+                                  child: Icon(
+                                    Ionicons.person_circle_outline,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  (review.displayName.length <= 12
+                                      ? review.displayName
+                                      : '${review.displayName.substring(0, 12)}…'),
+                                  style: const TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.normal,
+                                      color: Colors.white),
+                                ),
+                                // TIME STAMP
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 2.0),
+                                  child: Text(
+                                    formatDateTimeDifference(
+                                        review.date?.toIso8601String() ?? ''),
+                                    style: const TextStyle(
+                                      fontSize: 12.0,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              (review.displayName.length <= 12
-                                  ? review.displayName
-                                  : '${review.displayName.substring(0, 12)}…'),
-                              style: const TextStyle(
-                                  fontSize: 14.0,
-                                  fontWeight: FontWeight.normal,
-                                  color: Colors.white),
-                            ),
-                            // TIME STAMP
+                            // RATING BAR
                             Padding(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 2.0),
-                              child: Text(
-                                formatDateTimeDifference(
-                                    review.date?.toIso8601String() ?? ''),
-                                style: const TextStyle(
-                                  fontSize: 12.0,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                                  const EdgeInsets.symmetric(horizontal: 12.0),
+                              child: RatingBar(
+                                  minRating: 3,
+                                  maxRating: 3,
+                                  allowHalfRating: false,
+                                  ignoreGestures: true,
+                                  itemSize: 18,
+                                  itemPadding: const EdgeInsets.symmetric(
+                                      horizontal: 2.0),
+                                  ratingWidget: RatingWidget(
+                                    full: const Icon(Icons.star,
+                                        color: Colors.yellow),
+                                    empty: const Icon(Icons.star,
+                                        color: Colors.yellow),
+                                    half: const Icon(Icons.star_half,
+                                        color: Colors.white),
+                                  ),
+                                  onRatingUpdate: (rating) {
+                                    // Handle rating update
+                                  }),
                             ),
                           ],
                         ),
-                        // RATING BAR
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                          child: RatingBar(
-                              minRating: 3,
-                              maxRating: 3,
-                              allowHalfRating: false,
-                              ignoreGestures: true,
-                              itemSize: 18,
-                              itemPadding:
-                                  const EdgeInsets.symmetric(horizontal: 2.0),
-                              ratingWidget: RatingWidget(
-                                full: const Icon(Icons.star,
-                                    color: Colors.yellow),
-                                empty: const Icon(Icons.star,
-                                    color: Colors.yellow),
-                                half: const Icon(Icons.star_half,
-                                    color: Colors.white),
-                              ),
-                              onRatingUpdate: (rating) {
-                                // Handle rating update
-                              }),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // COMMENT AND IMAGE - only show if review text exists
-                  if ((review.review ?? '').isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(
-                          left: 12.0, top: 14.0, right: 10.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: <Widget>[
-                          // IMAGE
-                          Padding(
-                            padding: const EdgeInsets.only(right: 10.0),
-                            child: Image.network(
-                              smallImageUrl,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(Icons.error);
-                              },
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) {
-                                  return child;
-                                } else {
-                                  return const Center(
-                                      child: DiscoBallLoading());
-                                }
-                              },
-                            ),
-                          ),
-                          Flexible(
-                            child: Text(
-                              review.review ?? '',
-                              maxLines: 5,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12.0,
-                                fontStyle: FontStyle.italic,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8.0),
-                        ],
                       ),
-                    ),
 
-                  // Bottom Row (Icons)
-                  Padding(
-                    padding: const EdgeInsets.all(5),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: <Widget>[
-                        // LIKES
-                        _buildActionButton(
-                          icon: Ionicons.heart_outline,
-                          count: review.likes.toString() ?? '0',
-                          onPressed: onStateChanged,
+                      // COMMENT AND IMAGE - only show if review text exists
+                      if ((review.review ?? '').isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              left: 12.0, top: 14.0, right: 10.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: <Widget>[
+                              // IMAGE
+                              Padding(
+                                padding: const EdgeInsets.only(right: 10.0),
+                                child: Image.network(
+                                  smallImageUrl,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(Icons.error);
+                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) {
+                                      return child;
+                                    } else {
+                                      return const Center(
+                                          child: DiscoBallLoading());
+                                    }
+                                  },
+                                ),
+                              ),
+                              Flexible(
+                                child: Text(
+                                  review.review ?? '',
+                                  maxLines: 5,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12.0,
+                                    fontStyle: FontStyle.italic,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8.0),
+                            ],
+                          ),
                         ),
-                        // REPLIES
-                        _buildActionButton(
-                          icon: Ionicons.chatbubble_outline,
-                          count: review.replies.toString() ?? '0',
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (BuildContext context) =>
-                                        SubComments(
-                                          title: review.title ?? '',
-                                          imageUrl: largeImageUrl,
-                                          userId: review.userId ?? '',
-                                          displayName: review.displayName,
-                                          joinDate: '',
-                                          reviews: '',
-                                        )));
-                          },
+
+                      // Bottom Row (Icons)
+                      const Padding(
+                        padding: EdgeInsets.all(5),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            // LIKES
+
+                            // // REPLIES
+                            // _buildActionButton(
+                            //   icon: Ionicons.chatbubble_outline,
+                            //   count: review.replies.toString() ?? '0',
+                            //   onPressed: () {
+                            //     Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(
+                            //             builder: (BuildContext context) =>
+                            //                 SubComments(
+                            //                   title: review.title ?? '',
+                            //                   imageUrl: largeImageUrl,
+                            //                   userId: review.userId ?? '',
+                            //                   displayName: review.displayName,
+                            //                   joinDate: '',
+                            //                   reviews: '',
+                            //                 )));
+                            //   },
+                            // ),
+                            // // REPOSTS
+                            // _buildActionButton(
+                            //   icon: Ionicons.repeat,
+                            //   count: review.reposts.toString() ?? '0',
+                            //   onPressed: onStateChanged,
+                            // ),
+                            // // SHARES
+                            // _buildActionButton(
+                            //   icon: Ionicons.paper_plane_outline,
+                            //   count: review.likes.toString() ?? '0',
+                            //   onPressed: onStateChanged,
+                            // ),
+                          ],
                         ),
-                        // REPOSTS
-                        _buildActionButton(
-                          icon: Ionicons.repeat,
-                          count: review.reposts.toString() ?? '0',
-                          onPressed: onStateChanged,
-                        ),
-                        // SHARES
-                        _buildActionButton(
-                          icon: Ionicons.paper_plane_outline,
-                          count: review.likes.toString() ?? '0',
-                          onPressed: onStateChanged,
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
+                  _buildActionButton(
+                    icon: Ionicons.heart_outline,
+                    count: review.likes.toString() ?? '0',
+                    onPressed: onStateChanged,
                   ),
                 ],
               ),

@@ -532,6 +532,18 @@ class ReviewCardWidget extends ConsumerWidget {
                   ],
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.all(5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    // LIKES
+                    // Like Button (top right) - only show in community tab
+                    if (showLikeButton && reviewId != null)
+                      _LikeButton(reviewId: reviewId!),
+                  ],
+                ),
+              ),
             ],
           ),
           // Bottom Row: Review Text (full width) - only show if review text exists
@@ -666,30 +678,6 @@ class ReviewCardWidget extends ConsumerWidget {
               }),
             ),
           ],
-          Padding(
-            padding: const EdgeInsets.all(5),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-                // LIKES
-                // Like Button (top right) - only show in community tab
-                if (showLikeButton && reviewId != null)
-                  _LikeButton(reviewId: reviewId!),
-                // REPOSTS
-                _buildActionButton(
-                  icon: Ionicons.repeat,
-                  count: review.reposts.toString() ?? '0',
-                  onPressed: () => {},
-                ),
-                // SHARES
-                _buildActionButton(
-                  icon: Ionicons.paper_plane_outline,
-                  count: review.likes.toString() ?? '0',
-                  onPressed: () => {},
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

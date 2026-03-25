@@ -9,6 +9,7 @@ import 'package:flutter_test_project/ui/screens/Trending/trending_tracks.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
+import 'package:flutter_test_project/services/data_preloader.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -159,7 +160,7 @@ class MainNavState extends ConsumerState<MainNav> {
               toolbarHeight: 70.0,
             )
           : null,
-      body: _pages[currentPageIndex],
+      body: DataPreloader(child: _pages[currentPageIndex]),
       bottomNavigationBar: TweenAnimationBuilder<double>(
         duration: _bottomNavTweenDuration,
         curve: _isNavigationChromeVisible

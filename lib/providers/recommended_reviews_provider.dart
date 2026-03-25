@@ -17,7 +17,7 @@ final recommendedReviewsProvider =
 });
 
 /// Display limit for lazy-loading recommended reviews (starts at 10).
-final recommendedReviewsDisplayLimitProvider = StateProvider<int>((ref) => 10);
+final recommendedReviewsDisplayLimitProvider = StateProvider<int>((ref) => 5);
 
 /// Increments the display limit by 10 to show more recommendations.
 final loadMoreRecommendedReviewsProvider = Provider<void Function()>((ref) {

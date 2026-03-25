@@ -4,13 +4,20 @@ import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/providers/preferences_provider.dart';
-import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
-import 'package:flutter_test_project/utils/cached_image.dart';
+import 'package:flutter_test_project/providers/recommended_albums_provider.dart';
+import 'package:flutter_test_project/providers/recommended_artists_provider.dart';
+import 'package:flutter_test_project/services/artist_recommendation_service.dart';
+import 'package:flutter_test_project/ui/screens/Trending/recommended_albums_section.dart';
+import 'package:flutter_test_project/ui/screens/Trending/recommended_artists_section.dart';
+import 'package:flutter_test_project/ui/screens/Trending/popular_tracks_section.dart';
+import 'package:flutter_test_project/providers/popular_tracks_provider.dart';
 import 'package:gap/gap.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
 /// Provider for trending tracks based on user preferences
-final trendingTracksProvider = FutureProvider.family<List<TrendingTrack>, EnhancedUserPreferences>((ref, preferences) async {
+final trendingTracksProvider =
+    FutureProvider.family<List<TrendingTrack>, EnhancedUserPreferences>(
+        (ref, preferences) async {
   return TrendingTracksService.fetchPersonalizedTrendingTracks(preferences);
 });
 
@@ -38,35 +45,35 @@ class TrendingTracksService {
       final credentials = spotify.SpotifyApiCredentials(clientId, clientSecret);
       final spotifyApi = spotify.SpotifyApi(credentials);
 
-      debugPrint('🔥 [TRENDING] Fetching trending tracks from Global Top 50...');
+      debugPrint(
+          '🔥 [TRENDING] Fetching trending tracks from Global Top 50...');
 
       final List<TrendingTrack> trendingTracks = [];
-      
+
       // Use "Today's Top Hits" - it's updated daily and reflects current trends
       // Alternative: Use search for recent popular tracks
       try {
         debugPrint('   📋 Fetching trending tracks...');
-        
+
         // Strategy: Search for recent popular tracks from current year
         final currentYear = DateTime.now().year;
         final searchQueries = [
           'year:$currentYear', // Most recent tracks
         ];
-        
+
         // Add user's favorite genres if available
         if (preferences.favoriteGenres.isNotEmpty) {
           for (final genre in preferences.favoriteGenres.take(2)) {
             searchQueries.add('year:$currentYear genre:$genre');
           }
         }
-        
+
         // Search for trending tracks
         for (final query in searchQueries.take(3)) {
           try {
             debugPrint('   🔍 Searching: $query');
             final searchResults = await spotifyApi.search
-                .get(query, types: [spotify.SearchType.track])
-                .first(10);
+                .get(query, types: [spotify.SearchType.track]).first(10);
 
             for (final page in searchResults) {
               if (page.items != null) {
@@ -74,14 +81,14 @@ class TrendingTracksService {
                   if (track is spotify.Track && track.id != null) {
                     // Use track data directly - it already has popularity
                     final popularity = track.popularity ?? 0;
-                    
+
                     // Only include tracks with decent popularity (trending)
                     if (popularity >= 40) {
                       final relevanceScore = _calculateRelevanceScore(
                         track,
                         preferences,
                       );
-                      
+
                       // Only add if not already in list
                       if (!trendingTracks.any((t) => t.track.id == track.id)) {
                         trendingTracks.add(TrendingTrack(
@@ -95,8 +102,9 @@ class TrendingTracksService {
                 }
               }
             }
-            
-            await Future.delayed(const Duration(milliseconds: 200)); // Rate limiting
+
+            await Future.delayed(
+                const Duration(milliseconds: 200)); // Rate limiting
           } catch (e) {
             debugPrint('   ⚠️  Error with query "$query": $e');
             continue;
@@ -121,7 +129,8 @@ class TrendingTracksService {
       debugPrint('   📊 Top 3 tracks:');
       for (var i = 0; i < trendingTracks.length.clamp(0, 3); i++) {
         final track = trendingTracks[i];
-        debugPrint('      ${i + 1}. "${track.track.name}" by ${track.track.artists?.first.name ?? "Unknown"} (popularity: ${track.popularity}, relevance: ${track.relevanceScore.toStringAsFixed(2)})');
+        debugPrint(
+            '      ${i + 1}. "${track.track.name}" by ${track.track.artists?.first.name ?? "Unknown"} (popularity: ${track.popularity}, relevance: ${track.relevanceScore.toStringAsFixed(2)})');
       }
 
       return trendingTracks; // Return all (already limited to 30)
@@ -156,9 +165,11 @@ class TrendingTracksService {
     // Check if track album/genre matches user's favorite genres
     if (preferences.favoriteGenres.isNotEmpty) {
       // Check album name and track name for genre keywords
-      final trackText = '${track.name ?? ""} ${track.album?.name ?? ""}'.toLowerCase();
-      
-      for (final genre in preferences.favoriteGenres.take(3)) { // Limit to top 3 genres for speed
+      final trackText =
+          '${track.name ?? ""} ${track.album?.name ?? ""}'.toLowerCase();
+
+      for (final genre in preferences.favoriteGenres.take(3)) {
+        // Limit to top 3 genres for speed
         final genreWeight = preferences.genreWeights[genre] ?? 0.5;
         if (trackText.contains(genre.toLowerCase())) {
           score += 0.3 * genreWeight; // Weighted by user's genre preference
@@ -190,47 +201,70 @@ class TrendingTracksWidget extends ConsumerWidget {
         return trendingAsync.when(
           data: (trendingTracks) {
             if (trendingTracks.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.trending_up, size: 64, color: Colors.grey),
-                    Gap(16),
-                    Text(
-                      'No trending tracks found',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+              final emptyBottomInset = MediaQuery.of(context).padding.bottom +
+                  kBottomNavigationBarHeight +
+                  32;
+
+              return RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(trendingTracksProvider(preferences));
+                  ref.invalidate(userPreferencesProvider);
+                  ref.invalidate(recommendedAlbumsProvider);
+                  ArtistRecommendationService.clearCache();
+                  ref.invalidate(recommendedArtistsProvider);
+                  ref.invalidate(popularTracksProvider);
+                },
+                color: Colors.red[600],
+                child: CustomScrollView(
+                  slivers: [
+                    const SliverToBoxAdapter(
+                      child: RecommendedAlbumsSection(),
                     ),
-                    Gap(8),
-                    Text(
-                      'Try updating your music preferences',
-                      style: TextStyle(color: Colors.white70),
-                      textAlign: TextAlign.center,
+                    const SliverToBoxAdapter(
+                      child: RecommendedArtistsSection(),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: PopularTracksSection(),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.only(bottom: emptyBottomInset),
                     ),
                   ],
                 ),
               );
             }
 
+            // Bottom padding to clear the floating nav bar + safe area
+            final bottomInset = MediaQuery.of(context).padding.bottom;
+
             return RefreshIndicator(
               onRefresh: () async {
                 ref.invalidate(trendingTracksProvider(preferences));
                 ref.invalidate(userPreferencesProvider);
+                ref.invalidate(recommendedAlbumsProvider);
+                ArtistRecommendationService.clearCache();
+                ref.invalidate(recommendedArtistsProvider);
+                ref.invalidate(popularTracksProvider);
               },
               color: Colors.red[600],
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: trendingTracks.length,
-                itemBuilder: (context, index) {
-                  final trendingTrack = trendingTracks[index];
-                  final track = trendingTrack.track;
-                  
-                  return _TrendingTrackCard(
-                    key: ValueKey(track.id ?? index),
-                    track: track,
-                    popularity: trendingTrack.popularity,
-                    relevanceScore: trendingTrack.relevanceScore,
-                  );
-                },
+              child: CustomScrollView(
+                slivers: [
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 16),
+                      child: RecommendedAlbumsSection(),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: RecommendedArtistsSection(),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: PopularTracksSection(),
+                  ),
+                  SliverPadding(
+                    padding: EdgeInsets.only(bottom: bottomInset),
+                  ),
+                ],
               ),
             );
           },
@@ -275,148 +309,6 @@ class TrendingTracksWidget extends ConsumerWidget {
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Individual trending track card
-class _TrendingTrackCard extends StatelessWidget {
-  final spotify.Track track;
-  final int popularity;
-  final double relevanceScore;
-
-  const _TrendingTrackCard({
-    super.key,
-    required this.track,
-    required this.popularity,
-    required this.relevanceScore,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final imageUrl = track.album?.images?.isNotEmpty == true
-        ? track.album!.images!.first.url
-        : null;
-    final artistNames = track.artists?.map((a) => a.name ?? 'Unknown').join(', ') ?? 'Unknown Artist';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      color: Colors.grey[900],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: relevanceScore > 0.5 ? Colors.red.withOpacity(0.3) : Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            builder: (BuildContext context) {
-              return MyReviewSheetContentForm(
-                title: track.name ?? 'Unknown Track',
-                artist: artistNames,
-                albumImageUrl: imageUrl ?? '',
-              );
-            },
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              // Album cover
-              imageUrl != null
-                  ? AppCachedImage(
-                      imageUrl: imageUrl,
-                      width: 64,
-                      height: 64,
-                      borderRadius: BorderRadius.circular(8),
-                    )
-                  : Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.music_note, color: Colors.white70),
-                    ),
-              const Gap(12),
-              // Track info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      track.name ?? 'Unknown Track',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Gap(4),
-                    Text(
-                      artistNames,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Gap(6),
-                    // Popularity and relevance indicators
-                    Row(
-                      children: [
-                        // Popularity indicator
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.trending_up, size: 14, color: Colors.green),
-                            const Gap(4),
-                            Text(
-                              '$popularity',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (relevanceScore > 0.3) ...[
-                          const Gap(12),
-                          // Relevance indicator
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.favorite, size: 14, color: Colors.red),
-                              const Gap(4),
-                              Text(
-                                '${(relevanceScore * 100).toInt()}% match',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

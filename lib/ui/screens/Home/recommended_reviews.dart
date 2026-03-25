@@ -88,7 +88,7 @@ class _RecommendedReviewsCollectionState
       _isRefreshingRecommendations = true;
     });
 
-    ref.read(recommendedReviewsDisplayLimitProvider.notifier).state = 10;
+    ref.read(recommendedReviewsDisplayLimitProvider.notifier).state = 5;
     await ref.read(refreshRecommendationsProvider)();
 
     if (mounted) {
