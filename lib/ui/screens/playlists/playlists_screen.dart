@@ -6,6 +6,7 @@ import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/providers/user_playlist_provider.dart';
 import 'package:flutter_test_project/ui/screens/playlists/create_playlist_screen.dart';
 import 'package:flutter_test_project/ui/screens/playlists/playlist_detail_screen.dart';
+import 'package:flutter_test_project/utils/cached_image.dart';
 
 /// Main playlists screen - shows user's playlists or "add playlist" button
 class PlaylistsScreen extends ConsumerWidget {
@@ -54,90 +55,50 @@ class PlaylistsScreen extends ConsumerWidget {
       body: playlistsAsync.when(
         data: (playlists) {
           if (playlists.isEmpty) {
-            // Show "Add Playlist" square when no playlists exist
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CreatePlaylistScreen(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.white10,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white30,
-                            width: 2,
-                          ),
-                        ),
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add,
-                              size: 64,
-                              color: Colors.white70,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'Add Playlist',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Create your first playlist',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
+            return Stack(
+              children: [
+                const Center(
+                  child: Text(
+                    'No playlists yet.\nTap + to create one!',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: _AddButton(),
+                ),
+              ],
             );
           }
 
-          // Show grid of playlists
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(userPlaylistsProvider);
               await Future.delayed(const Duration(milliseconds: 500));
             },
             color: Colors.red[600],
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.75,
+            child: ListView.builder(
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 32,
               ),
-              itemCount: playlists.length + 1, // +1 for "Add Playlist" card
+              itemCount: playlists.length + 1, // +1 for the header row
               itemBuilder: (context, index) {
-                if (index == playlists.length) {
-                  // "Add Playlist" card
-                  return _AddPlaylistCard();
+                if (index == 0) {
+                  // Header row with + button
+                  return Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _AddButton(),
+                    ),
+                  );
                 }
-                return _PlaylistCard(playlist: playlists[index]);
+                return _PlaylistSection(playlist: playlists[index - 1]);
               },
             ),
           );
@@ -170,122 +131,12 @@ class PlaylistsScreen extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CreatePlaylistScreen(),
-            ),
-          );
-        },
-        backgroundColor: Colors.red[600],
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 }
 
-/// Playlist card widget
-class _PlaylistCard extends StatelessWidget {
-  final UserPlaylist playlist;
-
-  const _PlaylistCard({required this.playlist});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PlaylistDetailScreen(playlistId: playlist.id),
-          ),
-        );
-      },
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white10,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cover image or placeholder
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-                child: playlist.coverImageUrl != null
-                    ? Image.network(
-                        playlist.coverImageUrl!,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholder();
-                        },
-                      )
-                    : _buildPlaceholder(),
-              ),
-            ),
-            // Playlist info
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      playlist.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${playlist.trackCount} ${playlist.trackCount == 1 ? 'track' : 'tracks'}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return Container(
-      width: double.infinity,
-      color: Colors.red.withOpacity(0.2),
-      child: const Icon(
-        Icons.music_note,
-        color: Colors.red,
-        size: 50,
-      ),
-    );
-  }
-}
-
-/// "Add Playlist" card
-class _AddPlaylistCard extends StatelessWidget {
+/// Small circular "+" button that navigates to CreatePlaylistScreen
+class _AddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -297,31 +148,89 @@ class _AddPlaylistCard extends StatelessWidget {
           ),
         );
       },
-      child: DecoratedBox(
+      child: Container(
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          color: Colors.white10,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white30,
-            width: 2,
-            style: BorderStyle.solid,
-          ),
+          shape: BoxShape.circle,
+          color: Colors.red[600],
         ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add,
-              size: 48,
-              color: Colors.white70,
+        child: const Icon(Icons.add, color: Colors.white, size: 24),
+      ),
+    );
+  }
+}
+
+/// A single playlist section: title + row of 4 album art squares
+class _PlaylistSection extends StatelessWidget {
+  final UserPlaylist playlist;
+
+  const _PlaylistSection({required this.playlist});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  PlaylistDetailScreen(playlistId: playlist.id),
             ),
-            SizedBox(height: 12),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              'Add Playlist',
-              style: TextStyle(
+              playlist.name,
+              style: const TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: List.generate(4, (i) {
+                  final track =
+                      i < playlist.tracks.length ? playlist.tracks[i] : null;
+                  final imageUrl = track?.imageUrl;
+
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: i < 3 ? 8 : 0),
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: imageUrl != null
+                              ? AppCachedImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                )
+                              : ColoredBox(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  child: const Icon(
+                                    Icons.music_note,
+                                    color: Colors.white24,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ),
             ),
           ],

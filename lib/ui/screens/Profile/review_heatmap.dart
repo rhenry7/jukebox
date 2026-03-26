@@ -21,13 +21,15 @@ class ReviewHeatmap extends StatelessWidget {
     return const Color(0xFF39D353);
   }
 
-  Map<DateTime, int> _buildCountMap() {
-    final counts = <DateTime, int>{};
+  static String _dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Map<String, int> _buildCountMap() {
+    final counts = <String, int>{};
     for (final review in reviews) {
       if (review.date == null) continue;
-      final d = review.date!;
-      final dateOnly = DateTime(d.year, d.month, d.day);
-      counts[dateOnly] = (counts[dateOnly] ?? 0) + 1;
+      final key = _dateKey(review.date!);
+      counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;
   }
@@ -157,7 +159,7 @@ class ReviewHeatmap extends StatelessWidget {
                         ...List.generate(weeks.length, (col) {
                           final date = weeks[col][row];
                           final isFuture = date.isAfter(todayDate);
-                          final count = isFuture ? 0 : (counts[date] ?? 0);
+                          final count = isFuture ? 0 : (counts[_dateKey(date)] ?? 0);
                           return Padding(
                             padding: const EdgeInsets.only(
                                 right: _cellGap, bottom: _cellGap),
@@ -224,10 +226,7 @@ class ReviewHeatmap extends StatelessWidget {
   }
 
   static String _monthName(int month) {
-    const names = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
+    const names = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
     return names[month - 1];
   }
 }
