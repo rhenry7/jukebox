@@ -19,7 +19,7 @@ void main() async {
   if (kIsWeb && firebaseOptionsKey.isEmpty) {
     runApp(
       MaterialApp(
-        title: 'Jukeboxd',
+        title: 'MIXDTAKE',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -68,7 +68,7 @@ void main() async {
             'is configured correctly.\n\nError: $e';
     runApp(
       MaterialApp(
-        title: 'Jukeboxd',
+        title: 'MIXDTAKE',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -78,8 +78,7 @@ void main() async {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline,
-                      color: Colors.red, size: 48),
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
                   const SizedBox(height: 16),
                   const Text(
                     'Firebase configuration error',
@@ -127,7 +126,7 @@ class MyApp extends ConsumerWidget {
     // Show loading screen while checking auth state
     if (authState.isLoading) {
       return MaterialApp(
-        title: 'Jukeboxd',
+        title: 'MIXDTAKE',
         themeMode: ThemeMode.dark,
         darkTheme: ThemeData(
           brightness: Brightness.dark,
@@ -149,7 +148,7 @@ class MyApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'Jukeboxd',
+      title: 'MIXDTAKES',
       themeMode: ThemeMode.dark,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -177,7 +176,7 @@ class MyApp extends ConsumerWidget {
           },
         ),
       ),
-      home: const MainNav(title: 'JUKEBOXD'),
+      home: const MainNav(title: 'MIXDTAKES'),
     );
   }
 }

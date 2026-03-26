@@ -57,7 +57,7 @@ class _SignInScreenState extends State<SignInScreen> {
         // User is already signed in, navigate to home
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => const MainNav(title: 'JUKEBOXD'),
+            builder: (context) => const MainNav(title: 'CRATEBOXD'),
           ),
           (Route<dynamic> route) => false, // Remove all previous routes
         );
@@ -106,7 +106,7 @@ class _SignInScreenState extends State<SignInScreen> {
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => const MainNav(title: 'JUKEBOXD'),
+                builder: (context) => const MainNav(title: 'MIIXTAKES'),
               ),
               (Route<dynamic> route) => false, // Remove all previous routes
             );
@@ -165,14 +165,14 @@ class _SignInScreenState extends State<SignInScreen> {
       if (hasPrefs) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-              builder: (context) => const MainNav(title: 'JUKEBOXD')),
+              builder: (context) => const MainNav(title: 'MIIXTAKES')),
           (Route<dynamic> route) => false,
         );
       } else {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
               builder: (context) => const MainNav(
-                  title: 'JUKEBOXD', navigateToPreferences: true)),
+                  title: 'MIIXTAKES', navigateToPreferences: true)),
           (Route<dynamic> route) => false,
         );
       }

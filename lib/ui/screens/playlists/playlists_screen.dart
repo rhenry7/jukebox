@@ -65,7 +65,7 @@ class PlaylistsScreen extends ConsumerWidget {
                   ),
                 ),
                 Positioned(
-                  top: 16,
+                  top: 8,
                   right: 16,
                   child: _AddButton(),
                 ),
@@ -150,12 +150,12 @@ class _AddButton extends StatelessWidget {
       },
       child: Container(
         width: 40,
-        height: 40,
+        height: 20,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.red[600],
+          color: Colors.grey[800],
         ),
-        child: const Icon(Icons.add, color: Colors.white, size: 24),
+        child: const Icon(Icons.add, color: Colors.white, size: 12),
       ),
     );
   }
@@ -201,36 +201,56 @@ class _PlaylistSection extends StatelessWidget {
                 color: Colors.white10,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                children: List.generate(4, (i) {
-                  final track =
-                      i < playlist.tracks.length ? playlist.tracks[i] : null;
-                  final imageUrl = track?.imageUrl;
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: List.generate(4, (i) {
+                      final track = i < playlist.tracks.length
+                          ? playlist.tracks[i]
+                          : null;
+                      final imageUrl = track?.imageUrl;
 
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: i < 3 ? 8 : 0),
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: imageUrl != null
-                              ? AppCachedImage(
-                                  imageUrl: imageUrl,
-                                  fit: BoxFit.cover,
-                                )
-                              : ColoredBox(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  child: const Icon(
-                                    Icons.music_note,
-                                    color: Colors.white24,
-                                  ),
-                                ),
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: i < 3 ? 8 : 0),
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: imageUrl != null
+                                  ? AppCachedImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : ColoredBox(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.05),
+                                      child: const Icon(
+                                        Icons.music_note,
+                                        color: Colors.white24,
+                                      ),
+                                    ),
+                            ),
+                          ),
                         ),
+                      );
+                    }),
+                  ),
+                  if (playlist.description != null &&
+                      playlist.description!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      playlist.description!,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  );
-                }),
+                  ],
+                ],
               ),
             ),
           ],

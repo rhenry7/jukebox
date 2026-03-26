@@ -7,6 +7,7 @@ import 'package:flutter_test_project/models/user_playlist.dart';
 import 'package:flutter_test_project/providers/user_playlist_provider.dart';
 import 'package:flutter_test_project/services/user_playlist_service.dart';
 import 'package:flutter_test_project/ui/screens/playlists/add_songs_screen.dart';
+import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
 /// Screen showing playlist details and tracks
@@ -156,43 +157,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: playlistAsync.when(
-          data: (playlist) => Text(
-            playlist?.name ?? 'Playlist',
-            style: const TextStyle(color: Colors.white),
-          ),
-          loading: () => const Text(
-            'Playlist',
-            style: TextStyle(color: Colors.white),
-          ),
-          error: (_, __) => const Text(
-            'Playlist',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          playlistAsync.when(
-            data: (playlist) => playlist != null
-                ? IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddSongsScreen(playlistId: widget.playlistId),
-                        ),
-                      );
-                    },
-                  )
-                : const SizedBox.shrink(),
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
-        ],
-      ),
       body: playlistAsync.when(
         data: (playlist) {
           if (playlist == null) {
@@ -211,51 +175,94 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             debugPrint('   First track: ${playlist.tracks.first.title} by ${playlist.tracks.first.artist}');
           }
 
+          // Resolve hero image: coverImageUrl → first track art → null
+          final heroImageUrl = playlist.coverImageUrl ??
+              (playlist.tracks.isNotEmpty
+                  ? playlist.tracks.first.imageUrl
+                  : null);
+
           return RefreshIndicator(
             onRefresh: () async {
-              // Invalidate and wait for refresh
               ref.invalidate(singlePlaylistProvider(widget.playlistId));
               await Future.delayed(const Duration(milliseconds: 500));
             },
             color: Colors.red[600],
             child: CustomScrollView(
               slivers: [
-                // Playlist header
+                // Hero image + back / add buttons
+                SliverToBoxAdapter(
+                  child: Stack(
+                    children: [
+                      // Full-width album art
+                      if (heroImageUrl != null)
+                        AppCachedImage(
+                          imageUrl: heroImageUrl,
+                          width: double.infinity,
+                          height: MediaQuery.of(context).size.height * 0.40,
+                          fit: BoxFit.cover,
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          height: MediaQuery.of(context).size.height * 0.40,
+                          color: Colors.grey[900],
+                          child: const Icon(Icons.music_note,
+                              color: Colors.white24, size: 80),
+                        ),
+                      // Back button
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + 8,
+                        left: 12,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black.withValues(alpha: 0.5),
+                            ),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ),
+                      // Add-songs button
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + 8,
+                        right: 12,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    AddSongsScreen(playlistId: widget.playlistId),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black.withValues(alpha: 0.5),
+                            ),
+                            child: const Icon(Icons.add,
+                                color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Title / description / tags / count
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Cover image
-                        if (playlist.coverImageUrl != null)
-                          Center(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                playlist.coverImageUrl!,
-                                width: 200,
-                                height: 200,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    width: 200,
-                                    height: 200,
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.music_note,
-                                      color: Colors.red,
-                                      size: 80,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 16),
                         // Name
                         Text(
                           playlist.name,
@@ -265,19 +272,21 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 8),
                         // Description
-                        if (playlist.description != null && playlist.description!.isNotEmpty)
+                        if (playlist.description != null &&
+                            playlist.description!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
                           Text(
                             playlist.description!,
                             style: const TextStyle(
                               color: Colors.white70,
-                              fontSize: 16,
+                              fontSize: 15,
                             ),
                           ),
-                        const SizedBox(height: 8),
-                        // Tags
-                        if (playlist.tags.isNotEmpty)
+                        ],
+                        // Tag pills
+                        if (playlist.tags.isNotEmpty) ...[
+                          const SizedBox(height: 10),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -288,10 +297,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: Colors.red.withOpacity(0.5),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                   ),
                                 ),
                                 child: Text(
@@ -304,7 +313,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               );
                             }).toList(),
                           ),
-                        const SizedBox(height: 8),
+                        ],
+                        const SizedBox(height: 10),
                         // Track count
                         Text(
                           '${playlist.trackCount} ${playlist.trackCount == 1 ? 'track' : 'tracks'}',
@@ -321,7 +331,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           decoration: InputDecoration(
                             hintText: 'Search for songs to add...',
                             hintStyle: const TextStyle(color: Colors.white30),
-                            prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                            prefixIcon:
+                                const Icon(Icons.search, color: Colors.white70),
                             suffixIcon: _isSearching
                                 ? const Padding(
                                     padding: EdgeInsets.all(12.0),
@@ -342,7 +353,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                   )
                                 : _searchController.text.isNotEmpty
                                     ? IconButton(
-                                        icon: const Icon(Icons.clear, color: Colors.white70),
+                                        icon: const Icon(Icons.clear,
+                                            color: Colors.white70),
                                         onPressed: () {
                                           _searchController.clear();
                                           setState(() {
@@ -354,18 +366,21 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                     : null,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.white30),
+                              borderSide:
+                                  const BorderSide(color: Colors.white30),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.white30),
+                              borderSide:
+                                  const BorderSide(color: Colors.white30),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.red, width: 2),
+                              borderSide: const BorderSide(
+                                  color: Colors.red, width: 2),
                             ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
+                            fillColor: Colors.white.withValues(alpha: 0.05),
                           ),
                         ),
                         const SizedBox(height: 16),

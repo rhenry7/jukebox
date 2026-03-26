@@ -140,7 +140,7 @@ class MainNavState extends ConsumerState<MainNav> {
               title: Padding(
                 padding: const EdgeInsets.all(0.0),
                 child: Text(
-                  'JUKEBOXD',
+                  'CRATEBOXD',
                   style: GoogleFonts.gasoekOne(
                     textStyle: TextStyle(
                       color: Colors.red,
