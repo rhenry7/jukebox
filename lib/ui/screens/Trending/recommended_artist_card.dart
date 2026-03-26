@@ -36,7 +36,7 @@ class RecommendedArtistCard extends StatelessWidget {
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: Colors.white.withOpacity(0.1),
             width: 1,
           ),
         ),
@@ -62,7 +62,8 @@ class RecommendedArtistCard extends StatelessWidget {
                         top: Radius.circular(12),
                       ),
                     ),
-                    child: const Icon(Icons.person, color: Colors.white70, size: 48),
+                    child: const Icon(Icons.person,
+                        color: Colors.white70, size: 48),
                   ),
 
             // Text content
@@ -89,7 +90,7 @@ class RecommendedArtistCard extends StatelessWidget {
                       Text(
                         artist.genres.take(2).join(', '),
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: Colors.white.withOpacity(0.4),
                           fontSize: 11,
                         ),
                         maxLines: 1,
@@ -144,7 +145,7 @@ class _GenrePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
