@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -56,22 +57,27 @@ class MusicRecommendationService {
         throw const MusicRecommendationException('User not logged in');
       }
 
-      // NEW: Analyze all user reviews for deep personalization (with caching)
-      UserReviewProfile? reviewProfile;
-      try {
-        debugPrint(
-            'Analyzing user reviews for personalized recommendations...');
-        // Use cached version if available (faster)
-        reviewProfile = await ReviewAnalysisService.analyzeUserReviews(userId,
-            forceRefresh: false);
-        debugPrint(
-            'Review analysis complete: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} avg rating');
-      } catch (e) {
-        debugPrint('Error analyzing reviews (will use basic method): $e');
-      }
+      final preferences = preferencesJson;
 
-      // Get recent reviews for AI prompt (still include some recent context)
-      final List<Review> reviews = await FirebaseFirestore.instance
+      // Run independent read-heavy tasks in parallel.
+      final reviewProfileFuture = () async {
+        try {
+          debugPrint(
+              'Analyzing user reviews for personalized recommendations...');
+          final profile = await ReviewAnalysisService.analyzeUserReviews(
+            userId,
+            forceRefresh: false,
+          );
+          debugPrint(
+              'Review analysis complete: ${profile.ratingPattern.averageRating.toStringAsFixed(1)} avg rating');
+          return profile;
+        } catch (e) {
+          debugPrint('Error analyzing reviews (will use basic method): $e');
+          return null;
+        }
+      }();
+
+      final reviewsFuture = FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('reviews')
@@ -82,6 +88,52 @@ class MusicRecommendationService {
               .map((doc) => Review.fromFirestore(doc.data()))
               .toList());
 
+      final collaborativeFuture = useEnhancedAlgorithm
+          ? () async {
+              try {
+                debugPrint('Finding similar users...');
+                final similarUsers =
+                    await RecommendationEnhancements.findSimilarUsers(userId);
+                if (similarUsers.isEmpty) return <MusicRecommendation>[];
+                debugPrint('Found ${similarUsers.length} similar users');
+                final collaborativeRecs = await RecommendationEnhancements
+                    .getCollaborativeRecommendations(userId, similarUsers);
+                debugPrint(
+                    'Got ${collaborativeRecs.length} collaborative recommendations');
+                return collaborativeRecs;
+              } catch (e) {
+                debugPrint('Error getting collaborative recommendations: $e');
+                return <MusicRecommendation>[];
+              }
+            }()
+          : Future.value(<MusicRecommendation>[]);
+
+      final spotifyFuture = useEnhancedAlgorithm &&
+              (preferences.savedTracks.isNotEmpty ||
+                  preferences.favoriteArtists.isNotEmpty)
+          ? () async {
+              try {
+                debugPrint('Fetching Spotify recommendations...');
+                final spotifyRecs =
+                    await RecommendationEnhancements.getSpotifyRecommendations(
+                  preferences,
+                  count ~/ 2,
+                );
+                debugPrint('Got ${spotifyRecs.length} Spotify recommendations');
+                return spotifyRecs;
+              } catch (e) {
+                debugPrint('Error getting Spotify recommendations: $e');
+                return <MusicRecommendation>[];
+              }
+            }()
+          : Future.value(<MusicRecommendation>[]);
+
+      final embeddingMetadataFuture =
+          _buildTasteEmbeddingMetadata(userId, preferences);
+
+      final reviews = await reviewsFuture;
+      final reviewProfile = await reviewProfileFuture;
+
       final List<dynamic> reviewList = [];
       for (final review in reviews.take(5)) {
         reviewList.add({
@@ -91,20 +143,6 @@ class MusicRecommendationService {
           'rating': review.score,
         });
       }
-
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('musicPreferences')
-          .doc('profile')
-          .get();
-
-      if (!doc.exists) {
-        throw const MusicRecommendationException('User preferences not found');
-      }
-
-      final EnhancedUserPreferences preferences =
-          EnhancedUserPreferences.fromJson(doc.data()!);
 
       final List<MusicRecommendation> allRecommendations = [];
       final Map<String, Set<String>> recommendationSources =
@@ -119,6 +157,32 @@ class MusicRecommendationService {
           final key = _recommendationKey(recommendation);
           recommendationSources.putIfAbsent(key, () => <String>{}).add(source);
         }
+      }
+
+      Future<List<UserSignal>> userSignalsFuture = Future.value(<UserSignal>[]);
+      Future<Map<String, double>?> componentWeightsFuture = Future.value(null);
+      if (reviewProfile != null) {
+        userSignalsFuture = () async {
+          try {
+            final signals =
+                await SignalCollectionService.getRecentSignals(limit: 200);
+            debugPrint('Fetched ${signals.length} user signals for scoring');
+            return signals;
+          } catch (e) {
+            debugPrint(
+                'Error fetching signals (will use review-only scoring): $e');
+            return <UserSignal>[];
+          }
+        }();
+
+        componentWeightsFuture = () async {
+          try {
+            return await RecommendationOutcomeService.getAdjustedWeights();
+          } catch (e) {
+            debugPrint('Error fetching adjusted weights: $e');
+            return null;
+          }
+        }();
       }
 
       // 1. Get AI-based recommendations (improved prompt with review analysis)
@@ -177,38 +241,18 @@ class MusicRecommendationService {
         debugPrint('Error getting AI recommendations: $e');
       }
 
-      // 2. Get collaborative filtering recommendations (if enabled)
-      if (useEnhancedAlgorithm) {
-        try {
-          debugPrint('Finding similar users...');
-          final similarUsers =
-              await RecommendationEnhancements.findSimilarUsers(userId);
-          if (similarUsers.isNotEmpty) {
-            debugPrint('Found ${similarUsers.length} similar users');
-            final collaborativeRecs = await RecommendationEnhancements
-                .getCollaborativeRecommendations(userId, similarUsers);
-            addRecommendationsWithSource(collaborativeRecs, 'collaborative');
-            debugPrint(
-                'Got ${collaborativeRecs.length} collaborative recommendations');
-          }
-        } catch (e) {
-          debugPrint('Error getting collaborative recommendations: $e');
-        }
-
-        // 3. Get Spotify API recommendations (if user has saved tracks/artists)
-        try {
-          if (preferences.savedTracks.isNotEmpty ||
-              preferences.favoriteArtists.isNotEmpty) {
-            debugPrint('Fetching Spotify recommendations...');
-            final spotifyRecs =
-                await RecommendationEnhancements.getSpotifyRecommendations(
-                    preferences, count ~/ 2);
-            addRecommendationsWithSource(spotifyRecs, 'spotify');
-            debugPrint('Got ${spotifyRecs.length} Spotify recommendations');
-          }
-        } catch (e) {
-          debugPrint('Error getting Spotify recommendations: $e');
-        }
+      // 2/3. Consume source futures that ran in parallel with AI generation.
+      final sourceResults = await Future.wait<List<MusicRecommendation>>([
+        collaborativeFuture,
+        spotifyFuture,
+      ]);
+      final collaborativeRecs = sourceResults[0];
+      final spotifyRecs = sourceResults[1];
+      if (collaborativeRecs.isNotEmpty) {
+        addRecommendationsWithSource(collaborativeRecs, 'collaborative');
+      }
+      if (spotifyRecs.isNotEmpty) {
+        addRecommendationsWithSource(spotifyRecs, 'spotify');
       }
 
       // Remove duplicates and saved tracks
@@ -226,31 +270,16 @@ class MusicRecommendationService {
 
       // 4. Score recommendations based on review analysis + signals + feedback weights
       if (reviewProfile != null && filteredRecs.isNotEmpty) {
-        // Fetch user signals for signal-aggregated scoring (Phase 1+2)
-        List<UserSignal> userSignals = [];
-        try {
-          userSignals =
-              await SignalCollectionService.getRecentSignals(limit: 200);
-          debugPrint('Fetched ${userSignals.length} user signals for scoring');
-        } catch (e) {
-          debugPrint(
-              'Error fetching signals (will use review-only scoring): $e');
-        }
+        final userSignals = await userSignalsFuture;
+        final componentWeights = await componentWeightsFuture;
 
-        // Fetch feedback-calibrated weights (Phase 4)
         Map<String, double>? adjustedSignalWeights;
-        try {
-          final componentWeights =
-              await RecommendationOutcomeService.getAdjustedWeights();
-          if (componentWeights !=
-              RecommendationOutcomeService.defaultComponentWeights) {
-            adjustedSignalWeights =
-                null; // signal weights remain default for now
-            debugPrint(
-                'Using feedback-calibrated component weights: $componentWeights');
-          }
-        } catch (e) {
-          debugPrint('Error fetching adjusted weights: $e');
+        if (componentWeights != null &&
+            componentWeights !=
+                RecommendationOutcomeService.defaultComponentWeights) {
+          adjustedSignalWeights = null; // signal weights remain default for now
+          debugPrint(
+              'Using feedback-calibrated component weights: $componentWeights');
         }
 
         final scoredRecs = filteredRecs.map((rec) {
@@ -258,7 +287,7 @@ class MusicRecommendationService {
               recommendationSources[_recommendationKey(rec)] ?? <String>{};
           final score = _scoreRecommendationFromReviews(
             rec,
-            reviewProfile!,
+            reviewProfile,
             signals: userSignals,
             adjustedWeights: adjustedSignalWeights,
             sourceHints: sourceHints,
@@ -288,50 +317,40 @@ class MusicRecommendationService {
       // 4b. Semantic scoring via taste vector embeddings (Phase 3)
       if (filteredRecs.isNotEmpty) {
         try {
-          final embeddingMetadata = await _buildTasteEmbeddingMetadata(
-            userId,
-            preferences,
-          );
-          final tasteVector = await EmbeddingService.getTasteVector(
-            userId,
-            reviews,
+          final embeddingMetadata = await embeddingMetadataFuture;
+          final candidates = filteredRecs
+              .map((r) => CandidateInfo(
+                    artist: r.artist,
+                    track: r.song,
+                    album: r.album,
+                    genres: r.genres,
+                  ))
+              .toList();
+          final semanticScores =
+              await EmbeddingService.scoreCandidatesWithUserTaste(
+            userId: userId,
+            reviews: reviews,
+            candidates: candidates,
             metadata: embeddingMetadata,
           );
-          if (tasteVector != null) {
-            debugPrint(
-                '[SEMANTIC] Taste vector loaded — scoring ${filteredRecs.length} candidates');
-            final candidates = filteredRecs
-                .map((r) => CandidateInfo(
-                      artist: r.artist,
-                      track: r.song,
-                      album: r.album,
-                      genres: r.genres,
-                    ))
-                .toList();
-            final semanticScores = await EmbeddingService.scoreCandidatesBatch(
-              tasteVector: tasteVector,
-              candidates: candidates,
-            );
 
-            // Re-rank using combined score (signal + semantic)
+          if (semanticScores.isNotEmpty) {
+            debugPrint(
+                '[SEMANTIC] Scored ${filteredRecs.length} candidates with taste embeddings');
             final reRanked = <Map<String, dynamic>>[];
             for (int i = 0; i < filteredRecs.length; i++) {
-              reRanked.add({
-                'rec': filteredRecs[i],
-                'semanticScore': semanticScores[i],
-              });
+              final score = i < semanticScores.length ? semanticScores[i] : 0.5;
+              reRanked.add({'rec': filteredRecs[i], 'semanticScore': score});
             }
             reRanked.sort((a, b) => (b['semanticScore'] as double)
                 .compareTo(a['semanticScore'] as double));
 
-            // Blend semantic ranking with existing order (50/50 interleave)
             final semanticOrder =
                 reRanked.map((e) => e['rec'] as MusicRecommendation).toList();
             final blended = <MusicRecommendation>[];
             final seen = <String>{};
             int sIdx = 0, oIdx = 0;
             while (blended.length < filteredRecs.length) {
-              // Alternate between semantic and original order
               MusicRecommendation? next;
               if (blended.length % 2 == 0 && sIdx < semanticOrder.length) {
                 next = semanticOrder[sIdx++];
@@ -343,23 +362,21 @@ class MusicRecommendationService {
                 break;
               }
               final key = '${next.artist}|${next.song}'.toLowerCase();
-              if (!seen.contains(key)) {
-                seen.add(key);
+              if (seen.add(key)) {
                 blended.add(next);
               }
             }
             filteredRecs = blended;
             debugPrint('[SEMANTIC] Re-ranked with semantic scoring');
-
-            // 4c. LLM rerank pass over top semantic candidates.
-            filteredRecs = await _rerankWithTasteProfileLlm(
-              recommendations: filteredRecs,
-              preferences: preferences,
-              reviews: reviews,
-              reviewProfile: reviewProfile,
-              targetCount: count,
-            );
           }
+
+          filteredRecs = await _rerankWithTasteProfileLlm(
+            recommendations: filteredRecs,
+            preferences: preferences,
+            reviews: reviews,
+            reviewProfile: reviewProfile,
+            targetCount: count,
+          );
         } catch (e) {
           debugPrint(
               '[SEMANTIC] Error in semantic scoring (continuing without): $e');
@@ -396,9 +413,14 @@ class MusicRecommendationService {
       // Take requested count
       filteredRecs = filteredRecs.take(count).toList();
 
-      // 5. Enrich recommendations with MusicBrainz genres (hybrid approach)
-      debugPrint('Enriching recommendations with MusicBrainz genres...');
-      filteredRecs = await _enrichRecommendationsWithGenres(filteredRecs);
+      // 6. Keep critical path fast: use cache-only enrichment now and warm the
+      // rate-limited MusicBrainz cache in the background.
+      filteredRecs = await _enrichRecommendationsWithGenres(
+        filteredRecs,
+        allowMusicBrainzNetwork: false,
+        allowSpotifyFallback: false,
+      );
+      _warmGenreCacheInBackground(filteredRecs);
 
       // Start fetching album images in the background (non-blocking)
       _fetchAlbumImagesInBackground(filteredRecs);
@@ -407,7 +429,7 @@ class MusicRecommendationService {
       _logShownRecommendationsInBackground(filteredRecs);
 
       // 8. Resolve stale outcomes in background (Phase 4)
-      RecommendationOutcomeService.resolveStaleOutcomes();
+      unawaited(RecommendationOutcomeService.resolveStaleOutcomes());
 
       debugPrint(
           'Returning ${filteredRecs.length} final recommendations with genres');
@@ -1460,88 +1482,110 @@ Rules:
 
   /// Enrich recommendations with MusicBrainz genres (hybrid Spotify + MusicBrainz approach)
   static Future<List<MusicRecommendation>> _enrichRecommendationsWithGenres(
-    List<MusicRecommendation> recommendations,
-  ) async {
-    final enrichedRecs = <MusicRecommendation>[];
+    List<MusicRecommendation> recommendations, {
+    bool allowMusicBrainzNetwork = true,
+    bool allowSpotifyFallback = true,
+  }) async {
+    if (recommendations.isEmpty) return <MusicRecommendation>[];
 
-    for (final rec in recommendations) {
-      // If already has genres, keep them but try to enrich
-      List<String> genres = List.from(rec.genres);
-
-      // Only fetch from cache/API if we don't have genres or have very few
-      if (genres.isEmpty || genres.length < 2) {
-        try {
-          // Use cache service: checks Firestore cache first, then MusicBrainz API
-          final cachedGenres = await GenreCacheService.getGenresWithCache(
-            rec.song,
-            rec.artist.split(',').first.trim(), // Use first artist if multiple
-          );
-
-          if (cachedGenres.isNotEmpty) {
-            // Combine existing genres with cached genres (avoid duplicates)
-            final cachedGenresSet =
-                cachedGenres.map((g) => g.toLowerCase().trim()).toSet();
-
-            // Merge genres
-            genres = cachedGenres.toList();
-            // Add any existing genres that weren't in cached genres
-            for (final existing in rec.genres) {
-              if (!cachedGenresSet.contains(existing.toLowerCase().trim())) {
-                genres.add(existing);
-              }
-            }
-
-            debugPrint(
-                'Enriched ${rec.song} with ${genres.length} genres (from cache/API)');
-          }
-        } catch (e) {
-          debugPrint('Error enriching ${rec.song} with genres: $e');
-          // Continue with existing genres if enrichment fails
-        }
+    SpotifyApi? spotify;
+    if (allowSpotifyFallback) {
+      try {
+        final credentials = SpotifyApiCredentials(clientId, clientSecret);
+        spotify = SpotifyApi(credentials);
+      } catch (_) {
+        spotify = null;
       }
-
-      // If still no genres, try to get from Spotify artist
-      if (genres.isEmpty) {
-        try {
-          final credentials = SpotifyApiCredentials(clientId, clientSecret);
-          final spotify = SpotifyApi(credentials);
-
-          // Search for artist to get artist-level genres
-          final artistName = rec.artist.split(',').first.trim();
-          final searchResults = await spotify.search
-              .get(artistName, types: [SearchType.artist]).first(1);
-
-          for (final page in searchResults) {
-            if (page.items != null) {
-              for (final item in page.items!) {
-                if (item is Artist &&
-                    item.genres != null &&
-                    item.genres!.isNotEmpty) {
-                  genres = item.genres!.toList();
-                  debugPrint(
-                      'Got ${genres.length} artist genres from Spotify for ${rec.song}');
-                  break;
-                }
-              }
-            }
-            if (genres.isNotEmpty) break;
-          }
-        } catch (e) {
-          debugPrint('Error getting Spotify artist genres for ${rec.song}: $e');
-        }
-      }
-
-      // Create enriched recommendation
-      enrichedRecs.add(MusicRecommendation(
-        song: rec.song,
-        artist: rec.artist,
-        album: rec.album,
-        imageUrl: rec.imageUrl,
-        genres: genres,
-      ));
     }
 
-    return enrichedRecs;
+    final futures = recommendations.map((rec) {
+      return _enrichRecommendationGenres(
+        rec,
+        spotify: spotify,
+        allowMusicBrainzNetwork: allowMusicBrainzNetwork,
+        allowSpotifyFallback: allowSpotifyFallback,
+      );
+    }).toList();
+
+    return Future.wait(futures);
+  }
+
+  static Future<MusicRecommendation> _enrichRecommendationGenres(
+    MusicRecommendation rec, {
+    SpotifyApi? spotify,
+    required bool allowMusicBrainzNetwork,
+    required bool allowSpotifyFallback,
+  }) async {
+    List<String> genres = List.from(rec.genres);
+
+    if (genres.isEmpty || genres.length < 2) {
+      try {
+        final cachedGenres = await GenreCacheService.getGenresWithCache(
+          rec.song,
+          rec.artist.split(',').first.trim(),
+          allowNetworkFetch: allowMusicBrainzNetwork,
+        );
+
+        if (cachedGenres.isNotEmpty) {
+          final cachedGenresSet =
+              cachedGenres.map((g) => g.toLowerCase().trim()).toSet();
+          genres = cachedGenres.toList();
+          for (final existing in rec.genres) {
+            if (!cachedGenresSet.contains(existing.toLowerCase().trim())) {
+              genres.add(existing);
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error enriching ${rec.song} with genres: $e');
+      }
+    }
+
+    if (allowSpotifyFallback && genres.isEmpty && spotify != null) {
+      try {
+        final artistName = rec.artist.split(',').first.trim();
+        final searchResults = await spotify.search
+            .get(artistName, types: [SearchType.artist]).first(1);
+
+        for (final page in searchResults) {
+          if (page.items == null) continue;
+          for (final item in page.items!) {
+            if (item is Artist &&
+                item.genres != null &&
+                item.genres!.isNotEmpty) {
+              genres = item.genres!.toList();
+              break;
+            }
+          }
+          if (genres.isNotEmpty) break;
+        }
+      } catch (e) {
+        debugPrint('Error getting Spotify artist genres for ${rec.song}: $e');
+      }
+    }
+
+    return MusicRecommendation(
+      song: rec.song,
+      artist: rec.artist,
+      album: rec.album,
+      imageUrl: rec.imageUrl,
+      genres: genres,
+    );
+  }
+
+  /// Warms MusicBrainz-backed genre cache off the request critical path.
+  static void _warmGenreCacheInBackground(List<MusicRecommendation> recs) {
+    Future(() async {
+      try {
+        await _enrichRecommendationsWithGenres(
+          recs,
+          allowMusicBrainzNetwork: true,
+          allowSpotifyFallback: false,
+        );
+      } catch (e) {
+        debugPrint('Error warming genre cache: $e');
+      }
+    });
   }
 
   /// Fetches album images from Spotify in parallel (non-blocking background task)

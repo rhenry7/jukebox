@@ -9,7 +9,7 @@ class GenreCacheService {
 
   /// How long cached genres are considered fresh (14 days).
   static const Duration _cacheTtl = Duration(days: 14);
-  
+
   /// Generate a cache key from track title and artist.
   ///
   /// Firestore document IDs cannot contain `/` (path separator).
@@ -30,7 +30,8 @@ class GenreCacheService {
   }
 
   /// Get cached genres for a track
-  static Future<List<String>?> getCachedGenres(String title, String artist) async {
+  static Future<List<String>?> getCachedGenres(
+      String title, String artist) async {
     try {
       final cacheKey = _generateCacheKey(title, artist);
       final doc = await FirebaseFirestore.instance
@@ -45,7 +46,8 @@ class GenreCacheService {
         if (cachedAt != null) {
           final age = DateTime.now().difference(cachedAt.toDate());
           if (age > _cacheTtl) {
-            debugPrint('Cache expired for $title by $artist (${age.inDays}d old)');
+            debugPrint(
+                'Cache expired for $title by $artist (${age.inDays}d old)');
             return null; // stale — caller will re-fetch
           }
         }
@@ -70,7 +72,7 @@ class GenreCacheService {
     List<String> genres,
   ) async {
     if (genres.isEmpty) return; // Don't cache empty genres
-    
+
     try {
       final cacheKey = _generateCacheKey(title, artist);
       await FirebaseFirestore.instance
@@ -83,7 +85,7 @@ class GenreCacheService {
         'cachedAt': FieldValue.serverTimestamp(),
         'source': 'musicbrainz', // Track where genres came from
       }, SetOptions(merge: true));
-      
+
       debugPrint('Cached ${genres.length} genres for $title by $artist');
     } catch (e) {
       debugPrint('Error caching genres: $e');
@@ -93,24 +95,32 @@ class GenreCacheService {
   /// Get genres with caching: checks cache first, then fetches from API if needed
   static Future<List<String>> getGenresWithCache(
     String title,
-    String artist,
-  ) async {
+    String artist, {
+    bool allowNetworkFetch = true,
+  }) async {
     // 1. Check cache first
     final cachedGenres = await getCachedGenres(title, artist);
     if (cachedGenres != null && cachedGenres.isNotEmpty) {
       return cachedGenres;
     }
 
+    if (!allowNetworkFetch) {
+      return [];
+    }
+
     // 2. Fetch from MusicBrainz API
     try {
-      final mbAlbum = await MusicBrainzService.searchByTitleAndArtist(title, artist);
-      
-      if (mbAlbum != null && mbAlbum.genres != null && mbAlbum.genres!.isNotEmpty) {
+      final mbAlbum =
+          await MusicBrainzService.searchByTitleAndArtist(title, artist);
+
+      if (mbAlbum != null &&
+          mbAlbum.genres != null &&
+          mbAlbum.genres!.isNotEmpty) {
         final genres = mbAlbum.genres!;
-        
+
         // 3. Cache the results for future use
         await cacheGenres(title, artist, genres);
-        
+
         return genres;
       }
     } catch (e) {
@@ -138,10 +148,9 @@ class GenreCacheService {
   /// Clear all genre caches (admin function)
   static Future<void> clearAllCache() async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(_collectionName)
-          .get();
-      
+      final snapshot =
+          await FirebaseFirestore.instance.collection(_collectionName).get();
+
       final batch = FirebaseFirestore.instance.batch();
       for (final doc in snapshot.docs) {
         batch.delete(doc.reference);

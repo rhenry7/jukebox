@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/providers/music_profile_insights_provider.dart';
+import 'package:flutter_test_project/providers/spotify_artist_provider.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
+import 'package:flutter_test_project/ui/screens/Profile/genre_distribution_chart.dart';
 import 'package:flutter_test_project/ui/screens/Profile/profile_analytics_dashboard.dart';
 import 'package:flutter_test_project/ui/screens/Profile/review_heatmap.dart';
 import 'package:flutter_test_project/ui/screens/Profile/review_stats_cards.dart';
+import 'package:flutter_test_project/ui/screens/Profile/top_artists_card.dart';
 import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -17,6 +20,7 @@ class ProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final reviewsAsync = ref.watch(userReviewsProvider);
     final insightsAsync = ref.watch(musicProfileInsightsAutoProvider);
+    final topArtistsAsync = ref.watch(spotifyTopArtistsProvider);
     final user = FirebaseAuth.instance.currentUser;
     final reviewCount = ref.watch(reviewCountProvider);
 
@@ -60,6 +64,35 @@ class ProfilePage extends ConsumerWidget {
                       // Heatmap
                       ReviewHeatmap(reviews: reviews),
                       const SizedBox(height: 16),
+
+                      // Top Artists (Spotify)
+                      topArtistsAsync.when(
+                        data: (artists) => Column(
+                          children: [
+                            TopArtistsCard(artists: artists),
+                            const SizedBox(height: 16),
+                            GenreDistributionChart(artists: artists),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                        loading: () => Column(
+                          children: [
+                            SkeletonLoader(
+                              width: double.infinity,
+                              height: 160,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            const SizedBox(height: 16),
+                            SkeletonLoader(
+                              width: double.infinity,
+                              height: 230,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                        error: (_, __) => const SizedBox.shrink(),
+                      ),
 
                       // Stats cards
                       ReviewStatsCards(reviews: reviews),

@@ -408,12 +408,35 @@ class EmbeddingService {
     List<Review> reviews, {
     TasteEmbeddingMetadata? metadata,
   }) async {
+    final inputs = _buildTasteVectorInputs(reviews, metadata: metadata);
+    if (inputs == null) return null;
+
+    final batchResult = await _generateBatchEmbeddingsResolved(inputs.texts);
+    if (batchResult == null) return null;
+
+    final tasteVector = _computeWeightedTasteVector(
+      embeddings: batchResult.embeddings,
+      weights: inputs.weights,
+    );
+    if (tasteVector == null) return null;
+
+    return _TasteVectorBuildResult(
+      vector: tasteVector,
+      model: batchResult.model,
+      dimensions: tasteVector.length,
+    );
+  }
+
+  static _TasteVectorInputs? _buildTasteVectorInputs(
+    List<Review> reviews, {
+    TasteEmbeddingMetadata? metadata,
+  }) {
     if (reviews.isEmpty) return null;
 
     final metadataContext = metadata?.toEmbeddingContext() ?? '';
+    final texts = <String>[];
+    final weights = <double>[];
 
-    // Build text snippets for embedding.
-    final textsWithWeights = <MapEntry<String, double>>[];
     for (final review in reviews) {
       final reviewText = _buildReviewEmbeddingText(
         review,
@@ -421,31 +444,37 @@ class EmbeddingService {
       );
       if (reviewText.length < 10) continue;
 
+      texts.add(reviewText);
       // Weight by normalized rating (0.0 to 1.0), with a floor so very low
       // ratings still contribute to "what to avoid".
-      final weight = (review.score / 5.0).clamp(0.2, 1.0).toDouble();
-      textsWithWeights.add(MapEntry(reviewText, weight));
+      weights.add((review.score / 5.0).clamp(0.2, 1.0).toDouble());
     }
 
-    if (textsWithWeights.isEmpty) return null;
+    if (texts.isEmpty) return null;
 
-    // Include one dedicated metadata embedding so profile-level Spotify
-    // signals influence the taste vector even with sparse reviews.
     if (metadataContext.isNotEmpty) {
-      textsWithWeights.add(
-        MapEntry('User Spotify taste context: $metadataContext', 0.8),
-      );
+      texts.add('User Spotify taste context: $metadataContext');
+      weights.add(0.8);
     }
 
-    final texts = textsWithWeights.map((e) => e.key).toList();
-    final batchResult = await _generateBatchEmbeddingsResolved(texts);
-    if (batchResult == null) return null;
+    return _TasteVectorInputs(texts: texts, weights: weights);
+  }
+
+  static List<double>? _computeWeightedTasteVector({
+    required List<List<double>?> embeddings,
+    required List<double> weights,
+  }) {
+    if (embeddings.isEmpty ||
+        weights.isEmpty ||
+        embeddings.length != weights.length) {
+      return null;
+    }
 
     List<double>? tasteVector;
     double totalWeight = 0.0;
 
-    for (int i = 0; i < batchResult.embeddings.length; i++) {
-      final embedding = batchResult.embeddings[i];
+    for (int i = 0; i < embeddings.length; i++) {
+      final embedding = embeddings[i];
       if (embedding == null || embedding.isEmpty) continue;
 
       if (tasteVector == null) {
@@ -459,25 +488,22 @@ class EmbeddingService {
         continue;
       }
 
-      final weight = textsWithWeights[i].value;
+      final weight = weights[i];
       totalWeight += weight;
-
       for (int d = 0; d < tasteVector.length; d++) {
         tasteVector[d] += embedding[d] * weight;
       }
     }
 
-    if (tasteVector == null || totalWeight == 0) return null;
+    if (tasteVector == null || totalWeight == 0) {
+      return null;
+    }
 
     for (int d = 0; d < tasteVector.length; d++) {
       tasteVector[d] /= totalWeight;
     }
 
-    return _TasteVectorBuildResult(
-      vector: tasteVector,
-      model: batchResult.model,
-      dimensions: tasteVector.length,
-    );
+    return tasteVector;
   }
 
   static String _buildReviewEmbeddingText(
@@ -538,6 +564,84 @@ class EmbeddingService {
     final embeddings = await generateBatchEmbeddings(descriptions);
 
     return embeddings.map((embedding) {
+      if (embedding == null) return 0.5;
+      final cosine = ScoringUtils.cosineSimilarity(tasteVector, embedding);
+      return ((cosine + 1.0) / 2.0).clamp(0.0, 1.0);
+    }).toList();
+  }
+
+  /// Scores candidates while reusing a cached taste vector when possible and
+  /// falling back to a single combined embedding batch when regeneration is
+  /// required.
+  ///
+  /// This avoids separate "taste vector" and "candidate scoring" embedding
+  /// API calls on cache misses.
+  static Future<List<double>> scoreCandidatesWithUserTaste({
+    required String userId,
+    required List<Review> reviews,
+    required List<CandidateInfo> candidates,
+    TasteEmbeddingMetadata? metadata,
+  }) async {
+    if (candidates.isEmpty) return [];
+
+    final metadataSignature = metadata?.signature ?? 'none';
+    final cached = await _loadCachedTasteVector(userId);
+
+    final canUseCached = cached != null &&
+        cached.model == _embeddingModel &&
+        cached.metadataSignature == metadataSignature &&
+        cached.dimensions == cached.vector.length &&
+        cached.reviewCount >= reviews.length;
+
+    if (canUseCached) {
+      return scoreCandidatesBatch(
+        tasteVector: cached.vector,
+        candidates: candidates,
+      );
+    }
+
+    final inputs = _buildTasteVectorInputs(reviews, metadata: metadata);
+    if (inputs == null) {
+      return List<double>.filled(candidates.length, 0.5);
+    }
+
+    final candidateDescriptions = candidates
+        .map(
+          (c) =>
+              'Artist: ${c.artist}. Track: ${c.track}. Album: ${c.album}. Genres: ${c.genres.join(", ")}.',
+        )
+        .toList();
+    final combinedTexts = <String>[
+      ...inputs.texts,
+      ...candidateDescriptions,
+    ];
+
+    final batchResult = await _generateBatchEmbeddingsResolved(combinedTexts);
+    if (batchResult == null) {
+      return List<double>.filled(candidates.length, 0.5);
+    }
+
+    final tasteEmbeddings =
+        batchResult.embeddings.take(inputs.texts.length).toList();
+    final candidateEmbeddings =
+        batchResult.embeddings.skip(inputs.texts.length).toList();
+    final tasteVector = _computeWeightedTasteVector(
+      embeddings: tasteEmbeddings,
+      weights: inputs.weights,
+    );
+    if (tasteVector == null) {
+      return List<double>.filled(candidates.length, 0.5);
+    }
+
+    await _cacheTasteVector(
+      userId,
+      tasteVector,
+      reviews.length,
+      model: batchResult.model,
+      metadataSignature: metadataSignature,
+    );
+
+    return candidateEmbeddings.map((embedding) {
       if (embedding == null) return 0.5;
       final cosine = ScoringUtils.cosineSimilarity(tasteVector, embedding);
       return ((cosine + 1.0) / 2.0).clamp(0.0, 1.0);
@@ -626,6 +730,16 @@ class _TasteVectorBuildResult {
     required this.vector,
     required this.model,
     required this.dimensions,
+  });
+}
+
+class _TasteVectorInputs {
+  final List<String> texts;
+  final List<double> weights;
+
+  const _TasteVectorInputs({
+    required this.texts,
+    required this.weights,
   });
 }
 

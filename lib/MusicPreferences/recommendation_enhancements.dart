@@ -10,6 +10,10 @@ import 'package:flutter_test_project/Api/api_key.dart';
 
 /// Enhanced recommendation algorithm focused on discovery
 class RecommendationEnhancements {
+  static const Duration _communitySimilarityCacheTtl = Duration(minutes: 10);
+  static DateTime? _communitySimilarityCachedAt;
+  static _CommunitySimilarityCache? _communitySimilarityCache;
+
   /// Calculate diversity score for a list of recommendations
   /// Higher score = more diverse (different genres, artists, eras)
   static double calculateDiversityScore(
@@ -62,34 +66,14 @@ class RecommendationEnhancements {
 
       if (currentUserArtists.isEmpty) return [];
 
-      // Collect per-user artist & genre sets from community reviews
-      final userArtists = <String, Set<String>>{};
-      final userGenres = <String, Set<String>>{};
-
-      final allReviews = await FirebaseFirestore.instance
-          .collectionGroup('reviews')
-          .where('score', isGreaterThan: 3.5)
-          .limit(500)
-          .get();
-
-      for (final doc in allReviews.docs) {
-        final review = Review.fromFirestore(doc.data());
-        final userId = review.userId;
-        if (userId == currentUserId) continue;
-
-        userArtists.putIfAbsent(userId, () => <String>{});
-        userArtists[userId]!.add(review.artist.toLowerCase().trim());
-
-        if (review.genres != null) {
-          userGenres.putIfAbsent(userId, () => <String>{});
-          userGenres[userId]!
-              .addAll(review.genres!.map((g) => g.toLowerCase().trim()));
-        }
-      }
+      final communitySnapshot = await _loadCommunitySimilarityCache();
+      final userArtists = communitySnapshot.userArtists;
+      final userGenres = communitySnapshot.userGenres;
 
       // Compute combined Jaccard similarity for each user
       final similarityScores = <String, double>{};
       for (final userId in userArtists.keys) {
+        if (userId == currentUserId) continue;
         final similarity = ScoringUtils.combinedUserSimilarity(
           userArtists: currentUserArtists,
           otherArtists: userArtists[userId] ?? {},
@@ -250,6 +234,7 @@ class RecommendationEnhancements {
                     genres = await GenreCacheService.getGenresWithCache(
                       item.name!,
                       firstArtist,
+                      allowNetworkFetch: false,
                     );
                     if (genres.isNotEmpty) {
                       debugPrint(
@@ -309,6 +294,64 @@ class RecommendationEnhancements {
       debugPrint('Error getting Spotify recommendations: $e');
       return [];
     }
+  }
+
+  static Future<_CommunitySimilarityCache>
+      _loadCommunitySimilarityCache() async {
+    final cachedAt = _communitySimilarityCachedAt;
+    final cached = _communitySimilarityCache;
+    if (cachedAt != null &&
+        cached != null &&
+        DateTime.now().difference(cachedAt) < _communitySimilarityCacheTtl) {
+      return _CommunitySimilarityCache(
+        userArtists: _cloneSetMap(cached.userArtists),
+        userGenres: _cloneSetMap(cached.userGenres),
+      );
+    }
+
+    final userArtists = <String, Set<String>>{};
+    final userGenres = <String, Set<String>>{};
+
+    final allReviews = await FirebaseFirestore.instance
+        .collectionGroup('reviews')
+        .where('score', isGreaterThan: 3.5)
+        .limit(500)
+        .get();
+
+    for (final doc in allReviews.docs) {
+      final review = Review.fromFirestore(doc.data());
+      final userId = review.userId;
+      if (userId.isEmpty) continue;
+
+      userArtists.putIfAbsent(userId, () => <String>{});
+      userArtists[userId]!.add(review.artist.toLowerCase().trim());
+
+      if (review.genres != null) {
+        userGenres.putIfAbsent(userId, () => <String>{});
+        userGenres[userId]!
+            .addAll(review.genres!.map((g) => g.toLowerCase().trim()));
+      }
+    }
+
+    _communitySimilarityCachedAt = DateTime.now();
+    _communitySimilarityCache = _CommunitySimilarityCache(
+      userArtists: _cloneSetMap(userArtists),
+      userGenres: _cloneSetMap(userGenres),
+    );
+
+    return _CommunitySimilarityCache(
+      userArtists: userArtists,
+      userGenres: userGenres,
+    );
+  }
+
+  static Map<String, Set<String>> _cloneSetMap(
+      Map<String, Set<String>> source) {
+    final clone = <String, Set<String>>{};
+    source.forEach((key, value) {
+      clone[key] = Set<String>.from(value);
+    });
+    return clone;
   }
 
   /// Post-process recommendations to ensure diversity
@@ -438,4 +481,14 @@ class RecommendationEnhancements {
     final combined = [...discoveryRecs, ...safeRecs];
     return ensureDiversity(combined.take(allRecommendations.length).toList());
   }
+}
+
+class _CommunitySimilarityCache {
+  final Map<String, Set<String>> userArtists;
+  final Map<String, Set<String>> userGenres;
+
+  const _CommunitySimilarityCache({
+    required this.userArtists,
+    required this.userGenres,
+  });
 }

@@ -41,7 +41,7 @@ class _AlbumsContent extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: Text(
-            'Recommended Albums',
+            'Recommended Tracks',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -57,7 +57,8 @@ class _AlbumsContent extends StatelessWidget {
             itemCount: albums.length,
             itemBuilder: (context, index) {
               return Padding(
-                padding: EdgeInsets.only(right: index < albums.length - 1 ? 12 : 0),
+                padding:
+                    EdgeInsets.only(right: index < albums.length - 1 ? 12 : 0),
                 child: RecommendedAlbumCard(album: albums[index]),
               );
             },

@@ -192,10 +192,10 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
           await MusicRecommendationService.getRecommendations(
         preferences,
         excludeSongs: recentShown,
-        count: 20, // fetch wider pool, then filter already-shown tracks
+        count: 10, // smaller request pool for faster discovery load times
         // validationMode defaults to 'spotify-only' (skips MusicBrainz)
         validateTopN:
-            10, // Only validate top 10 (rest shown without validation)
+            6, // Validate a subset for speed while keeping quality guardrails
         skipMetadataEnrichment: false, // Keep metadata for better UX
       );
 
