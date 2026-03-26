@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo "🚀 Starting deployment process..."
 echo ""
 
@@ -8,6 +10,10 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Step 0: Verify pinned Flutter version
+echo "📌 Verifying Flutter SDK version..."
+bash ./scripts/check_flutter_version.sh
 
 # Step 1: Run tests
 echo "🧪 Running tests..."
@@ -22,8 +28,10 @@ echo ""
 
 # Step 2: Analyze code (warnings are OK, errors are not)
 echo "🔍 Analyzing code..."
+set +e
 flutter analyze --no-fatal-infos --no-fatal-warnings
 ANALYZE_EXIT_CODE=$?
+set -e
 
 if [ $ANALYZE_EXIT_CODE -eq 0 ]; then
     echo -e "${GREEN}✅ Code analysis passed (no errors)${NC}"
@@ -63,9 +71,7 @@ fi
 if [ ${#DART_DEFINES_ARRAY[@]} -eq 0 ]; then
     echo "   ⚠️  No .env found or no keys in .env — deployed app may show 'Firebase API key missing'"
 fi
-flutter build web --release "${DART_DEFINES_ARRAY[@]}"
-
-if [ $? -ne 0 ]; then
+if ! flutter build web --release "${DART_DEFINES_ARRAY[@]}"; then
     echo "❌ Build failed! Please check the errors above."
     exit 1
 fi
@@ -76,9 +82,7 @@ echo ""
 
 # Deploy to Firebase Hosting
 echo "🔥 Deploying to Firebase Hosting..."
-firebase deploy --only hosting
-
-if [ $? -ne 0 ]; then
+if ! firebase deploy --only hosting; then
     echo "❌ Deployment failed! Make sure you're logged in: firebase login"
     exit 1
 fi

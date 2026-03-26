@@ -35,15 +35,35 @@ API keys are loaded at **runtime** from a `.env` file:
 
 ## CI/CD configuration
 
+### Flutter version pinning
+
+- The repo pins Flutter with `.flutter-version`.
+- Optional local FVM support is configured in `.fvmrc`.
+- Local validation scripts call `scripts/check_flutter_version.sh` before running tests or deploys.
+- CI reads the same pinned version file before setting up Flutter, so local and GitHub Actions stay aligned.
+
+### Local SDK setup
+
+If you use FVM:
+
+```bash
+fvm use
+fvm flutter pub get
+```
+
+If you do not use FVM, install/switch your local Flutter SDK to the exact version in `.flutter-version`.
+
 ### Tests (`.github/workflows/tests.yml`)
 
 - Runs on push/PR to `main` and `develop`.
+- Installs the exact Flutter version from `.flutter-version`.
 - API keys come from **GitHub Secrets** via `--dart-define` (no `.env` in CI).
 - Required secrets (for tests that need them): `FIREBASE_OPTIONS_KEY`, `FIREBASE_APP_ID`, and optionally `CLIENT_ID`, `CLIENT_SECRET`, etc.
 
 ### Deploy (`.github/workflows/deploy.yml`)
 
 - Runs on push to `main` or via **workflow_dispatch** (manual).
+- Installs the exact Flutter version from `.flutter-version`.
 - Builds Flutter web with `--dart-define` from GitHub Secrets, then deploys to Firebase Hosting.
 
 **Required GitHub Secrets for deploy:**
@@ -78,4 +98,4 @@ Use the deploy script so keys from `.env` are passed at build time (deployed app
 ./deploy.sh
 ```
 
-This reads `.env`, runs `flutter build web --release` with `--dart-define` for each key, then runs `firebase deploy --only hosting`.
+This first verifies that your active Flutter SDK matches `.flutter-version`, then reads `.env`, runs `flutter build web --release` with `--dart-define` for each key, and finally runs `firebase deploy --only hosting`.

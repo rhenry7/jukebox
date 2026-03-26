@@ -14,6 +14,10 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Step 0: Verify pinned Flutter version
+echo "📌 Verifying Flutter SDK version..."
+bash ./scripts/check_flutter_version.sh
+
 # Step 1: Get dependencies
 echo "📦 Getting dependencies..."
 flutter pub get
@@ -21,8 +25,10 @@ flutter pub get
 # Step 2: Analyze code (warnings are OK, errors are not)
 echo ""
 echo "🔍 Analyzing code..."
+set +e
 flutter analyze --no-fatal-infos --no-fatal-warnings
 ANALYZE_EXIT_CODE=$?
+set -e
 
 if [ $ANALYZE_EXIT_CODE -eq 0 ]; then
     echo -e "${GREEN}✅ Code analysis passed (no errors)${NC}"

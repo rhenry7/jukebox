@@ -183,8 +183,8 @@ class _AlbumHeroSection extends StatelessWidget {
                 )
               : Container(
                   color: Colors.grey[800],
-                  child: const Icon(Icons.album,
-                      color: Colors.white70, size: 80),
+                  child:
+                      const Icon(Icons.album, color: Colors.white70, size: 80),
                 ),
 
           // Gradient overlay for readability
@@ -194,9 +194,9 @@ class _AlbumHeroSection extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.3),
+                  Colors.black.withOpacity(0.3),
                   Colors.transparent,
-                  Colors.black.withValues(alpha: 0.8),
+                  Colors.black.withOpacity(0.8),
                   Colors.black,
                 ],
                 stops: const [0.0, 0.3, 0.7, 1.0],
@@ -215,10 +215,9 @@ class _AlbumHeroSection extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: 0.5),
+                  color: Colors.black.withOpacity(0.5),
                 ),
-                child:
-                    const Icon(Icons.close, color: Colors.white, size: 20),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
               ),
             ),
           ),
@@ -265,10 +264,10 @@ class _AlbumHeroSection extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
+                          color: Colors.white.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: Colors.white.withOpacity(0.2),
                           ),
                         ),
                         child: Text(
