@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/providers/recommended_reviews_provider.dart';
+import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:flutter_test_project/services/review_recommendation_service.dart';
 
 /// Album-level recommendation derived from community reviews.
@@ -73,4 +74,15 @@ final recommendedAlbumsProvider =
   });
 
   return albums.take(15).toList();
+});
+
+/// Fetches release-level info (date + country) from MusicBrainz on demand.
+///
+/// Keyed by `(artist: ..., title: ...)` so each album is fetched once.
+final albumReleaseInfoProvider = FutureProvider.family<MusicBrainzAlbum?,
+    ({String artist, String title})>((ref, params) {
+  return MusicBrainzService.searchReleaseByTitleAndArtist(
+    params.title,
+    params.artist,
+  );
 });

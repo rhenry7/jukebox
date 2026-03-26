@@ -8,6 +8,7 @@ import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm
 import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 
 /// Full-screen detail page for a recommended album.
 ///
@@ -159,14 +160,17 @@ class AlbumDetailPage extends ConsumerWidget {
 }
 
 /// Top hero section: album art with gradient overlay and info.
-class _AlbumHeroSection extends StatelessWidget {
+class _AlbumHeroSection extends ConsumerWidget {
   final AlbumRecommendation album;
 
   const _AlbumHeroSection({required this.album});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final releaseAsync = ref.watch(
+      albumReleaseInfoProvider((artist: album.artist, title: album.title)),
+    );
 
     return SizedBox(
       height: 350,
@@ -308,6 +312,33 @@ class _AlbumHeroSection extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                // Release date (from MusicBrainz)
+                releaseAsync.when(
+                  data: (info) {
+                    if (info?.releaseDate == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today,
+                              color: Colors.white54, size: 14),
+                          const Gap(6),
+                          Text(
+                            DateFormat.yMMMMd().format(info!.releaseDate!),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
                 ),
               ],
             ),

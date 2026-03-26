@@ -14,6 +14,7 @@ class MusicBrainzAlbum {
   final String artist;
   String? imageURL;
   final DateTime? releaseDate;
+  final String? country;
   final List<String>? genres;
 
   MusicBrainzAlbum({
@@ -22,12 +23,13 @@ class MusicBrainzAlbum {
     required this.artist,
     this.imageURL,
     this.releaseDate,
+    this.country,
     this.genres = const [],
   });
 
   @override
   String toString() {
-    return 'MusicBrainzAlbum(title: $title, artist: $artist, releaseDate: $releaseDate, genres: $genres)';
+    return 'MusicBrainzAlbum(title: $title, artist: $artist, releaseDate: $releaseDate, country: $country, genres: $genres)';
   }
 
 // todo: use package to make this portion easier
@@ -40,6 +42,7 @@ class MusicBrainzAlbum {
       releaseDate: json['releaseDate'] != null
           ? DateTime.tryParse(json['releaseDate'])
           : null,
+      country: json['country'] as String?,
       genres:
           (json['genres'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
@@ -52,6 +55,7 @@ class MusicBrainzAlbum {
       'artist': artist,
       'imageURL': imageURL,
       'releaseDate': releaseDate?.toIso8601String(),
+      'country': country,
       'genres': genres,
     };
   }
@@ -197,6 +201,66 @@ class MusicBrainzService {
       }
     } else {
       //debugPrint('MusicBrainz search failed: ${response.statusCode}');
+    }
+
+    return null;
+  }
+
+  /// Search the `/release` endpoint for a specific album to get release date
+  /// and country, which are not available on the release-group endpoint.
+  static Future<MusicBrainzAlbum?> searchReleaseByTitleAndArtist(
+      String title, String artist) async {
+    await _rateLimit();
+
+    final query = 'release:"$title" AND artist:"$artist"';
+
+    final url = Uri.parse('$_baseUrl/release').replace(queryParameters: {
+      'query': query,
+      'fmt': 'json',
+      'limit': '1',
+    });
+
+    try {
+      final response = await http.get(url, headers: {
+        'User-Agent': 'jukeboxd/1.0 (ramoneh94@gmail.com)',
+      }).timeout(_httpTimeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final releases = data['releases'] as List?;
+        if (releases != null && releases.isNotEmpty) {
+          final release = releases.first;
+          final id = release['id'] as String? ?? '';
+          final releaseTitle = release['title'] as String? ?? title;
+          final country = release['country'] as String?;
+
+          final artistCredits = release['artist-credit'] as List?;
+          final releaseArtist = artistCredits?.isNotEmpty == true
+              ? artistCredits!.first['name'] as String? ?? artist
+              : artist;
+
+          DateTime? releaseDate;
+          final dateStr = release['date'] as String?;
+          if (dateStr != null && dateStr.length >= 4) {
+            try {
+              releaseDate = DateTime.parse(dateStr);
+            } catch (_) {
+              final year = int.tryParse(dateStr.substring(0, 4));
+              if (year != null) releaseDate = DateTime(year);
+            }
+          }
+
+          return MusicBrainzAlbum(
+            id: id,
+            title: releaseTitle,
+            artist: releaseArtist,
+            releaseDate: releaseDate,
+            country: country,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching release info from MusicBrainz: $e');
     }
 
     return null;
