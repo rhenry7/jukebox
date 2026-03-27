@@ -313,6 +313,18 @@ class UserPlaylistService {
     }
   }
 
+  /// Get playlists by a list of document IDs (e.g. liked playlists).
+  /// Streams real-time updates; batches if more than 30 IDs.
+  static Stream<List<UserPlaylist>> getPlaylistsByIds(List<String> ids) {
+    if (ids.isEmpty) return Stream.value([]);
+    final limited = ids.take(30).toList();
+    return FirebaseFirestore.instance
+        .collection(_collectionName)
+        .where(FieldPath.documentId, whereIn: limited)
+        .snapshots()
+        .map((snap) => snap.docs.map(UserPlaylist.fromFirestore).toList());
+  }
+
   /// Delete a playlist
   static Future<void> deletePlaylist(String playlistId) async {
     try {

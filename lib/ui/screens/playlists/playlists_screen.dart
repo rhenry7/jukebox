@@ -6,6 +6,7 @@ import 'package:flutter_test_project/models/user_playlist.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/providers/friends_provider.dart';
 import 'package:flutter_test_project/providers/user_playlist_provider.dart';
+import 'package:flutter_test_project/services/playlist_likes_service.dart';
 import 'package:flutter_test_project/ui/screens/playlists/create_playlist_screen.dart';
 import 'package:flutter_test_project/ui/screens/playlists/playlist_detail_screen.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
@@ -349,12 +350,17 @@ class _YourPlaylistsTab extends ConsumerWidget {
     }
 
     final playlistsAsync = ref.watch(userPlaylistsProvider);
+    final likedPlaylists = ref.watch(likedPlaylistsProvider).value ?? [];
 
     return playlistsAsync.when(
       data: (playlists) {
         final filtered = _filterPlaylistsByTags(playlists, selectedGenres);
+        final filteredLiked = _filterPlaylistsByTags(likedPlaylists, selectedGenres);
 
-        if (filtered.isEmpty) {
+        final hasOwn = filtered.isNotEmpty;
+        final hasLiked = filteredLiked.isNotEmpty;
+
+        if (!hasOwn && !hasLiked) {
           return Stack(
             children: [
               const Center(
@@ -373,20 +379,31 @@ class _YourPlaylistsTab extends ConsumerWidget {
           );
         }
 
+        // Layout:
+        // 0          : _AddButton
+        // 1..own     : own playlists
+        // own+1      : "Saved Playlists" header  (only if hasLiked)
+        // own+2..end : liked playlists
+        final likedHeaderIndex = filtered.length + 1;
+        final totalCount = 1 +
+            filtered.length +
+            (hasLiked ? 1 + filteredLiked.length : 0);
+
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(userPlaylistsProvider);
+            ref.invalidate(likedPlaylistsProvider);
             await Future.delayed(const Duration(milliseconds: 500));
           },
           color: Colors.red[600],
           child: ListView.builder(
-            padding: const EdgeInsets.only(
+            padding: EdgeInsets.only(
               left: 16,
               right: 16,
               top: 16,
-              bottom: 32,
+              bottom: MediaQuery.paddingOf(context).bottom + 90,
             ),
-            itemCount: filtered.length + 1,
+            itemCount: totalCount,
             itemBuilder: (context, index) {
               if (index == 0) {
                 return Align(
@@ -397,7 +414,37 @@ class _YourPlaylistsTab extends ConsumerWidget {
                   ),
                 );
               }
-              return _PlaylistSection(playlist: filtered[index - 1]);
+              if (index <= filtered.length) {
+                return _PlaylistSection(playlist: filtered[index - 1]);
+              }
+              if (hasLiked) {
+                if (index == likedHeaderIndex) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16, top: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.favorite,
+                            color: Colors.red, size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Saved Playlists',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final likedIndex = index - likedHeaderIndex - 1;
+                if (likedIndex >= 0 && likedIndex < filteredLiked.length) {
+                  return _PlaylistSection(playlist: filteredLiked[likedIndex]);
+                }
+              }
+              return const SizedBox.shrink();
             },
           ),
         );
@@ -445,11 +492,11 @@ class _CommunityPlaylistsTab extends ConsumerWidget {
           },
           color: Colors.red[600],
           child: ListView.builder(
-            padding: const EdgeInsets.only(
+            padding: EdgeInsets.only(
               left: 16,
               right: 16,
               top: 16,
-              bottom: 32,
+              bottom: MediaQuery.paddingOf(context).bottom + 90,
             ),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
@@ -513,11 +560,11 @@ class _FriendsPlaylistsTab extends ConsumerWidget {
           },
           color: Colors.red[600],
           child: ListView.builder(
-            padding: const EdgeInsets.only(
+            padding: EdgeInsets.only(
               left: 16,
               right: 16,
               top: 16,
-              bottom: 32,
+              bottom: MediaQuery.paddingOf(context).bottom + 90,
             ),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
@@ -565,14 +612,21 @@ class _AddButton extends StatelessWidget {
   }
 }
 
-/// A single playlist section: title + row of 4 album art squares
-class _PlaylistSection extends StatelessWidget {
+/// A single playlist card: title row, album art, tags, description, heart button.
+class _PlaylistSection extends ConsumerWidget {
   final UserPlaylist playlist;
 
   const _PlaylistSection({required this.playlist});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.watch(currentUserIdProvider);
+    final isOwner = currentUserId == playlist.userId;
+    final isLiked =
+        ref.watch(playlistLikeStatusProvider(playlist.id)).value ?? false;
+    final creatorName =
+        ref.watch(userDisplayNameProvider(playlist.userId)).value ?? '';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: GestureDetector(
@@ -588,17 +642,34 @@ class _PlaylistSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              playlist.name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            // ── Title + "By [creator]" ──────────────────────────────────
+            RichText(
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: playlist.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (creatorName.isNotEmpty)
+                    TextSpan(
+                      text: '  By $creatorName',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
+            // ── Card ───────────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -608,13 +679,13 @@ class _PlaylistSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Album art row
                   Row(
                     children: List.generate(4, (i) {
                       final track = i < playlist.tracks.length
                           ? playlist.tracks[i]
                           : null;
                       final imageUrl = track?.imageUrl;
-
                       return Expanded(
                         child: Padding(
                           padding: EdgeInsets.only(right: i < 3 ? 8 : 0),
@@ -641,6 +712,33 @@ class _PlaylistSection extends StatelessWidget {
                       );
                     }),
                   ),
+                  // Tags row
+                  if (playlist.tags.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: playlist.tags
+                          .map(
+                            (tag) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: Colors.white30, width: 1),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                tag,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                  // Description
                   if (playlist.description != null &&
                       playlist.description!.isNotEmpty) ...[
                     const SizedBox(height: 10),
@@ -654,10 +752,59 @@ class _PlaylistSection extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
+                  // Heart button — bottom right, only for non-owners
+                  if (!isOwner && currentUserId != null) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _HeartButton(
+                        isLiked: isLiked,
+                        onTap: () async {
+                          if (isLiked) {
+                            await PlaylistLikesService.unlikePlaylist(
+                                playlist.id, currentUserId);
+                          } else {
+                            await PlaylistLikesService.likePlaylist(
+                                playlist.id, currentUserId);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeartButton extends StatelessWidget {
+  final bool isLiked;
+  final VoidCallback onTap;
+
+  const _HeartButton({required this.isLiked, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isLiked
+                ? Colors.red.withValues(alpha: 0.6)
+                : Colors.white30,
+          ),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Icon(
+          isLiked ? Icons.favorite : Icons.favorite_border,
+          color: isLiked ? Colors.red : Colors.white70,
+          size: 16,
         ),
       ),
     );

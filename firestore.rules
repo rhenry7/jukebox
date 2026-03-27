@@ -14,8 +14,9 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      // Allow users to read their own user document
-      allow read: if isOwner(userId);
+      // Allow any authenticated user to read user documents (needed for
+      // display name lookups in playlist cards, profile views, etc.)
+      allow read: if isAuthenticated();
       // Allow users to create/update their own user document
       allow write: if isOwner(userId);
       
@@ -108,6 +109,30 @@ service cloud.firestore {
                       request.resource.data.userId == request.auth.uid;
     }
     
+    // Playlist likes collection (top-level)
+    // Structure: playlistLikes/{playlistId}/likes/{userId}
+    match /playlistLikes/{playlistId} {
+      allow read: if isAuthenticated();
+      // No direct writes to the parent doc — only the subcollection matters
+      allow write: if false;
+
+      match /likes/{userId} {
+        // Any authenticated user can check like status
+        allow read: if isAuthenticated();
+        // Users can only create/delete their own like document
+        allow create: if isAuthenticated() && request.auth.uid == userId;
+        allow delete: if isAuthenticated() && request.auth.uid == userId;
+        allow update: if false;
+      }
+    }
+
+    // Per-user liked playlist IDs (top-level)
+    // Structure: userLikedPlaylists/{userId} — { playlistIds: [...] }
+    match /userLikedPlaylists/{userId} {
+      // Users can only read/write their own saved list
+      allow read, write: if isOwner(userId);
+    }
+
     // Review likes collection (top-level)
     match /reviewLikes/{reviewId} {
       // Allow authenticated users to read like counts
