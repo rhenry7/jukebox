@@ -10,6 +10,7 @@ import 'package:flutter_test_project/models/music_preferences.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/services/data_preloader.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -21,6 +22,66 @@ class MainNav extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<MainNav> createState() => MainNavState();
+}
+
+/// Looping neon-sign glow effect for the app bar title.
+///
+/// Mimics an old neon tube by cycling through three states:
+///   bright  → dim flicker  → bright  → dim  → repeat
+/// The shadow blur radius and opacity shift together so the "tube"
+/// appears to pulse and occasionally stutter like aging neon.
+class _NeonTitle extends StatelessWidget {
+  const _NeonTitle();
+
+  // Dim glow — tube at rest
+  static const TextStyle _dimStyle = TextStyle(
+    color: Color(0xFFCC1111),
+    shadows: [
+      Shadow(blurRadius: 4, color: Color(0x88CC0000)),
+      Shadow(blurRadius: 8, color: Color(0x44CC0000)),
+    ],
+  );
+
+  // Bright glow — tube fully lit
+  static const TextStyle _brightStyle = TextStyle(
+    color: Color.fromARGB(255, 214, 30, 30),
+    shadows: [
+      Shadow(blurRadius: 12, color: Color.fromARGB(172, 221, 25, 25)),
+      Shadow(blurRadius: 24, color: Color.fromARGB(153, 187, 12, 12)),
+      Shadow(blurRadius: 40, color: Color(0x55FF2200)),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Text(
+      'CRATEBOXD',
+      style: GoogleFonts.gasoekOne(textStyle: _dimStyle),
+    );
+
+    return base
+        // Slow fade up to full brightness
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .custom(
+          duration: 2800.ms,
+          curve: Curves.easeInOut,
+          builder: (context, value, child) {
+            // value goes 0 → 1 → 0 on each cycle
+            final style = TextStyle.lerp(_dimStyle, _brightStyle, value)!;
+            return Text(
+              'CRATEBOXD',
+              style: GoogleFonts.gasoekOne(textStyle: style),
+            );
+          },
+        )
+        // Brief stutter flicker on top — like a dying neon tube
+        .then(delay: 1400.ms)
+        .shimmer(
+          duration: 120.ms,
+          color: const Color.fromARGB(61, 172, 49, 49),
+          angle: 0,
+        );
+  }
 }
 
 class MainNavState extends ConsumerState<MainNav> {
@@ -137,24 +198,7 @@ class MainNavState extends ConsumerState<MainNav> {
           ? AppBar(
               backgroundColor: const Color.fromARGB(4, 131, 131, 131),
               elevation: 0,
-              title: Padding(
-                padding: const EdgeInsets.all(0.0),
-                child: Text(
-                  'CRATEBOXD',
-                  style: GoogleFonts.gasoekOne(
-                    textStyle: TextStyle(
-                      color: Colors.red,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 20.0, // shadow blur
-                          color: Colors.red[800]!, // shadow color
-                          offset: const Offset(5.0, 5.0), // shadow displacement
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              title: _NeonTitle(),
               titleTextStyle:
                   const TextStyle(color: Colors.white, fontSize: 46),
               toolbarHeight: 70.0,
