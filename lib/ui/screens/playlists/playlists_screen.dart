@@ -87,7 +87,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
         child: Padding(
           padding: const EdgeInsets.all(6.0),
           child: TabBar(
-            labelColor: Colors.black,
+            labelColor: Colors.white,
             unselectedLabelColor: Colors.white.withValues(alpha: 0.92),
             isScrollable: false,
             tabAlignment: TabAlignment.fill,
@@ -95,13 +95,13 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
             overlayColor: WidgetStateProperty.all(Colors.transparent),
             indicator: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: Colors.grey.shade300,
+              color: const Color(0xFF5A5A5A),
             ),
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
             labelPadding: EdgeInsets.zero,
             tabs: [
-              _buildPillTab('Your Playlists'),
+              _buildPillTab('Library'),
               _buildPillTab('Community'),
               _buildPillTab('Friends'),
             ],
@@ -134,7 +134,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                 label: Text(
                   genre,
                   style: TextStyle(
-                    color: selected ? Colors.black : Colors.white,
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -142,7 +142,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                 onSelected: (_) => _toggleGenreFilter(genre),
                 showCheckmark: false,
                 backgroundColor: Colors.white10,
-                selectedColor: Colors.grey.shade300,
+                selectedColor: const Color(0xFF5A5A5A),
                 side: BorderSide(
                   color: Colors.white.withValues(alpha: 0.12),
                   width: 0.8,

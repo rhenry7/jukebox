@@ -71,7 +71,7 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
         child: Padding(
           padding: const EdgeInsets.all(6.0),
           child: TabBar(
-            labelColor: Colors.black,
+            labelColor: Colors.white,
             unselectedLabelColor: Colors.white.withOpacity(0.92),
             isScrollable: false,
             tabAlignment: TabAlignment.fill,
@@ -79,7 +79,7 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
             overlayColor: WidgetStateProperty.all(Colors.transparent),
             indicator: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
-                color: Colors.grey.shade300),
+                color: const Color(0xFF5A5A5A)),
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
             labelPadding: EdgeInsets.zero,

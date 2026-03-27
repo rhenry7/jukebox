@@ -14,7 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Function to sort and get top genres
 class RecommendedAlbumScreen extends StatefulWidget {
-  const RecommendedAlbumScreen({
+const RecommendedAlbumScreen({
     super.key,
   });
 

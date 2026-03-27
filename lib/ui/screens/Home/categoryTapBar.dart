@@ -85,7 +85,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
         child: Padding(
           padding: const EdgeInsets.all(6.0),
           child: TabBar(
-            labelColor: Colors.black,
+            labelColor: Colors.white,
             unselectedLabelColor: Colors.white.withOpacity(0.92),
             isScrollable: false,
             tabAlignment: TabAlignment.fill,
@@ -93,7 +93,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
             overlayColor: WidgetStateProperty.all(Colors.transparent),
             indicator: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: Colors.grey.shade300,
+              color: const Color(0xFF5A5A5A),
             ),
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
@@ -132,7 +132,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                 label: Text(
                   genre,
                   style: TextStyle(
-                    color: selected ? Colors.black : Colors.white,
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -140,7 +140,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                 onSelected: (_) => _toggleGenreFilter(genre),
                 showCheckmark: false,
                 backgroundColor: Colors.white10,
-                selectedColor: Colors.grey.shade300,
+                selectedColor: const Color(0xFF5A5A5A),
                 side: BorderSide(
                   color: Colors.white.withOpacity(0.12),
                   width: 0.8,
