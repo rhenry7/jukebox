@@ -20,6 +20,7 @@ class CategoryTapBar extends StatefulWidget {
 class _CategoryTapBarState extends State<CategoryTapBar> {
   static const Duration _headerTweenDuration = Duration(milliseconds: 280);
   static const double _scrollToggleThreshold = 14.0;
+  static const double _topLockThreshold = 8.0;
   static const List<String> _genreOptions = <String>[
     'All',
     'Chill',
@@ -181,8 +182,20 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
     widget.onChromeVisibilityChanged?.call(visible);
   }
 
+  bool _isNearTop(ScrollMetrics metrics) {
+    return metrics.extentBefore <= _topLockThreshold ||
+        metrics.pixels <= metrics.minScrollExtent + _topLockThreshold;
+  }
+
   bool _onScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    if (_isNearTop(notification.metrics)) {
+      _lastScrollPixels = notification.metrics.pixels;
+      _accumulatedScrollDelta = 0.0;
+      _setBarsVisible(true);
       return false;
     }
 

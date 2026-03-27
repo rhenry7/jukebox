@@ -20,6 +20,7 @@ class DiscoveryTapBar extends StatefulWidget {
 class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
   static const Duration _headerTweenDuration = Duration(milliseconds: 280);
   static const double _scrollToggleThreshold = 14.0;
+  static const double _topLockThreshold = 8.0;
   bool _isTabBarVisible = true;
   double _accumulatedScrollDelta = 0.0;
   double? _lastScrollPixels;
@@ -103,8 +104,20 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
     widget.onChromeVisibilityChanged?.call(visible);
   }
 
+  bool _isNearTop(ScrollMetrics metrics) {
+    return metrics.extentBefore <= _topLockThreshold ||
+        metrics.pixels <= metrics.minScrollExtent + _topLockThreshold;
+  }
+
   bool _onScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    if (_isNearTop(notification.metrics)) {
+      _lastScrollPixels = notification.metrics.pixels;
+      _accumulatedScrollDelta = 0.0;
+      _setChromeVisible(true);
       return false;
     }
 

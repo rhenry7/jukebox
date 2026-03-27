@@ -22,6 +22,7 @@ class PlaylistsScreen extends StatefulWidget {
 class _PlaylistsScreenState extends State<PlaylistsScreen> {
   static const Duration _headerTweenDuration = Duration(milliseconds: 280);
   static const double _scrollToggleThreshold = 14.0;
+  static const double _topLockThreshold = 8.0;
   static const List<String> _genreOptions = <String>[
     'All',
     'Chill',
@@ -180,8 +181,20 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
     });
   }
 
+  bool _isNearTop(ScrollMetrics metrics) {
+    return metrics.extentBefore <= _topLockThreshold ||
+        metrics.pixels <= metrics.minScrollExtent + _topLockThreshold;
+  }
+
   bool _onScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
+
+    if (_isNearTop(notification.metrics)) {
+      _lastScrollPixels = notification.metrics.pixels;
+      _accumulatedScrollDelta = 0.0;
+      _setBarsVisible(true);
+      return false;
+    }
 
     if (notification is ScrollStartNotification) {
       _lastScrollPixels = notification.metrics.pixels;
@@ -241,9 +254,8 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
             ClipRect(
               child: TweenAnimationBuilder<double>(
                 duration: _headerTweenDuration,
-                curve: _isTabBarVisible
-                    ? Curves.easeOutCubic
-                    : Curves.easeInCubic,
+                curve:
+                    _isTabBarVisible ? Curves.easeOutCubic : Curves.easeInCubic,
                 tween: Tween<double>(end: _isTabBarVisible ? 1.0 : 0.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -363,7 +375,8 @@ class _YourPlaylistsTab extends ConsumerWidget {
     return playlistsAsync.when(
       data: (playlists) {
         final filtered = _filterPlaylistsByTags(playlists, selectedGenres);
-        final filteredLiked = _filterPlaylistsByTags(likedPlaylists, selectedGenres);
+        final filteredLiked =
+            _filterPlaylistsByTags(likedPlaylists, selectedGenres);
 
         final hasOwn = filtered.isNotEmpty;
         final hasLiked = filteredLiked.isNotEmpty;
@@ -393,9 +406,8 @@ class _YourPlaylistsTab extends ConsumerWidget {
         // own+1      : "Saved Playlists" header  (only if hasLiked)
         // own+2..end : liked playlists
         final likedHeaderIndex = filtered.length + 1;
-        final totalCount = 1 +
-            filtered.length +
-            (hasLiked ? 1 + filteredLiked.length : 0);
+        final totalCount =
+            1 + filtered.length + (hasLiked ? 1 + filteredLiked.length : 0);
 
         return RefreshIndicator(
           onRefresh: () async {
@@ -431,8 +443,7 @@ class _YourPlaylistsTab extends ConsumerWidget {
                     padding: const EdgeInsets.only(bottom: 16, top: 4),
                     child: Row(
                       children: [
-                        const Icon(Icons.favorite,
-                            color: Colors.red, size: 16),
+                        const Icon(Icons.favorite, color: Colors.red, size: 16),
                         const SizedBox(width: 6),
                         Text(
                           'Saved Playlists',
@@ -803,9 +814,7 @@ class _HeartButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isLiked
-                ? Colors.red.withValues(alpha: 0.6)
-                : Colors.white30,
+            color: isLiked ? Colors.red.withValues(alpha: 0.6) : Colors.white30,
           ),
           borderRadius: BorderRadius.circular(999),
         ),
