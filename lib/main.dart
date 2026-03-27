@@ -54,9 +54,16 @@ void main() async {
   }
 
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // On Apple/Android, let the bundled native Firebase config files create or
+    // resolve the default app. Passing explicit options there can clash with
+    // the native default app if the runtime env is web-specific.
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
   } catch (e, st) {
     debugPrint('Firebase.initializeApp failed: $e');
     debugPrint('$st');

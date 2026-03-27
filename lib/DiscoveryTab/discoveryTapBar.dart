@@ -83,7 +83,7 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
             dividerColor: Colors.transparent,
             labelPadding: EdgeInsets.zero,
             tabs: [
-              _buildPillTab('Recommended'),
+              _buildPillTab('Discovery'),
               _buildPillTab('Playlists'),
               _buildPillTab('Explore'),
             ],

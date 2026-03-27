@@ -49,30 +49,32 @@ class DefaultFirebaseOptions {
   }
 
   static FirebaseOptions get android => FirebaseOptions(
-    apiKey: firebaseOptionsKey,
-    appId: firebaseAppId,
-    messagingSenderId: '412268788730',
-    projectId: 'juxeboxd',
-    storageBucket: 'juxeboxd.appspot.com',
-  );
+        apiKey: 'AIzaSyCYfDpT_XEF_6bGHhSCt0qTglPAWl9BFsU',
+        appId: '1:412268788730:android:ba888c5cdf66b317fe8243',
+        messagingSenderId: '412268788730',
+        projectId: 'juxeboxd',
+        storageBucket: 'juxeboxd.appspot.com',
+      );
 
   static FirebaseOptions get ios => FirebaseOptions(
-    apiKey: firebaseOptionsKey,
-    appId: firebaseAppId,
-    messagingSenderId: '412268788730',
-    projectId: 'juxeboxd',
-    storageBucket: 'juxeboxd.appspot.com',
-    iosClientId:
-        '412268788730-scupqhk1ra16uvnb6cp1tm3uar8lhv3s.apps.googleusercontent.com',
-    iosBundleId: 'com.example.flutterTestProject',
-  );
+        apiKey: 'AIzaSyAe9PLTDNikFejRu-RoO-zGx6xVxKmTKTE',
+        appId: '1:412268788730:ios:1d617ddb24e7335bfe8243',
+        messagingSenderId: '412268788730',
+        projectId: 'juxeboxd',
+        storageBucket: 'juxeboxd.appspot.com',
+        iosClientId:
+            '412268788730-scupqhk1ra16uvnb6cp1tm3uar8lhv3s.apps.googleusercontent.com',
+        iosBundleId: 'com.example.flutterTestProject',
+      );
 
   static FirebaseOptions get web => FirebaseOptions(
-    apiKey: firebaseOptionsKey,
-    appId: firebaseAppId.isNotEmpty ? firebaseAppId : '1:412268788730:web:ba888c5cdf66b317fe8243',
-    messagingSenderId: '412268788730',
-    projectId: 'juxeboxd',
-    authDomain: 'juxeboxd.firebaseapp.com',
-    storageBucket: 'juxeboxd.appspot.com',
-  );
+        apiKey: firebaseOptionsKey,
+        appId: firebaseAppId.isNotEmpty
+            ? firebaseAppId
+            : '1:412268788730:web:ba888c5cdf66b317fe8243',
+        messagingSenderId: '412268788730',
+        projectId: 'juxeboxd',
+        authDomain: 'juxeboxd.firebaseapp.com',
+        storageBucket: 'juxeboxd.appspot.com',
+      );
 }
