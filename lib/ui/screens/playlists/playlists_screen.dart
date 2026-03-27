@@ -350,7 +350,15 @@ class _YourPlaylistsTab extends ConsumerWidget {
     }
 
     final playlistsAsync = ref.watch(userPlaylistsProvider);
-    final likedPlaylists = ref.watch(likedPlaylistsProvider).value ?? [];
+
+    // Watch liked IDs directly, then watch each playlist individually via
+    // singlePlaylistProvider so a newly liked playlist streams in immediately
+    // without waiting for a secondary Firestore query to complete.
+    final likedIds = ref.watch(likedPlaylistIdsProvider).value ?? [];
+    final likedPlaylists = likedIds
+        .map((id) => ref.watch(singlePlaylistProvider(id)).value)
+        .whereType<UserPlaylist>()
+        .toList();
 
     return playlistsAsync.when(
       data: (playlists) {
@@ -392,7 +400,7 @@ class _YourPlaylistsTab extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(userPlaylistsProvider);
-            ref.invalidate(likedPlaylistsProvider);
+            ref.invalidate(likedPlaylistIdsProvider);
             await Future.delayed(const Duration(milliseconds: 500));
           },
           color: Colors.red[600],
