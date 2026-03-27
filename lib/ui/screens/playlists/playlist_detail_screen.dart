@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/user_playlist.dart';
+import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/providers/user_playlist_provider.dart';
 import 'package:flutter_test_project/services/user_playlist_service.dart';
 import 'package:flutter_test_project/ui/screens/playlists/add_songs_screen.dart';
@@ -168,6 +169,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             );
           }
 
+          final currentUserId = ref.watch(currentUserIdProvider);
+          final isOwner = currentUserId != null && currentUserId == playlist.userId;
+
           // Debug: Print playlist info
           debugPrint('🎵 [PLAYLIST DETAIL] Loaded playlist: ${playlist.name}');
           debugPrint('   Track count: ${playlist.tracks.length}');
@@ -227,32 +231,33 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           ),
                         ),
                       ),
-                      // Add-songs button
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + 8,
-                        right: 12,
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    AddSongsScreen(playlistId: widget.playlistId),
+                      // Add-songs button (owner only)
+                      if (isOwner)
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 8,
+                          right: 12,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      AddSongsScreen(playlistId: widget.playlistId),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withValues(alpha: 0.5),
                               ),
-                            );
-                          },
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.black.withValues(alpha: 0.5),
+                              child: const Icon(Icons.add,
+                                  color: Colors.white, size: 20),
                             ),
-                            child: const Icon(Icons.add,
-                                color: Colors.white, size: 20),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -324,72 +329,74 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Search bar for adding tracks
-                        TextField(
-                          controller: _searchController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Search for songs to add...',
-                            hintStyle: const TextStyle(color: Colors.white30),
-                            prefixIcon:
-                                const Icon(Icons.search, color: Colors.white70),
-                            suffixIcon: _isSearching
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12.0),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: Center(
-                                        child: SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white70,
+                        // Search bar for adding tracks (owner only)
+                        if (isOwner) ...[
+                          TextField(
+                            controller: _searchController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Search for songs to add...',
+                              hintStyle: const TextStyle(color: Colors.white30),
+                              prefixIcon:
+                                  const Icon(Icons.search, color: Colors.white70),
+                              suffixIcon: _isSearching
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: Center(
+                                          child: SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white70,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  )
-                                : _searchController.text.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(Icons.clear,
-                                            color: Colors.white70),
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          setState(() {
-                                            _showSearchResults = false;
-                                            _searchResults = [];
-                                          });
-                                        },
-                                      )
-                                    : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  const BorderSide(color: Colors.white30),
+                                    )
+                                  : _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear,
+                                              color: Colors.white70),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() {
+                                              _showSearchResults = false;
+                                              _searchResults = [];
+                                            });
+                                          },
+                                        )
+                                      : null,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.white30),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.white30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.red, width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white.withValues(alpha: 0.05),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  const BorderSide(color: Colors.white30),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Colors.red, width: 2),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.05),
                           ),
-                        ),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
+                        ],
                       ],
                     ),
                   ),
                 ),
-                // Search results (separate sliver to avoid overflow)
-                if (_showSearchResults && _searchResults.isNotEmpty)
+                // Search results (owner only)
+                if (isOwner && _showSearchResults && _searchResults.isNotEmpty)
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -410,7 +417,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       ),
                     ),
                   ),
-                if (_showSearchResults && _searchResults.isNotEmpty)
+                if (isOwner && _showSearchResults && _searchResults.isNotEmpty)
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -474,25 +481,27 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         children: [
                           const Icon(Icons.music_off, size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
-                          const Text(
-                            'No tracks yet',
-                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          Text(
+                            isOwner ? 'No tracks yet' : 'No tracks in this playlist',
+                            style: const TextStyle(color: Colors.white, fontSize: 18),
                           ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AddSongsScreen(playlistId: widget.playlistId),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red[600],
+                          if (isOwner) ...[
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AddSongsScreen(playlistId: widget.playlistId),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red[600],
+                              ),
+                              child: const Text('Add Songs'),
                             ),
-                            child: const Text('Add Songs'),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -535,51 +544,53 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               track.artist,
                               style: const TextStyle(color: Colors.white70),
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Remove Track'),
-                                    content: Text(
-                                      'Remove "${track.title}" from this playlist?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.red,
+                            trailing: isOwner
+                                ? IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Remove Track'),
+                                          content: Text(
+                                            'Remove "${track.title}" from this playlist?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, true),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Colors.red,
+                                              ),
+                                              child: const Text('Remove'),
+                                            ),
+                                          ],
                                         ),
-                                        child: const Text('Remove'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-
-                                if (confirm == true) {
-                                  try {
-                                    await UserPlaylistService.removeTrackFromPlaylist(
-                                      playlistId: widget.playlistId,
-                                      trackId: track.trackId,
-                                    );
-                                    if (mounted) {
-                                      ref.invalidate(singlePlaylistProvider(widget.playlistId));
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Error removing track: $e')),
                                       );
-                                    }
-                                  }
-                                }
-                              },
-                            ),
+
+                                      if (confirm == true) {
+                                        try {
+                                          await UserPlaylistService.removeTrackFromPlaylist(
+                                            playlistId: widget.playlistId,
+                                            trackId: track.trackId,
+                                          );
+                                          if (mounted) {
+                                            ref.invalidate(singlePlaylistProvider(widget.playlistId));
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error removing track: $e')),
+                                            );
+                                          }
+                                        }
+                                      }
+                                    },
+                                  )
+                                : null,
                           ),
                         );
                       },

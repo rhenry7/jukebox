@@ -87,13 +87,13 @@ service cloud.firestore {
     
     // User playlists collection (top-level)
     match /playlists/{playlistId} {
-      // Allow users to read their own playlists
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Allow any authenticated user to read playlists (for community/friends feeds)
+      allow read: if isAuthenticated();
       // Allow users to create playlists (must set userId to their own)
-      allow create: if isAuthenticated() && 
+      allow create: if isAuthenticated() &&
                        request.resource.data.userId == request.auth.uid;
       // Allow users to update/delete their own playlists
-      allow update, delete: if isAuthenticated() && 
+      allow update, delete: if isAuthenticated() &&
                                resource.data.userId == request.auth.uid;
     }
     

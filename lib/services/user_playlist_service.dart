@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/user_playlist.dart';
@@ -16,6 +18,76 @@ class UserPlaylistService {
         .map((snapshot) => snapshot.docs
             .map(UserPlaylist.fromFirestore)
             .toList());
+  }
+
+  /// Get all playlists from all users (Community tab)
+  static Stream<List<UserPlaylist>> getAllPlaylists({int limit = 40}) {
+    return FirebaseFirestore.instance
+        .collection(_collectionName)
+        .orderBy('updatedAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map(UserPlaylist.fromFirestore).toList());
+  }
+
+  /// Get playlists by a list of user IDs (Friends tab)
+  /// Uses Firestore whereIn (max 30 per query), batches if needed.
+  static Stream<List<UserPlaylist>> getPlaylistsByUserIds(
+      List<String> userIds) {
+    if (userIds.isEmpty) return Stream.value([]);
+
+    // Firestore whereIn supports max 30 items
+    const batchSize = 30;
+    final batches = <List<String>>[];
+    for (var i = 0; i < userIds.length; i += batchSize) {
+      batches.add(userIds.sublist(
+          i, i + batchSize > userIds.length ? userIds.length : i + batchSize));
+    }
+
+    final streams = batches.map((batch) {
+      return FirebaseFirestore.instance
+          .collection(_collectionName)
+          .where('userId', whereIn: batch)
+          .orderBy('updatedAt', descending: true)
+          .snapshots()
+          .map((snapshot) =>
+              snapshot.docs.map(UserPlaylist.fromFirestore).toList());
+    }).toList();
+
+    return _combinePlaylistStreams(streams);
+  }
+
+  /// Merges multiple playlist streams and sorts by updatedAt desc.
+  static Stream<List<UserPlaylist>> _combinePlaylistStreams(
+      List<Stream<List<UserPlaylist>>> streams) {
+    if (streams.isEmpty) return Stream.value([]);
+    if (streams.length == 1) return streams.first;
+
+    final latestValues = <int, List<UserPlaylist>>{};
+
+    return Stream.multi((controller) {
+      final subscriptions = <int, StreamSubscription<List<UserPlaylist>>>{};
+
+      for (var i = 0; i < streams.length; i++) {
+        final index = i;
+        subscriptions[index] = streams[index].listen(
+          (playlists) {
+            latestValues[index] = playlists;
+            final all = latestValues.values.expand((list) => list).toList()
+              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+            controller.add(all);
+          },
+          onError: (e) => debugPrint('Playlist stream error: $e'),
+        );
+      }
+
+      controller.onCancel = () {
+        for (final sub in subscriptions.values) {
+          sub.cancel();
+        }
+      };
+    });
   }
 
   /// Get a single playlist by ID
