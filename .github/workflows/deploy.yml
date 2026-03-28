@@ -1,6 +1,6 @@
 # Deploy Flutter web app to Firebase Hosting.
-# Environment: API keys loaded at runtime from .env locally; in CI keys come from GitHub Secrets
-# via --dart-define at build time.
+# Environment: API keys come from GitHub Secrets and are injected with
+# --dart-define at build time.
 #
 # Required GitHub Secrets:
 #   FIREBASE_OPTIONS_KEY, FIREBASE_APP_ID  - Firebase web config
@@ -46,10 +46,6 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
-
-      # .env is an asset for local web so APIs work when not deployed. CI has no .env; create placeholder so build succeeds.
-      - name: Ensure .env exists for asset bundle
-        run: touch .env
 
       - name: Build web (release) with API keys from secrets
         env:

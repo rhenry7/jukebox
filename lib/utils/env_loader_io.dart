@@ -1,8 +1,2 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
-
-/// Load .env file from project root (mobile/desktop only).
-Future<void> loadEnvVariables() async {
-  await dotenv.load(fileName: '.env');
-  loadApiKeysFromDotenv();
-}
+/// Mobile and desktop builds read secrets only from compile-time defines.
+Future<void> loadEnvVariables() async {}

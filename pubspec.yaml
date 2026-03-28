@@ -52,11 +52,12 @@ dependencies:
   firebase_ai: ^2.0.0
   popover: ^0.2.4
   shared_preferences: ^2.5.3
-  flutter_dotenv: ^6.0.0
   flutter_riverpod: ^2.4.9
   fl_chart: ^0.68.0
   cached_network_image: ^3.4.1
   google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.2
+  crypto: ^3.0.3
   flutter_animate: ^4.5.2
 
 dev_dependencies:
@@ -91,9 +92,6 @@ flutter:
   assets:
     - lib/assets/images/discoball_loading.png
     - lib/assets/images/walking_music_man.png
-    # .env: for local (non-deployed) runs, include so web can load API keys from asset.
-    # Create .env in project root (see docs/ENV_AND_CI.md). CI creates a placeholder .env before build.
-    - .env
 
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see

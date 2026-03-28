@@ -1,4 +1,4 @@
-# Run tests and analyze. API keys from GitHub Secrets via --dart-define (no .env in CI).
+# Run tests and analyze. API keys come from GitHub Secrets via --dart-define.
 name: Tests
 
 on:
@@ -29,10 +29,6 @@ jobs:
     
     - name: Get dependencies
       run: flutter pub get
-
-    # .env is listed as an asset; create placeholder so analyze/test don't fail when .env is missing in CI
-    - name: Ensure .env exists for asset bundle
-      run: touch .env
 
     - name: Analyze code
       run: flutter analyze

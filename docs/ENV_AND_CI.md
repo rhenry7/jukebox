@@ -1,16 +1,20 @@
 # Environment Configuration & CI/CD
 
-## Runtime loading (flutter_dotenv)
+## Build-time secrets only
 
-API keys are loaded at **runtime** from a `.env` file:
+API keys are loaded only from compile-time environment values supplied with
+`--dart-define`.
 
-- **Mobile/Desktop**: `.env` is read from the project root via `flutter_dotenv` (no bundling).
-- **Web (local, debug only)**: `.env` is listed in `pubspec.yaml` assets. In **debug** mode, the web loader reads `.env` from the asset bundle at runtime so APIs work when you run locally (e.g. `flutter run -d chrome`). In **release** (deployed) mode, the web loader does **not** load `.env` at all; keys come only from `--dart-define` at build time.
-- **CI/Deploy**: `.env` is not in the repo (gitignored). CI creates an empty `.env` so the asset exists; keys are passed at **build time** via `--dart-define` from GitHub Secrets. The deployed app never reads `.env`; it uses only compile-time values from the build.
+- **Mobile/Desktop**: pass keys with `--dart-define` when you run or build the app.
+- **Web**: pass keys with `--dart-define` when you run or build the app.
+- **CI/Deploy**: pass keys with `--dart-define` from GitHub Secrets.
+
+A local `.env` file can still exist for developer convenience, but it is never
+bundled into the app and is never read at runtime by Flutter code.
 
 ### Local setup (APIs accessible when not deployed)
 
-1. Create a `.env` file in the **project root** (same folder as `pubspec.yaml`). Required for local web runs (`flutter run -d chrome`) so the app can load API keys from the bundled asset.
+1. Create a `.env` file in the **project root** (same folder as `pubspec.yaml`) if you want a single local source of truth for secrets.
 2. Add at least Firebase, and any others your app uses:
    ```env
    FIREBASE_OPTIONS_KEY=your_firebase_web_api_key
@@ -23,13 +27,21 @@ API keys are loaded at **runtime** from a `.env` file:
    UNSPLASH_SECRET=...
    ```
    (In code, `CLIENT_ID` / `CLIENT_SECRET` are aliases for Spotify.)
-3. Do **not** commit `.env` (it is in `.gitignore`).
+3. Run locally by passing the values into Flutter at startup/build time. Examples:
+   ```bash
+   ./scripts/flutter_with_env.sh run -d chrome
+   ./scripts/flutter_with_env.sh ios
+   ./scripts/flutter_with_env.sh build web --release
+   flutter run -d chrome --dart-define-from-file=.env
+   flutter run -d <ios-device-id> --dart-define-from-file=.env
+   ```
+4. Do **not** commit `.env` (it is in `.gitignore`).
 
 ### Code entry point
 
-- **`lib/utils/env_config.dart`** – Documents expected keys and re-exports `loadEnvVariables()`.
-- **`lib/utils/env_loader.dart`** – Conditional export: web uses `env_loader_stub.dart` (rootBundle), others use `env_loader_io.dart` (flutter_dotenv).
-- **`main.dart`** – Calls `await loadEnvVariables()` before Firebase init.
+- **`lib/utils/env_config.dart`** – Documents expected compile-time keys and re-exports `loadEnvVariables()`.
+- **`lib/utils/env_loader.dart`** – Startup no-op kept so app initialization stays stable while secrets come only from compile-time defines.
+- **`main.dart`** – Calls `await loadEnvVariables()` before Firebase init, then reads keys from `String.fromEnvironment`.
 
 ---
 
@@ -92,10 +104,10 @@ Add the printed token as repository secret `FIREBASE_TOKEN` in GitHub: **Setting
 
 ## Local deploy (without CI)
 
-Use the deploy script so keys from `.env` are passed at build time (deployed app does not load `.env` from the server):
+Use the deploy script so keys from `.env` are passed at build time:
 
 ```bash
 ./deploy.sh
 ```
 
-This first verifies that your active Flutter SDK matches `.flutter-version`, then reads `.env`, runs `flutter build web --release` with `--dart-define` for each key, and finally runs `firebase deploy --only hosting`.
+This first verifies that your active Flutter SDK matches `.flutter-version`, then reads `.env`, runs `flutter build web --release` with `--dart-define` for each key, and finally runs `firebase deploy --only hosting`. The `.env` file stays local and is not bundled into the app.

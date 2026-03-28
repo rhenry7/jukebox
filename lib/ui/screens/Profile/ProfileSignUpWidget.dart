@@ -58,7 +58,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
       if (hasPrefs) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-              builder: (context) => const MainNav(title: 'MIIXTAKES')),
+              builder: (context) => const MainNav(title: 'CRATEBOXD')),
           (Route<dynamic> route) => false,
         );
         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,7 +71,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
               builder: (context) => const MainNav(
-                  title: 'MIIXTAKES', navigateToPreferences: true)),
+                  title: 'CRATEBOXD', navigateToPreferences: true)),
           (Route<dynamic> route) => false,
         );
         ScaffoldMessenger.of(context).showSnackBar(
@@ -288,7 +288,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                                           MaterialPageRoute(
                                               builder: (context) =>
                                                   const MainNav(
-                                                      title: 'MIIXTAKES')),
+                                                      title: 'CRATEBOXD')),
                                           (Route<dynamic> route) => false,
                                         );
                                         ScaffoldMessenger.of(context)
@@ -306,7 +306,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                                           MaterialPageRoute(
                                               builder: (context) =>
                                                   const MainNav(
-                                                      title: 'MIIXTAKES',
+                                                      title: 'CRATEBOXD',
                                                       navigateToPreferences:
                                                           true)),
                                           (Route<dynamic> route) => false,

@@ -11,7 +11,7 @@ Edit your Flutter code as usual in your IDE.
 
 ### Step 2: Test Locally (Optional but Recommended)
 ```bash
-flutter run -d chrome
+./scripts/flutter_with_env.sh run -d chrome
 ```
 Test your changes locally before deploying.
 
@@ -57,7 +57,7 @@ This will:
 ## Development vs Production
 
 ### Local Development (Hot Reload)
-- `flutter run -d chrome` - Fast development with hot reload
+- `./scripts/flutter_with_env.sh run -d chrome` - Fast development with hot reload
 - Changes appear instantly
 - **NOT deployed** - only visible on your local machine
 
@@ -71,7 +71,7 @@ This will:
 
 ## Best Practices
 
-1. **Test Locally First**: Always test changes with `flutter run` before deploying
+1. **Test Locally First**: Always test changes with `./scripts/flutter_with_env.sh run -d chrome` before deploying
 2. **Deploy After Features**: Deploy when you've completed a feature or fix
 3. **Version Control**: Commit your changes to git before deploying
 4. **Check After Deploy**: Visit your site after deployment to verify changes

@@ -1,6 +1,6 @@
 # Test Suite
 
-This directory contains unit tests, widget tests, and integration tests for the Flutter Test Project.
+This directory contains unit tests, widget tests, and integration tests for the CrateBoxd.
 
 ## Running Tests
 

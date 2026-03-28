@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -120,6 +125,75 @@ class AuthService {
         await _auth.signInWithPopup(googleProvider);
     debugPrint('Google sign-in (web) successful: ${userCredential.user?.email}');
     return userCredential;
+  }
+
+  /// Sign in with Apple (iOS only).
+  /// Returns the [UserCredential] on success, or null if the user cancelled.
+  /// Throws an exception with a user-friendly message on failure.
+  Future<UserCredential?> signInWithApple() async {
+    try {
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
+
+      // Apple only sends the name on the very first sign-in.
+      // If we got a name, update the Firebase display name.
+      final fullName = appleCredential.givenName != null
+          ? '${appleCredential.givenName} ${appleCredential.familyName ?? ''}'.trim()
+          : null;
+      if (fullName != null &&
+          fullName.isNotEmpty &&
+          userCredential.user?.displayName == null) {
+        await userCredential.user?.updateDisplayName(fullName);
+      }
+
+      return userCredential;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        // User cancelled — not an error
+        return null;
+      }
+      debugPrint('Apple sign-in error: ${e.code} – ${e.message}');
+      throw Exception('Apple sign-in failed. Please try again.');
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Apple sign-in Firebase error: ${e.code} – ${e.message}');
+      if (e.code == 'account-exists-with-different-credential') {
+        throw Exception(
+            'An account already exists with this email using a different sign-in method.');
+      }
+      throw Exception('Apple sign-in failed. Please try again.');
+    } catch (e) {
+      debugPrint('Apple sign-in unexpected error: $e');
+      rethrow;
+    }
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+        length, (_) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   /// Mobile (Android / iOS): Use the google_sign_in package to get credentials,

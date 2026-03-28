@@ -139,6 +139,35 @@ Future<void> signUp(String userName, String email, String password) async {
   }
 }
 
+/// Sign in (or sign up) with Apple.
+/// If the user is new, a Firestore user document is created automatically.
+/// Returns the [User] on success, or null if cancelled.
+Future<User?> signInWithApple() async {
+  final AuthService authService = AuthService();
+  final userCredential = await authService.signInWithApple();
+
+  if (userCredential == null) return null;
+
+  final User? user = userCredential.user;
+  if (user == null) return null;
+
+  final userDoc =
+      FirebaseFirestore.instance.collection('users').doc(user.uid);
+  final docSnapshot = await userDoc.get();
+
+  if (!docSnapshot.exists) {
+    await userDoc.set({
+      'email': user.email ?? '',
+      'userId': user.uid,
+      'displayName': user.displayName ?? user.email?.split('@').first ?? '',
+      'joinDate': FieldValue.serverTimestamp(),
+      'photoUrl': user.photoURL ?? '',
+    });
+  }
+
+  return user;
+}
+
 /// Sign in (or sign up) with Google.
 /// If the user is new, a Firestore user document is created automatically.
 /// Returns the [User] on success, or null if cancelled.

@@ -28,7 +28,7 @@
 
 ### Important Notes
 
-- **Local development** (`flutter run`) is NOT deployed - only visible on your machine
+- **Local development** (`./scripts/flutter_with_env.sh run -d chrome`) is NOT deployed - only visible on your machine
 - **Production changes** require rebuild + deploy to go live
 - After deploying, **hard refresh** your browser (`Cmd+Shift+R` on Mac, `Ctrl+Shift+R` on Windows) to see updates
 - Firebase Hosting caches files, so changes may take a minute to appear globally
@@ -36,7 +36,7 @@
 ### Development Workflow
 
 1. Make changes locally
-2. Test with `flutter run -d chrome` 
+2. Test with `./scripts/flutter_with_env.sh run -d chrome`
 3. When ready, deploy with `./deploy.sh`
 4. Changes are live in ~2-4 minutes
 

@@ -1,11 +1,11 @@
-// Environment configuration using flutter_dotenv (runtime loading).
+// Environment configuration using compile-time defines only.
 //
-// API keys are loaded at runtime from:
-// - **Mobile/Desktop**: .env file via flutter_dotenv (env_loader_io).
-// - **Web**: .env bundled as asset (pubspec.yaml), loaded via rootBundle (env_loader_stub).
-// - **CI/Deploy**: Pass keys via --dart-define at build time (no .env in repo).
+// API keys are injected at build/run time with --dart-define.
+// A local .env file can still exist as developer input, but it must be passed
+// into Flutter at build time and is never bundled as an app asset.
 //
-// Expected .env keys (create .env in project root, do not commit):
+// Expected keys (set via --dart-define, or read from a local .env helper by
+// scripts that expand into --dart-define values):
 //   Firebase:  FIREBASE_OPTIONS_KEY=...  FIREBASE_APP_ID=...
 //   Spotify:   SPOTIFY_CLIENT_ID=...     SPOTIFY_CLIENT_SECRET=...
 //   News:      NEWS_API_KEY=...
@@ -13,5 +13,6 @@
 //   Unsplash:  UNSPLASH_ACCESS_KEY=...   UNSPLASH_SECRET=...
 // (api_key.dart also accepts CLIENT_ID/CLIENT_SECRET as aliases for Spotify.)
 //
-// Usage: call [loadEnvVariables] in main() before using API keys.
+// Usage: call [loadEnvVariables] in main() before using API keys. It is a
+// startup no-op kept for API compatibility.
 export 'env_loader.dart';

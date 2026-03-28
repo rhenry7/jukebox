@@ -12,14 +12,15 @@ import 'package:flutter_test_project/utils/firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Runtime loading: .env via flutter_dotenv (mobile/desktop) or bundled asset (web).
+  // Environment values are injected at build time via --dart-define.
   await loadEnvVariables();
+  _debugLogApiConfiguration();
 
   // On web, empty Firebase key causes uncaught assert; show friendly error instead.
-  if (kIsWeb && firebaseOptionsKey.isEmpty) {
+  if (kIsWeb && firebaseWebOptionsKey.isEmpty) {
     runApp(
       MaterialApp(
-        title: 'MIXDTAKE',
+        title: 'CRATEBOXD',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -38,8 +39,9 @@ void main() async {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Add FIREBASE_OPTIONS_KEY to .env in the project root. '
-                    'For deploy, use ./deploy.sh (reads .env and passes keys at build time).',
+                    'Run Chrome with ./scripts/flutter_with_env.sh run -d chrome '
+                    'or pass --dart-define-from-file=.env manually. For deploy, '
+                    'use ./deploy.sh so keys are passed at build time.',
                     style: TextStyle(color: Colors.grey[400], fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
@@ -69,13 +71,14 @@ void main() async {
     debugPrint('$st');
     // Show a user-friendly error screen on all platforms.
     final String hint = kIsWeb
-        ? 'Check .env (FIREBASE_OPTIONS_KEY) or use ./deploy.sh for deploy.'
+        ? 'Use ./scripts/flutter_with_env.sh run -d chrome, or pass '
+            '--dart-define-from-file=.env manually. For deploy, use ./deploy.sh.'
         : 'Firebase failed to initialise. Check your google-services.json '
             '(Android) or GoogleService-Info.plist (iOS) and ensure Firebase '
             'is configured correctly.\n\nError: $e';
     runApp(
       MaterialApp(
-        title: 'MIXDTAKE',
+        title: 'CRATEBOXD',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -122,6 +125,35 @@ void main() async {
   );
 }
 
+void _debugLogApiConfiguration() {
+  if (!kDebugMode) return;
+
+  final List<String> missingServices = [];
+  if (clientId.isEmpty || clientSecret.isEmpty) {
+    missingServices.add('Spotify');
+  }
+  if (openAIKey.isEmpty) {
+    missingServices.add('OpenAI');
+  }
+
+  if (missingServices.isEmpty) {
+    debugPrint(
+      '✅ Local API config loaded for ${kIsWeb ? 'web' : 'mobile'}: '
+      'Spotify/OpenAI keys are available.',
+    );
+    return;
+  }
+
+  debugPrint(
+    '⚠️ Missing local API keys for ${missingServices.join(', ')}. '
+    'Firebase can still work on mobile via native config files.',
+  );
+  debugPrint(
+    '   Launch with ./scripts/flutter_with_env.sh run -d <device-id> '
+    'or flutter run --dart-define-from-file=.env',
+  );
+}
+
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
@@ -133,7 +165,7 @@ class MyApp extends ConsumerWidget {
     // Show loading screen while checking auth state
     if (authState.isLoading) {
       return MaterialApp(
-        title: 'MIXDTAKE',
+        title: 'CRATEBOXD',
         themeMode: ThemeMode.dark,
         darkTheme: ThemeData(
           brightness: Brightness.dark,
@@ -155,7 +187,7 @@ class MyApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'MIXDTAKES',
+      title: 'CRATEBOXDS',
       themeMode: ThemeMode.dark,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -183,7 +215,7 @@ class MyApp extends ConsumerWidget {
           },
         ),
       ),
-      home: const MainNav(title: 'MIXDTAKES'),
+      home: const MainNav(title: 'CRATEBOXDS'),
     );
   }
 }

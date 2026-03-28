@@ -6,7 +6,11 @@ import 'package:ionicons/ionicons.dart';
 import '../../../GIFs/gifs.dart';
 import 'ProfileSignUpWidget.dart';
 import 'auth/authService.dart';
-import 'helpers/profileHelpers.dart' show signInWithGoogle, hasUserPreferences;
+import 'package:flutter/foundation.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import 'helpers/profileHelpers.dart'
+    show signInWithGoogle, signInWithApple, hasUserPreferences;
 import '../../../routing/MainNavigation.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -24,6 +28,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final FocusNode _passwordFocusNode = FocusNode();
   bool _isLoading = false;
   bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
 
   @override
   void initState() {
@@ -106,7 +111,7 @@ class _SignInScreenState extends State<SignInScreen> {
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => const MainNav(title: 'MIIXTAKES'),
+                builder: (context) => const MainNav(title: 'CRATEBOXD'),
               ),
               (Route<dynamic> route) => false, // Remove all previous routes
             );
@@ -131,6 +136,63 @@ class _SignInScreenState extends State<SignInScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  /// Handle Apple sign-in flow
+  Future<void> _handleAppleSignIn() async {
+    setState(() => _isAppleLoading = true);
+    try {
+      final user = await signInWithApple();
+      if (user == null) {
+        if (mounted) setState(() => _isAppleLoading = false);
+        return;
+      }
+
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      final hasPrefs = await hasUserPreferences(user.uid);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Successfully signed in with Apple!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      if (hasPrefs) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+              builder: (context) => const MainNav(title: 'CRATEBOXD')),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+              builder: (context) => const MainNav(
+                  title: 'CRATEBOXD', navigateToPreferences: true)),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Apple sign-in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isAppleLoading = false);
     }
   }
 
@@ -165,14 +227,14 @@ class _SignInScreenState extends State<SignInScreen> {
       if (hasPrefs) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-              builder: (context) => const MainNav(title: 'MIIXTAKES')),
+              builder: (context) => const MainNav(title: 'CRATEBOXD')),
           (Route<dynamic> route) => false,
         );
       } else {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
               builder: (context) => const MainNav(
-                  title: 'MIIXTAKES', navigateToPreferences: true)),
+                  title: 'CRATEBOXD', navigateToPreferences: true)),
           (Route<dynamic> route) => false,
         );
       }
@@ -384,7 +446,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           )
                         : ElevatedButton.icon(
-                            onPressed: (_isLoading || _isGoogleLoading)
+                            onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading)
                                 ? null
                                 : _handleGoogleSignIn,
                             icon: const Icon(Ionicons.logo_google,
@@ -402,6 +464,33 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ),
                   ),
+                  // Apple Sign-In button (iOS / macOS only)
+                  if (!kIsWeb) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _isAppleLoading
+                          ? const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              ),
+                            )
+                          : SignInWithAppleButton(
+                              onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading)
+                                  ? () {}
+                                  : _handleAppleSignIn,
+                              style: SignInWithAppleButtonStyle.black,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(30)),
+                            ),
+                    ),
+                  ],
                 ],
               ),
             ),
