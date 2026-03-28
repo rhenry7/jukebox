@@ -6,7 +6,7 @@
 // Compile-time only (String.fromEnvironment cannot be used at runtime).
 const String apikey = String.fromEnvironment(
   'MUSICBRAINZ_API_KEY',
-  defaultValue: '1347ba66e95e67a0764dcf76a3197fa0',
+  defaultValue: '',
 );
 const String _clientId = String.fromEnvironment('CLIENT_ID', defaultValue: '');
 const String _spotifyClientId =

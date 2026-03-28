@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
         storageBucket: 'juxeboxd.appspot.com',
         iosClientId:
             '412268788730-scupqhk1ra16uvnb6cp1tm3uar8lhv3s.apps.googleusercontent.com',
-        iosBundleId: 'com.example.flutterTestProject',
+        iosBundleId: 'com.crateboxd.app',
       );
 
   static FirebaseOptions get web => FirebaseOptions(
