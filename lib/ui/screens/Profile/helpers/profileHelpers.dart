@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/ui/screens/Profile/auth/authService.dart';
+import 'package:flutter_test_project/ui/screens/Profile/delete_account_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/legal_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/notifications_page.dart';
 import 'package:flutter_test_project/ui/screens/Profile/profilePage.dart';
@@ -53,6 +54,8 @@ Widget profileRoute(String route) {
       );
     case 'Legal':
       return const LegalScreen();
+    case 'Delete Account':
+      return const DeleteAccountScreen();
     default:
       if (auth.currentUser != null) {
         debugPrint('user signed in');

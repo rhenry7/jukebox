@@ -65,7 +65,8 @@ class ProfileButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color useColor = name == 'LogOut' ? Colors.red : Colors.white;
+    final Color useColor =
+        (name == 'LogOut' || name == 'Delete Account') ? Colors.red : Colors.white;
 
     return Padding(
         padding: const EdgeInsets.all(8.0),

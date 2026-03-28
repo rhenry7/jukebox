@@ -172,6 +172,26 @@ class ProfilePage extends ConsumerWidget {
             ),
           ),
 
+          // Danger zone — delete account
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: Card(
+                color: Colors.red.withOpacity(0.08),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                      color: Colors.red.withOpacity(0.25), width: 1),
+                ),
+                child: const ProfileButton(
+                  name: 'Delete Account',
+                  icon: Ionicons.trash_outline,
+                ),
+              ),
+            ),
+          ),
+
           // Bottom padding for nav bar clearance
           SliverToBoxAdapter(
             child: SizedBox(
