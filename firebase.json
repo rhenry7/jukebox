@@ -44,6 +44,14 @@
         "destination": "/index.html"
       }
     ],
+    "headers": [
+      {
+        "source": "/privacy-policy.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ],
     "site": "juxeboxd"
   }
 }

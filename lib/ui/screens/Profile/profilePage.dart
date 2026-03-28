@@ -156,6 +156,12 @@ class ProfilePage extends ConsumerWidget {
                       icon: Ionicons.analytics_outline,
                     ),
                     Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    const ProfileButton(
+                      name: 'Legal',
+                      icon: Ionicons.document_text_outline,
+                    ),
+                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
                     const ProfileButton(
                       name: 'LogOut',
                       icon: Ionicons.exit_outline,
