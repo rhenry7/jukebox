@@ -187,7 +187,7 @@ class MyApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'CRATEBOXDS',
+      title: 'CRATEBOXD',
       themeMode: ThemeMode.dark,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
