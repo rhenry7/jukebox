@@ -147,7 +147,7 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
 
       if (_accumulatedScrollDelta.abs() >= _scrollToggleThreshold) {
         if (_accumulatedScrollDelta > 0) {
-          _setChromeVisible(false);
+          //_setChromeVisible(false);
         } else {
           _setChromeVisible(true);
         }

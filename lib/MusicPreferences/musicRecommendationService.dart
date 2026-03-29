@@ -492,32 +492,31 @@ RECOMMENDATION STRATEGY:
 You are a music discovery engine. Your goal is to help users discover NEW music they haven't heard before, while still being relevant to their taste.
 
 USER PREFERENCES:
-- Favorite Genres: ${jsonEncode(preferences.favoriteGenres)}
-- Genre Weights (preference strength): ${jsonEncode(preferences.genreWeights)}
-- Favorite Artists: ${jsonEncode(preferences.favoriteArtists)}
-- Mood Preferences: ${jsonEncode(preferences.moodPreferences)}
-- Tempo Preferences: ${jsonEncode(preferences.tempoPreferences)}
-- Saved Tracks (DO NOT recommend these): ${jsonEncode(preferences.savedTracks)}
+- Saved Tracks (DO NOT recommend these), but recommend tracks similar to them: ${jsonEncode(preferences.savedTracks)}
 - Disliked Tracks (AVOID similar): ${jsonEncode(preferences.dislikedTracks)}
 
 RECENT USER REVIEWS (to understand taste):
-${jsonEncode(reviews)}
+read ${jsonEncode(reviews)} to get a sense of the user's taste, what they like/dislike, and their rating patterns. Use this to inform your recommendations.
+use the genre/tags in the most recent reviews to identify their preferences.
+base recommendations on insights from these reviews, such as preferred genres, artists, and any recent shifts in taste.
+suggest songs that align with the positive reviews and avoid songs similar to negative reviews.
 $reviewAnalysisSection
 
 DISCOVERY REQUIREMENTS:
-1. PRIORITIZE DISCOVERY: Recommend songs the user likely hasn't heard before
-   - Focus on newer releases (2020-2024) when possible
+1. PRIORITIZE DISCOVERY: Recommend songs the user likely hasn't heard before, even if they're in genres they like. Use review analysis to identify underexplored genres/artists.
    - Include artists NOT in their favorite artists list
-   - Explore genres they like but haven't fully explored (lower genre weights)
+   - Prioritize songs in genres similar to those theyve recently reviewed positively
+   - Recommend songs that are popular in the genres they like but not from artists they've already saved
+   - Recommend new releases in genres they like, even if they haven't listened to that artist before
    
 2. ENSURE DIVERSITY:
-   - Include at least 3-4 different genres
    - Don't recommend multiple songs from the same artist
    - Mix different eras (some new, some classic)
    - Balance familiar sounds with surprising discoveries
 
 3. MAINTAIN RELEVANCE:
-   - Songs should align with genre preferences (use genre weights)
+   - Songs should align with artists and genres theyve recently reviewed positively
+   - avoid songs that they have recently reviewed negatively or are similar to those
    - Match mood and tempo preferences when possible
    - Consider patterns from their reviews (what they liked/disliked)
 
