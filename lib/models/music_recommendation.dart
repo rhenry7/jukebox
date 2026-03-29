@@ -4,6 +4,11 @@ class MusicRecommendation {
   final String album;
   final String imageUrl;
   final List<String> genres;
+  /// Discogs styles (more specific than genres, e.g. "Post-Bop", "Boom Bap").
+  /// Falls back to genres when empty.
+  final List<String> styles;
+  /// Short explanation of why this track was recommended.
+  final String reason;
 
   const MusicRecommendation({
     required this.song,
@@ -11,7 +16,12 @@ class MusicRecommendation {
     required this.album,
     required this.imageUrl,
     required this.genres,
+    this.styles = const [],
+    this.reason = '',
   });
+
+  /// What to show in the UI — styles when available, genres as fallback.
+  List<String> get displayTags => styles.isNotEmpty ? styles : genres;
 
   factory MusicRecommendation.fromJson(Map<String, dynamic> json) {
     // Safely parse genres list
@@ -31,12 +41,22 @@ class MusicRecommendation {
       }
     }
 
+    List<String> stylesList = [];
+    if (json['styles'] is List) {
+      stylesList = (json['styles'] as List)
+          .map((e) => e.toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
     return MusicRecommendation(
       song: json['song']?.toString() ?? '',
       artist: json['artist']?.toString() ?? '',
       album: json['album']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
       genres: genresList,
+      styles: stylesList,
+      reason: json['reason']?.toString() ?? '',
     );
   }
 
@@ -46,6 +66,8 @@ class MusicRecommendation {
         'album': album,
         'imageUrl': imageUrl,
         'genres': genres,
+        'styles': styles,
+        'reason': reason,
       };
 
   bool get isValid => song.isNotEmpty && artist.isNotEmpty;

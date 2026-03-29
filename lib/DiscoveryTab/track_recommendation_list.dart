@@ -54,15 +54,16 @@ class _RecommendationCardState extends State<_RecommendationCard> {
 
   Future<void> _loadImage() async {
     if (_isLoadingImage) return;
-    
+
     setState(() {
       _isLoadingImage = true;
     });
 
     try {
-      final imageUrl = await MusicRecommendationService
-          .fetchAlbumImageForRecommendation(widget.album);
-      
+      final imageUrl =
+          await MusicRecommendationService.fetchAlbumImageForRecommendation(
+              widget.album);
+
       if (mounted && imageUrl.isNotEmpty) {
         setState(() {
           _imageUrl = imageUrl;
@@ -85,56 +86,31 @@ class _RecommendationCardState extends State<_RecommendationCard> {
   @override
   Widget build(BuildContext context) {
     return Card(
-          elevation: 1,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
-            side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
-          ),
-          color: Colors.white10,
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: (_imageUrl != null && _imageUrl!.isNotEmpty)
-                      ? Image.network(
-                          _imageUrl!,
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[800],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.music_note,
-                                color: Colors.white70,
-                                size: 30,
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[800],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Center(
-                                child: DiscoBallLoading(),
-                              ),
-                            );
-                          },
-                        )
-                      : Container(
+      elevation: 1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
+      ),
+      color: Colors.white10,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: (_imageUrl != null && _imageUrl!.isNotEmpty)
+                  ? Image.network(
+                      _imageUrl!,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
@@ -146,49 +122,80 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                             color: Colors.white70,
                             size: 30,
                           ),
-                        ),
-                ),
-                const SizedBox(width: 16),
-                // Expanded content with proper constraints
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: DiscoBallLoading(),
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.music_note,
+                        color: Colors.white70,
+                        size: 30,
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 16),
+            // Expanded content with proper constraints
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.album.song,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    widget.album.artist,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    widget.album.album,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Genre chips + Add Review button on same row
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      Text(
-                        widget.album.song,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        widget.album.artist,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        widget.album.album,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      // Genre Tags (pills)
-                      if (widget.album.genres.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Wrap(
+                      Expanded(
+                        child: Wrap(
                           spacing: 6.0,
                           runSpacing: 6.0,
-                          children: widget.album.genres.take(4).map((genre) {
+                          children: widget.album.displayTags.take(3).map((genre) {
                             return Chip(
                               label: Text(
                                 genre,
@@ -203,8 +210,10 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                                 color: Colors.white.withOpacity(0.2),
                                 width: 1,
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
                               visualDensity: VisualDensity.compact,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(25),
@@ -212,41 +221,16 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                             );
                           }).toList(),
                         ),
-                      ],
-                    ],
-                  ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                        onPressed: () => {
-                              // Log rec_dismiss signal (implicit negative signal)
-                              SignalCollectionService.logRecDismiss(
-                                artist: widget.album.artist,
-                                track: widget.album.song,
-                                genres: widget.album.genres,
-                                sourceContext: 'discovery_tab',
-                              ),
-                              updateDislikedTracks(widget.album.artist, widget.album.song),
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Preferences Updated!'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              ),
-                            },
-                        icon: const Icon(Ionicons.close_circle_outline,
-                            color: Colors.red)),
-                    IconButton(
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
                         onPressed: () {
-                          // Log rec_click signal (moderate intent signal)
                           SignalCollectionService.logRecClick(
                             artist: widget.album.artist,
                             track: widget.album.song,
                             genres: widget.album.genres,
                             sourceContext: 'discovery_tab',
                           );
-                          // Open review sheet with pre-populated data
                           showModalBottomSheet(
                             context: context,
                             isScrollControlled: true,
@@ -254,18 +238,54 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                               return MyReviewSheetContentForm(
                                 title: widget.album.song,
                                 artist: widget.album.artist,
-                                albumImageUrl: _imageUrl ?? widget.album.imageUrl,
+                                albumImageUrl:
+                                    _imageUrl ?? widget.album.imageUrl,
                               );
                             },
                           );
                         },
-                        icon: const Icon(Ionicons.add_circle_outline,
-                            color: Colors.green)),
-                  ],
-                ),
-              ],
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          backgroundColor: const Color.fromARGB(255, 239, 239, 239),
+                          side: BorderSide.none,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 12),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        child: const Text(
+                          '+ Add Review',
+                          style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
+          ],
+        ), // end inner Row
+            if (widget.album.reason.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                widget.album.reason,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.45),
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ), // end outer Column
+      ),
+    );
   }
 }

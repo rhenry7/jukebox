@@ -17,6 +17,7 @@ import 'package:flutter_test_project/services/review_analysis_service.dart';
 import 'package:flutter_test_project/services/signal_collection_service.dart';
 import 'package:flutter_test_project/services/embedding_service.dart';
 import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
+import 'package:flutter_test_project/services/discogs_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
 
@@ -139,10 +140,29 @@ class MusicRecommendationService {
         reviewList.add({
           'song': review.title,
           'artist': review.artist,
-          'review': review.review,
           'rating': review.score,
+          'review': review.review,
+          if (review.genres != null && review.genres!.isNotEmpty)
+            'genres': review.genres,
         });
       }
+
+      // Collect styles/genres from positively-rated recent reviews for Discogs lookup
+      final positiveStyles = <String>{};
+      final positiveGenres = <String>{};
+      for (final review in reviews.take(5)) {
+        if (review.score >= 3.5 && review.genres != null) {
+          positiveStyles.addAll(review.genres!);
+        }
+      }
+      if (positiveStyles.isEmpty) {
+        positiveGenres.addAll(preferences.favoriteGenres.take(3));
+      }
+
+      final discogsCandidatesFuture = DiscogsService.searchByStyles(
+        styles: positiveStyles.toList(),
+        genres: positiveGenres.toList(),
+      );
 
       final List<MusicRecommendation> allRecommendations = [];
       final Map<String, Set<String>> recommendationSources =
@@ -187,16 +207,42 @@ class MusicRecommendationService {
 
       // 1. Get AI-based recommendations (improved prompt with review analysis)
       try {
+        final discogsCandidates = await discogsCandidatesFuture;
+        debugPrint('[Discogs] ${discogsCandidates.length} candidates fetched');
+
         final prompt = _buildEnhancedPrompt(
           preferences,
           count,
           excludeSongs,
           reviewList,
-          reviewProfile, // Pass review analysis
+          reviewProfile,
+          discogsCandidates,
         );
         debugPrint('Fetching AI recommendations with review analysis...');
         final response = await _makeApiRequest(prompt);
-        final aiRecommendations = _parseRecommendations(response);
+        debugPrint('[AI raw response] $response');
+        final rawRecommendations = _parseRecommendations(response);
+        debugPrint('[Parsed reasons] ${rawRecommendations.map((r) => '"${r.song}": "${r.reason}"').join(', ')}');
+
+        // Enrich each recommendation with Discogs styles by matching on artist name
+        final discogsStyleMap = <String, List<String>>{};
+        for (final d in discogsCandidates) {
+          final key = d.artist.toLowerCase();
+          if (d.styles.isNotEmpty) discogsStyleMap[key] = d.styles;
+        }
+        final aiRecommendations = rawRecommendations.map((rec) {
+          final styles = discogsStyleMap[rec.artist.toLowerCase()] ?? [];
+          if (styles.isEmpty) return rec;
+          return MusicRecommendation(
+            song: rec.song,
+            artist: rec.artist,
+            album: rec.album,
+            imageUrl: rec.imageUrl,
+            genres: rec.genres,
+            styles: styles,
+            reason: rec.reason,
+          );
+        }).toList();
 
         // OPTIMIZATION: Only validate AI recommendations (Spotify recs are already validated)
         if (skipValidation || validationMode == 'none') {
@@ -439,68 +485,88 @@ class MusicRecommendationService {
     }
   }
 
-  /// Build enhanced prompt with review analysis
+  /// Build prompt using recent reviews as primary signal and Discogs
+  /// community-rated candidates as a curated pool for discovery.
   static String _buildEnhancedPrompt(
     EnhancedUserPreferences preferences,
     int count,
     List<String>? excludeSongs,
     List<dynamic> reviews,
-    UserReviewProfile? reviewProfile,
-  ) {
+    UserReviewProfile? reviewProfile, [
+    List<DiscogsRelease> discogsCandidates = const [],
+  ]) {
     final excludeList = [
       ..._recentRecommendations,
       ...excludeSongs ?? [],
     ];
 
-    // Build review analysis insights
-    String reviewAnalysisSection = '';
-    if (reviewProfile != null) {
-      final ratingInsight = reviewProfile.ratingPattern.averageRating >= 4.0
-          ? 'User tends to rate highly - recommend more experimental/discovery music'
-          : reviewProfile.ratingPattern.averageRating <= 2.5
-              ? 'User is critical - recommend safer, highly-regarded albums'
-              : 'User has balanced ratings - mix of safe and discovery';
+    // Format recent reviews as readable bullets
+    final reviewBlock = reviews.map((r) {
+      final rating = (r['rating'] as num?)?.toDouble() ?? 0;
+      final sentiment = rating >= 4.0
+          ? 'loved'
+          : rating <= 2.0
+              ? 'disliked'
+              : 'felt neutral about';
+      final genreStr = (r['genres'] is List && (r['genres'] as List).isNotEmpty)
+          ? ' [${(r['genres'] as List).join(', ')}]'
+          : '';
+      return '• "${r['song']}" by ${r['artist']}$genreStr — $sentiment (${rating.toStringAsFixed(1)}/5): "${r['review']}"';
+    }).join('\n');
 
-      final topGenres = reviewProfile.genrePreferences.entries.toList()
-        ..sort((a, b) =>
-            b.value.preferenceStrength.compareTo(a.value.preferenceStrength));
-
-      final topArtists = reviewProfile.artistPreferences.entries.toList()
-        ..sort((a, b) =>
-            b.value.preferenceScore.compareTo(a.value.preferenceScore));
-
-      reviewAnalysisSection = '''
-
-DEEP REVIEW ANALYSIS (from ${reviewProfile.ratingPattern.ratingDistribution.values.fold<int>(0, (sum, count) => sum + count)} total reviews):
-- Rating Pattern: ${reviewProfile.ratingPattern.averageRating.toStringAsFixed(1)} average rating
-  $ratingInsight
-- Top Genres from Reviews: ${topGenres.take(5).map((e) => '${e.key} (strength: ${e.value.preferenceStrength.toStringAsFixed(2)})').join(', ')}
-- Top Artists from Reviews: ${topArtists.take(5).map((e) => '${e.key} (score: ${e.value.preferenceScore.toStringAsFixed(2)})').join(', ')}
-- Recent Trends: ${reviewProfile.temporalPatterns.recentTrends.isNotEmpty ? reviewProfile.temporalPatterns.recentTrends.join(', ') : 'None'}
-- Review Sentiment: ${reviewProfile.reviewSentiment.sentimentScore > 0.6 ? 'Generally positive' : reviewProfile.reviewSentiment.sentimentScore < 0.4 ? 'Generally negative' : 'Mixed'}
-- Highly Rated Artists: ${reviewProfile.ratingPattern.highlyRatedArtists.take(5).join(', ')}
-
-RECOMMENDATION STRATEGY:
-1. PRIORITIZE genres with high preference strength from reviews: ${topGenres.take(3).map((e) => e.key).join(', ')}
-2. EXPLORE artists similar to top-rated artists: ${topArtists.take(3).map((e) => e.key).join(', ')}
-3. CONSIDER recent trends: ${reviewProfile.temporalPatterns.recentTrends.isNotEmpty ? reviewProfile.temporalPatterns.recentTrends.join(', ') : 'No strong trends'}
-4. BALANCE: $ratingInsight
-''';
+    // Scored artist sentiment from reviews
+    final recentArtistScores = <String, double>{};
+    final recentGenres = <String>{};
+    for (final r in reviews) {
+      final artist = r['artist']?.toString() ?? '';
+      final rating = (r['rating'] as num?)?.toDouble() ?? 3.0;
+      final sentiment = (rating - 3.0) / 2.0;
+      if (artist.isNotEmpty) recentArtistScores[artist] = sentiment;
+      if (r['genres'] is List) {
+        for (final g in r['genres'] as List) {
+          if (g != null && g.toString().isNotEmpty)
+            recentGenres.add(g.toString());
+        }
+      }
     }
 
+    final positiveArtists = recentArtistScores.entries
+        .where((e) => e.value > 0)
+        .map((e) => '${e.key} (+${e.value.toStringAsFixed(1)})')
+        .join(', ');
+    final negativeArtists = recentArtistScores.entries
+        .where((e) => e.value <= 0)
+        .map((e) => '${e.key} (${e.value.toStringAsFixed(1)})')
+        .join(', ');
+
+    // Discogs candidate block — community-vetted releases matching user's genres
+    final discogsCandidateBlock = discogsCandidates.isNotEmpty
+        ? '''
+
+DISCOGS COMMUNITY PICKS (prioritise songs from these artists/albums — they match the user's genres and are highly rated or underrated by the community):
+${DiscogsService.formatCandidatesForPrompt(discogsCandidates)}
+
+Prefer recommending specific tracks from the artists and albums listed above. These have been filtered to match the user's taste profile and have strong community ratings on Discogs. Songs marked [cult/underrated] are hidden gems — prioritise these for discovery.'''
+        : '';
+
     return '''
-You are a music discovery engine. Your goal is to help users discover NEW music they haven't heard before, while still being relevant to their taste.
+You are a music discovery engine. Recommend songs based primarily on the user's recent reviews. Use the Discogs community picks as your main candidate pool for discovery.
 
 USER PREFERENCES:
 - Saved Tracks (DO NOT recommend these), but recommend tracks similar to them: ${jsonEncode(preferences.savedTracks)}
 - Disliked Tracks (AVOID similar): ${jsonEncode(preferences.dislikedTracks)}
+- Favorite Genres: ${jsonEncode(preferences.favoriteGenres)}
+- Genre Weights (preference strength): ${jsonEncode(preferences.genreWeights)}
+- Favorite Artists: ${jsonEncode(preferences.favoriteArtists)}
+- Mood Preferences: ${jsonEncode(preferences.moodPreferences)}
+- Tempo Preferences: ${jsonEncode(preferences.tempoPreferences)}
+- Saved Tracks (DO NOT recommend these): ${jsonEncode(preferences.savedTracks)}
 
 RECENT USER REVIEWS (to understand taste):
 read ${jsonEncode(reviews)} to get a sense of the user's taste, what they like/dislike, and their rating patterns. Use this to inform your recommendations.
 use the genre/tags in the most recent reviews to identify their preferences.
 base recommendations on insights from these reviews, such as preferred genres, artists, and any recent shifts in taste.
 suggest songs that align with the positive reviews and avoid songs similar to negative reviews.
-$reviewAnalysisSection
 
 DISCOVERY REQUIREMENTS:
 1. PRIORITIZE DISCOVERY: Recommend songs the user likely hasn't heard before, even if they're in genres they like. Use review analysis to identify underexplored genres/artists.
@@ -540,8 +606,38 @@ CRITICAL REQUIREMENTS:
 - All recommendations will be validated against Spotify - fake songs will be rejected
 - Return ONLY valid JSON, no markdown, no commentary, no explanations
 
-Format:
-[{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1","Genre2"]}]
+RECENT REVIEWS (primary signal):
+$reviewBlock
+
+RECENT ARTIST SENTIMENT:
+${positiveArtists.isNotEmpty ? '- Enjoyed: $positiveArtists' : ''}
+${negativeArtists.isNotEmpty ? '- Did not enjoy: $negativeArtists' : ''}
+${recentGenres.isNotEmpty ? '- Genres from recent reviews: ${recentGenres.join(', ')}' : ''}
+$discogsCandidateBlock
+
+SAVED PREFERENCES (supplementary only):
+- Genres: ${preferences.favoriteGenres.take(5).join(', ')}
+- Saved artists: ${preferences.favoriteArtists.take(5).join(', ')}
+- Do not recommend: ${([
+      ...preferences.savedTracks,
+      ...excludeList.take(10).map((e) => e.toString())
+    ]).take(15).join(', ')}
+- Avoid similar to: ${preferences.dislikedTracks.take(5).join(', ')}
+
+INSTRUCTIONS:
+- Draw candidates primarily from the Discogs community picks above
+- Use reviews to infer current mood and sound — match it
+- Avoid artists the user recently disliked; lean into artists they loved
+- No two songs from the same artist
+- At least 3 different genres
+- Prioritise [cult/underrated] picks for discovery
+- Return EXACTLY $count recommendations
+- ONLY recommend songs that exist on Spotify — do not invent titles, artists, or albums
+- Every object MUST include a "reason" field — a single sentence explaining why this track matches the user's taste based on their reviews (e.g. "You loved Kendrick's jazz-influenced production on your last review — this has a similar feel")
+- Return ONLY valid JSON, no markdown, no commentary
+
+Format (every field required, including reason):
+[{"song":"Title","artist":"Artist","album":"Album","imageUrl":"","genres":["Genre1","Genre2"],"reason":"Why this matches their taste based on their reviews."}]
 ''';
   }
 
@@ -1019,7 +1115,7 @@ Rules:
         {
           'role': 'system',
           'content':
-              'You are a music recommendation engine. CRITICAL: Only recommend songs that you KNOW exist on Spotify. Do NOT invent, guess, or create song titles, artist names, or album names. All recommendations will be validated against Spotify\'s API - any fake or non-existent songs will be automatically rejected. If you cannot find enough real songs, return fewer valid recommendations rather than inventing fake ones. Respond only with valid JSON arrays.'
+              'You are a music recommendation engine. CRITICAL: Only recommend songs that you KNOW exist on Spotify. Do NOT invent, guess, or create song titles, artist names, or album names. All recommendations will be validated against Spotify\'s API - any fake or non-existent songs will be automatically rejected. If you cannot find enough real songs, return fewer valid recommendations rather than inventing fake ones. Every recommendation object MUST include a "reason" field explaining why it matches the user\'s taste. Respond only with valid JSON arrays.'
         },
         {'role': 'user', 'content': prompt}
       ]

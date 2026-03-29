@@ -151,6 +151,8 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
     'Gospel'
   ];
 
+  final TextEditingController _genreInputController = TextEditingController();
+
   final List<String> _availableMoods = [
     'Energetic',
     'Chill',
@@ -270,7 +272,22 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
   @override
   void dispose() {
     _tabController.dispose();
+    _genreInputController.dispose();
     super.dispose();
+  }
+
+  void _addCustomGenre(String genre) {
+    final trimmed = genre.trim();
+    if (trimmed.isEmpty) return;
+    final capitalised = trimmed[0].toUpperCase() + trimmed.substring(1);
+    if (_availableGenres.any((g) => g.toLowerCase() == capitalised.toLowerCase())) {
+      _genreInputController.clear();
+      return;
+    }
+    setState(() {
+      _availableGenres.add(capitalised);
+    });
+    _genreInputController.clear();
   }
 
   void _updatePreferences() {
@@ -431,6 +448,36 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
           const Text(
             'Set Genre Preferences',
             style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _genreInputController,
+                  textCapitalization: TextCapitalization.words,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Add a genre (e.g. Afrobeats, Shoegaze…)',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.07),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onSubmitted: _addCustomGenre,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _addCustomGenre(_genreInputController.text),
+                icon: const Icon(Icons.add_circle, color: Colors.red, size: 32),
+                tooltip: 'Add genre',
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           ..._availableGenres.map((genre) {
