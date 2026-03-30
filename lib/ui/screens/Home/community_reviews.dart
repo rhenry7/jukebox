@@ -507,7 +507,7 @@ class CommunityReviewList extends ConsumerWidget {
               onLongPress: () => _showReviewOptionsDialog(context, review, ref),
               child: Card(
                 elevation: 1,
-                margin: const EdgeInsets.all(0),
+                margin: const EdgeInsets.all(5),
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.all(Radius.circular(8)),
                   side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),

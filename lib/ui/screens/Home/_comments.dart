@@ -498,22 +498,24 @@ class ReviewCardWidget extends ConsumerWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Rating Bar
-                        RatingBar(
-                          minRating: 0,
-                          maxRating: 5,
-                          allowHalfRating: true,
-                          initialRating: review.score,
-                          itemSize: 20,
-                          itemPadding: const EdgeInsets.only(right: 4.0),
-                          ratingWidget: RatingWidget(
-                            full: const Icon(Icons.star, color: Colors.amber),
-                            empty: const Icon(Icons.star, color: Colors.grey),
-                            half: const Icon(Icons.star_half,
-                                color: Colors.amber),
+                        // Rating Bar — Flexible so it yields space to timestamp
+                        Flexible(
+                          child: RatingBar(
+                            minRating: 0,
+                            maxRating: 5,
+                            allowHalfRating: true,
+                            initialRating: review.score,
+                            itemSize: 18,
+                            itemPadding: const EdgeInsets.only(right: 2.0),
+                            ratingWidget: RatingWidget(
+                              full: const Icon(Icons.star, color: Colors.amber),
+                              empty: const Icon(Icons.star, color: Colors.grey),
+                              half: const Icon(Icons.star_half,
+                                  color: Colors.amber),
+                            ),
+                            ignoreGestures: true,
+                            onRatingUpdate: (rating) {},
                           ),
-                          ignoreGestures: true,
-                          onRatingUpdate: (rating) {},
                         ),
                         // Small gap before timestamp
                         if (review.date != null) const SizedBox(width: 5),
@@ -532,32 +534,23 @@ class ReviewCardWidget extends ConsumerWidget {
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(5),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: <Widget>[
-                    // LIKES
-                    // Like Button (top right) - only show in community tab
-                    if (showLikeButton && reviewId != null)
-                      _LikeButton(reviewId: reviewId!),
-                  ],
-                ),
-              ),
             ],
           ),
           // Bottom Row: Review Text (full width) - only show if review text exists
           if (review.review.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text(
-              review.review,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14.0,
-                fontStyle: FontStyle.normal,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10.0),
+              child: Text(
+                review.review,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.0,
+                  fontStyle: FontStyle.normal,
+                ),
+                maxLines: null,
+                overflow: TextOverflow.visible,
               ),
-              maxLines: null,
-              overflow: TextOverflow.visible,
             ),
           ],
           // Tags: MusicBrainz genres + user-created tags (pills at the bottom)
@@ -596,88 +589,115 @@ class ReviewCardWidget extends ConsumerWidget {
               ),
             ];
           }(),
-          // Username row - tappable to show user profile / add friend
-          if (review.displayName.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => _showUserProfileSheet(context, ref, review),
-              child: Builder(builder: (context) {
-                final currentUserId = ref.watch(currentUserIdProvider);
-                final isOwnReview = review.userId == currentUserId;
-                final isFriend = !isOwnReview &&
-                    review.userId.isNotEmpty &&
-                    ref.watch(isFriendProvider(review.userId));
-                final showPlusBadge = !isOwnReview && !isFriend;
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(vertical: 8.0),
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.start,
+          //     children: <Widget>[
+          //       // LIKES
+          //       // Like Button (top right) - only show in community tab
+          //       if (showLikeButton && reviewId != null)
+          //         _LikeButton(reviewId: reviewId!),
+          //     ],
+          //   ),
+          // ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (review.displayName.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: GestureDetector(
+                      onTap: () => _showUserProfileSheet(context, ref, review),
+                      child: Builder(builder: (context) {
+                        final currentUserId = ref.watch(currentUserIdProvider);
+                        final isOwnReview = review.userId == currentUserId;
+                        final isFriend = !isOwnReview &&
+                            review.userId.isNotEmpty &&
+                            ref.watch(isFriendProvider(review.userId));
+                        final showPlusBadge = !isOwnReview && !isFriend;
 
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Circled user icon with a conditional plus badge
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // Circle with user icon
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey[800],
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 1.2,
-                              ),
-                            ),
-                            child: const Icon(Icons.person,
-                                size: 14, color: Colors.white70),
-                          ),
-                          // Plus badge – only when NOT already friends and NOT own review
-                          if (showPlusBadge)
-                            Positioned(
-                              top: -4,
-                              right: -4,
-                              child: Container(
-                                width: 13,
-                                height: 13,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.greenAccent[700],
-                                  border:
-                                      Border.all(color: Colors.black, width: 1),
-                                ),
-                                alignment: Alignment.center,
-                                child: const Text(
-                                  '+',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    height: 1.0,
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Circled user icon with a conditional plus badge
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  // Circle with user icon
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.grey[800],
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.2,
+                                      ),
+                                    ),
+                                    child: const Icon(Icons.person,
+                                        size: 14, color: Colors.white70),
                                   ),
-                                ),
+                                  // Plus badge – only when NOT already friends and NOT own review
+                                  if (showPlusBadge)
+                                    Positioned(
+                                      top: -4,
+                                      right: -4,
+                                      child: Container(
+                                        width: 13,
+                                        height: 13,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.greenAccent[700],
+                                          border: Border.all(
+                                              color: Colors.black, width: 1),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Text(
+                                          '+',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            height: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                        ],
-                      ),
+                            const SizedBox(width: 6),
+                            // Display name
+                            Text(
+                              review.displayName,
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 20,
+                                  fontStyle: FontStyle.normal,
+                                  fontWeight: FontWeight.w400),
+                            ),
+                          ],
+                        );
+                      }),
                     ),
-                    const SizedBox(width: 6),
-                    // Display name
-                    Text(
-                      review.displayName,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                );
-              }),
+                  ),
+                ],
+                const Spacer(),
+                if (showLikeButton && reviewId != null)
+                  _LikeButton(reviewId: reviewId!),
+              ],
             ),
-          ],
+          )
+          // Username row - tappable to show user profile / add friend
         ],
       ),
     );
@@ -921,7 +941,7 @@ class _LikeButton extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    Icons.favorite,
                     color: isLiked ? Colors.red : Colors.white70,
                     size: 24,
                   ),
@@ -930,10 +950,10 @@ class _LikeButton extends ConsumerWidget {
                     Text(
                       _formatLikeCount(likeCount),
                       style: TextStyle(
-                        color: isLiked ? Colors.red : Colors.white70,
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                      ),
+                          color: isLiked ? Colors.red : Colors.white70,
+                          fontSize: 14,
+                          fontStyle: FontStyle.normal,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ],
