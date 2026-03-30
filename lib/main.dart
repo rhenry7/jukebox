@@ -215,7 +215,7 @@ class MyApp extends ConsumerWidget {
           },
         ),
       ),
-      home: const MainNav(title: 'CRATEBOXDS'),
+      home: const MainNav(title: 'CRATEBOXD'),
     );
   }
 }

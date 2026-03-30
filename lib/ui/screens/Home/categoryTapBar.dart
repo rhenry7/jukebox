@@ -99,8 +99,8 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
             dividerColor: Colors.transparent,
             labelPadding: EdgeInsets.zero,
             tabs: [
+              _buildPillTab('Popular'),
               _buildPillTab('Friends'),
-              _buildPillTab('Community'),
               _buildPillTab('For You'),
             ],
           ),
@@ -301,10 +301,10 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                 onNotification: _onScrollNotification,
                 child: TabBarView(
                   children: [
-                    FriendsReviewsCollection(
+                    CommunityReviewsCollection(
                       selectedGenres: Set<String>.from(_selectedGenres),
                     ),
-                    CommunityReviewsCollection(
+                    FriendsReviewsCollection(
                       selectedGenres: Set<String>.from(_selectedGenres),
                     ),
                     RecommendedReviewsCollection(

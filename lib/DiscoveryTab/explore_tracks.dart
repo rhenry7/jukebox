@@ -321,9 +321,11 @@ class ExploreTracksState extends ConsumerState<ExploreTracks> {
                       ),
                     );
                   }
-                  return const Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: DiscoBallLoading(),
+                  return SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.65,
+                    child: const Center(
+                      child: DiscoBallLoading(),
+                    ),
                   );
                 },
               ),

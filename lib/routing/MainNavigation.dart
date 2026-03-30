@@ -99,8 +99,7 @@ class MainNavState extends ConsumerState<MainNav> {
           context: context,
           isScrollControlled: true,
           builder: (BuildContext context) {
-            initialChildSize:
-            0.9; // Takes up 90% of the screen
+            //initialChildSize: 0.9; // Takes up 90% of the screen
 
             return const MyReviewSheetContentForm(
               title: 'track-title',
