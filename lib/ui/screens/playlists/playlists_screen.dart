@@ -233,7 +233,7 @@ class _HorizontalCrateRow extends ConsumerWidget {
         height: 100,
         child: Center(
           child: Text(
-            'Failed to load crates.',
+            'No Crates to share!',
             style: TextStyle(color: Colors.white.withOpacity(0.4)),
           ),
         ),
@@ -374,18 +374,25 @@ class _CrateCard extends ConsumerWidget {
                         // Tags
                         if (playlist.tags.isNotEmpty) ...[
                           const SizedBox(height: 5),
-                          Text(
-                            playlist.tags
-                                .take(3)
-                                .map((t) => '#${t.toLowerCase()}')
-                                .join('  '),
-                            style: const TextStyle(
-                              color: Color(0xFF4CAF50),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 4,
+                            children: playlist.tags.take(3).map((tag) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.white30, width: 1),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 11),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ],

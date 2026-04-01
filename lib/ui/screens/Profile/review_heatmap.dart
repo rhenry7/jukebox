@@ -61,18 +61,20 @@ class ReviewHeatmap extends StatelessWidget {
         .length;
 
     // Build week columns — each column is a list of 7 days (Sun=0..Sat=6)
-    final weeks = <List<DateTime>>[];
+    final weeksChron = <List<DateTime>>[];
     var weekStart = gridStart;
     while (!weekStart.isAfter(gridEnd)) {
       final week = List.generate(7, (i) => weekStart.add(Duration(days: i)));
-      weeks.add(week);
+      weeksChron.add(week);
       weekStart = weekStart.add(const Duration(days: 7));
     }
 
-    // Determine month labels and their column positions
+    // Reverse so most recent weeks appear on the left
+    final weeks = weeksChron.reversed.toList();
+
+    // Determine month labels against the reversed column order
     final monthLabels = <_MonthLabel>[];
     for (var i = 0; i < weeks.length; i++) {
-      // Use the first day of the week to determine month
       final firstDay = weeks[i][0];
       if (i == 0 || firstDay.month != weeks[i - 1][0].month) {
         monthLabels.add(_MonthLabel(
