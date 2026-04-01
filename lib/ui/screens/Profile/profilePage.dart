@@ -213,7 +213,7 @@ class _CratesContent extends StatelessWidget {
                   Text('No crates yet',
                       style: TextStyle(color: Colors.white, fontSize: 18)),
                   SizedBox(height: 8),
-                  Text('Create a crate to start curating music',
+                  Text('Make your first crate and start curating music',
                       style: TextStyle(color: Colors.white54)),
                 ],
               ),

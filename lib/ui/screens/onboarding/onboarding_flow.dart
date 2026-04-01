@@ -452,7 +452,7 @@ class _GenresPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'What drives\nyour pulse?',
+            'What fuels \nyour groove?',
             style: GoogleFonts.spaceGrotesk(
               textStyle: const TextStyle(
                 color: Colors.white,
