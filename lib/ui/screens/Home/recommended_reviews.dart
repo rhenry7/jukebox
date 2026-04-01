@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -104,8 +105,9 @@ class _RecommendedReviewsCollectionState
     final recommendedAsync = ref.watch(recommendedReviewsProvider);
     final displayLimit = ref.watch(recommendedReviewsDisplayLimitProvider);
 
-    // Auth gate
-    if (userId == null) {
+    // Auth gate — anonymous users can't get personalized recommendations
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (userId == null || currentUser?.isAnonymous == true) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

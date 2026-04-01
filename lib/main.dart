@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -116,6 +117,18 @@ void main() async {
   if (kIsWeb) {
     debugPrint(
         '🌐 Web platform detected - auth state will persist in localStorage');
+  }
+
+  // Ensure a Firebase Auth session exists before the app renders so that
+  // Firestore queries (which require isAuthenticated()) can run immediately.
+  // If a real user session was restored from cache this is a no-op.
+  if (FirebaseAuth.instance.currentUser == null) {
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+      debugPrint('✅ Anonymous sign-in successful — community reviews will load');
+    } catch (e) {
+      debugPrint('⚠️ Anonymous sign-in failed (may be disabled in Firebase): $e');
+    }
   }
 
   runApp(

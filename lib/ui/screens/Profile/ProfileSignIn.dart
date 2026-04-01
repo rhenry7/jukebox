@@ -12,6 +12,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'helpers/profileHelpers.dart'
     show signInWithGoogle, signInWithApple, hasUserPreferences;
 import '../../../routing/MainNavigation.dart';
+import '../onboarding/onboarding_flow.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -29,6 +30,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isLoading = false;
   bool _isGoogleLoading = false;
   bool _isAppleLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -58,13 +60,14 @@ class _SignInScreenState extends State<SignInScreen> {
   /// Check if user is already signed in and redirect to home
   void _checkAuthState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_auth.currentUser != null) {
-        // User is already signed in, navigate to home
+      final user = _auth.currentUser;
+      // Only redirect if a real (non-anonymous) user is already signed in
+      if (user != null && !user.isAnonymous) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => const MainNav(title: 'CRATEBOXD'),
           ),
-          (Route<dynamic> route) => false, // Remove all previous routes
+          (Route<dynamic> route) => false,
         );
       }
     });
@@ -168,15 +171,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (hasPrefs) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-              builder: (context) => const MainNav(title: 'CRATEBOXD')),
+          MaterialPageRoute(builder: (_) => const MainNav(title: 'CRATEBOXD')),
           (Route<dynamic> route) => false,
         );
       } else {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-              builder: (context) => const MainNav(
-                  title: 'CRATEBOXD', navigateToPreferences: true)),
+          MaterialPageRoute(builder: (_) => const OnboardingFlow()),
           (Route<dynamic> route) => false,
         );
       }
@@ -228,7 +228,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 filled: true,
                 fillColor: Colors.grey[800],
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(25),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -314,15 +314,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (hasPrefs) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-              builder: (context) => const MainNav(title: 'CRATEBOXD')),
+          MaterialPageRoute(builder: (_) => const MainNav(title: 'CRATEBOXD')),
           (Route<dynamic> route) => false,
         );
       } else {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-              builder: (context) => const MainNav(
-                  title: 'CRATEBOXD', navigateToPreferences: true)),
+          MaterialPageRoute(builder: (_) => const OnboardingFlow()),
           (Route<dynamic> route) => false,
         );
       }
@@ -345,258 +342,300 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    // Keep action buttons clear of the persistent bottom nav glass overlay.
-    final bottomNavClearance = mediaQuery.viewPadding.bottom + 112.0;
-
-    // If user is already signed in, show loading while redirecting
-    if (_auth.currentUser != null) {
-      return const Scaffold(
-        body: DiscoBallLoading(),
-      );
+    final currentUser = _auth.currentUser;
+    if (currentUser != null && !currentUser.isAnonymous) {
+      return const Scaffold(backgroundColor: Colors.black, body: DiscoBallLoading());
     }
 
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, bottomNavClearance),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Hero image ────────────────────────────────────
+              Center(
+                child: Image.asset(
+                  'lib/assets/images/walking_music_man.png',
+                  height: 240,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 80),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // ── EMAIL ─────────────────────────────────────────
+              const Text(
+                'EMAIL',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _emailController,
+                focusNode: _emailFocusNode,
+                keyboardType: TextInputType.emailAddress,
+                enabled: !_isLoading,
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: 'curator@crateboxd.io',
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  filled: true,
+                  fillColor: const Color(0xFF1C1C1C),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Colors.white24, width: 1),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── PASSWORD ──────────────────────────────────────
+              const Text(
+                'PASSWORD',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _passwordController,
+                focusNode: _passwordFocusNode,
+                obscureText: _obscurePassword,
+                enabled: !_isLoading,
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: '••••••••••',
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  filled: true,
+                  fillColor: const Color(0xFF1C1C1C),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Colors.white24, width: 1),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 16),
+                  suffixIcon: IconButton(
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      color: Colors.white38,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Forgot password ───────────────────────────────
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _isLoading ? null : _handleForgotPassword,
+                  child: Text(
+                    'Forgot Password?',
+                    style:
+                        TextStyle(color: Colors.grey[500], fontSize: 13),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // ── Sign In | Sign Up ─────────────────────────────
+              Row(
                 children: [
-                  // Walking music man image
-                  Center(
-                    child: Image.asset(
-                      'lib/assets/images/walking_music_man.png',
-                      height: 350,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const SizedBox(height: 150);
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Email field with focus-aware styling
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _emailFocusNode.hasFocus
-                          ? Colors.grey[900]?.withOpacity(0.3)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: TextField(
-                      controller: _emailController,
-                      focusNode: _emailFocusNode,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        labelStyle: TextStyle(
-                          color: _emailFocusNode.hasFocus
-                              ? Colors.red[600]
-                              : Colors.grey,
-                        ),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: _emailFocusNode.hasFocus
-                                ? Colors.red[600]!
-                                : Colors.grey,
-                            width: _emailFocusNode.hasFocus ? 2 : 1,
-                          ),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.red[600]!,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      enabled: !_isLoading,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Password field with focus-aware styling
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _passwordFocusNode.hasFocus
-                          ? Colors.grey[900]?.withOpacity(0.3)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: TextField(
-                      controller: _passwordController,
-                      focusNode: _passwordFocusNode,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        labelStyle: TextStyle(
-                          color: _passwordFocusNode.hasFocus
-                              ? Colors.red[600]
-                              : Colors.grey,
-                        ),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: _passwordFocusNode.hasFocus
-                                ? Colors.red[600]!
-                                : Colors.grey,
-                            width: _passwordFocusNode.hasFocus ? 2 : 1,
-                          ),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.red[600]!,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      obscureText: true,
-                      enabled: !_isLoading,
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
+                  // Sign In — ghost
+                  Expanded(
                     child: TextButton(
-                      onPressed: _isLoading ? null : _handleForgotPassword,
-                      child: Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleSignIn,
-                          style: ButtonStyle(
-                            backgroundColor:
-                                WidgetStateProperty.all(Colors.white),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.red),
-                                  ),
-                                )
-                              : const Text('Sign In'),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (BuildContext context) =>
-                                        const ProfileSignUp(),
-                                  ),
-                                );
-                              },
-                        style: ButtonStyle(
-                          backgroundColor:
-                              WidgetStateProperty.all(Colors.green),
-                        ),
-                        child: const Text('Sign Up'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Divider with "or" text
-                  Row(
-                    children: [
-                      const Expanded(child: Divider(color: Colors.grey)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('or',
-                            style: TextStyle(
-                                color: Colors.grey[500], fontSize: 14)),
-                      ),
-                      const Expanded(child: Divider(color: Colors.grey)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Google Sign-In button
-                  SizedBox(
-                    width: double.infinity,
-                    child: _isGoogleLoading
-                        ? const Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
+                      onPressed: _isLoading ? null : _handleSignIn,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                          )
-                        : ElevatedButton.icon(
-                            onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading)
-                                ? null
-                                : _handleGoogleSignIn,
-                            icon: const Icon(Ionicons.logo_google,
-                                size: 20, color: Colors.white),
-                            label: const Text(
-                              'Sign in with Google',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blueAccent,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                          ),
-                  ),
-                  // Apple Sign-In button (iOS / macOS only)
-                  if (!kIsWeb) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: _isAppleLoading
-                          ? const Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
-                                ),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white),
                               ),
                             )
-                          : SignInWithAppleButton(
-                              onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading)
-                                  ? () {}
-                                  : _handleAppleSignIn,
-                              style: SignInWithAppleButtonStyle.black,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(30)),
+                          : const Text(
+                              'Sign In',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 12),
+                  // Sign Up — neon green pill
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _isLoading
+                          ? null
+                          : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ProfileSignUp(),
+                                ),
+                              ),
+                      child: Container(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF39FF6A),
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF39FF6A)
+                                  .withOpacity(0.35),
+                              blurRadius: 22,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-          );
-        },
+              const SizedBox(height: 28),
+
+              // ── OR divider ────────────────────────────────────
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: Colors.white12)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider(color: Colors.white12)),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ── Google sign-in ────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: _isGoogleLoading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      )
+                    : GestureDetector(
+                        onTap: (_isLoading ||
+                                _isGoogleLoading ||
+                                _isAppleLoading)
+                            ? null
+                            : _handleGoogleSignIn,
+                        child: Container(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1C1C1C),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Ionicons.logo_google,
+                                  size: 20, color: Colors.white),
+                              SizedBox(width: 12),
+                              Text(
+                                'Sign in with Google',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+
+              // ── Apple sign-in (iOS / macOS only) ─────────────
+              if (!kIsWeb) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: _isAppleLoading
+                      ? const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
+                            ),
+                          ),
+                        )
+                      : SignInWithAppleButton(
+                          onPressed: (_isLoading ||
+                                  _isGoogleLoading ||
+                                  _isAppleLoading)
+                              ? () {}
+                              : _handleAppleSignIn,
+                          style: SignInWithAppleButtonStyle.black,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(12)),
+                        ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

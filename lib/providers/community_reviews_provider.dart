@@ -7,14 +7,15 @@ import 'package:flutter_test_project/providers/reviews_provider.dart';
 
 /// Provider for all community reviews (all users) with lazy loading support.
 ///
-/// Depends on [currentUserIdProvider] to ensure the Firestore query only runs
-/// after the user is authenticated (Firestore rules require auth).
+/// Anonymous sign-in is handled at app startup (main.dart) so that Firestore
+/// auth rules are satisfied before this provider first runs.
 final communityReviewsProvider = StreamProvider.family<List<ReviewWithDocId>, int>((ref, limit) {
-  // Wait for auth — Firestore collectionGroup queries require authentication.
   final userId = ref.watch(currentUserIdProvider);
+
+  // No auth session yet — keep showing loading until the auth state resolves.
   if (userId == null) {
-    debugPrint('[COMMUNITY] No authenticated user — returning empty stream');
-    return Stream.value([]);
+    debugPrint('[COMMUNITY] Waiting for auth session...');
+    return const Stream.empty();
   }
 
   debugPrint('[COMMUNITY] Starting collectionGroup stream (limit=$limit) for user=$userId');

@@ -90,69 +90,6 @@ class _CommunityReviewsCollectionState
     final limit = ref.watch(communityReviewsLimitProvider);
     final reviewsAsync = ref.watch(communityReviewsProvider(limit));
 
-    // Check if user is authenticated
-    if (userId == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.person_off,
-                size: 80,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Sign In Required',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'This app only works when you\'re signed in. Please sign in to view community reviews and discover new music!',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SignInScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.login),
-                label: const Text(
-                  'Sign In!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     if (widget.selectedGenres.isNotEmpty) {
       _hasMoreItems = false;
       _ensureGenreFilteredFuture();

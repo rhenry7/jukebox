@@ -57,11 +57,12 @@ Widget profileRoute(String route) {
     case 'Delete Account':
       return const DeleteAccountScreen();
     default:
-      if (auth.currentUser != null) {
-        debugPrint('user signed in');
+      final user = auth.currentUser;
+      if (user != null && !user.isAnonymous) {
+        debugPrint('real user signed in');
         return const UserProfileSummary();
       } else {
-        debugPrint('user NOT signed in');
+        debugPrint('anonymous or no user — showing sign-in');
         return const SignInScreen();
       }
   }
@@ -76,16 +77,36 @@ void signOut() async {
   }
 }
 
-Widget profileRouter() {
-  final FirebaseAuth auth = FirebaseAuth.instance;
-  debugPrint('Current user: ${auth.currentUser?.uid ?? 'null'}');
-  debugPrint(auth.currentUser?.displayName ?? '');
-  debugPrint(auth.currentUser?.email ?? '');
-  if (auth.currentUser != null) {
-    return const ProfilePage();
-  } else {
-    return const SignInScreen();
+/// Returns true only if there is a real (non-anonymous) signed-in user.
+bool isRealUserSignedIn() {
+  final user = FirebaseAuth.instance.currentUser;
+  return user != null && !user.isAnonymous;
+}
+
+/// A reactive gate that shows [ProfilePage] for real users and [SignInScreen]
+/// for anonymous or unauthenticated users. Rebuilds on auth state changes.
+class ProfileGate extends StatelessWidget {
+  const ProfileGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Fall back to the synchronous currentUser while the stream is warming
+        // up. Without this, snapshot.data is null on first build which briefly
+        // shows SignInScreen, whose _checkAuthState then pushes a new MainNav
+        // and resets the tab to 0 (home).
+        final user = snapshot.data ?? FirebaseAuth.instance.currentUser;
+        final isReal = user != null && !user.isAnonymous;
+        return isReal ? const ProfilePage() : const SignInScreen();
+      },
+    );
   }
+}
+
+Widget profileRouter() {
+  return const ProfileGate();
 }
 
 /// Check if user has music preferences set up

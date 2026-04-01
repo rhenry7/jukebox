@@ -2,10 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 
 class EnhancedUserPreferences {
-  final List<String> favoriteGenres; // write helper function to add top three
-  final List<String>
-      favoriteArtists; // write helper function to collect top artists based on most liked in saved tracks
-  final List<String> dislikedGenres; // make helper function
+  final List<String> favoriteGenres;
+  final List<String> favoriteArtists;
+  final List<String> favoriteAlbums; // collected during onboarding
+  final List<String> dislikedGenres;
   final Map<String, double> genreWeights; // 0.0 to 1.0 preference strength
   final List<TrackHistory> recentlyPlayed; // delete later
   final List<String> savedTracks; // delete later
@@ -27,6 +27,7 @@ class EnhancedUserPreferences {
   EnhancedUserPreferences({
     required this.favoriteGenres,
     required this.favoriteArtists,
+    this.favoriteAlbums = const [],
     this.dislikedGenres = const [],
     this.genreWeights = const {},
     this.recentlyPlayed = const [],
@@ -45,6 +46,7 @@ class EnhancedUserPreferences {
   EnhancedUserPreferences copyWith({
     List<String>? favoriteGenres,
     List<String>? favoriteArtists,
+    List<String>? favoriteAlbums,
     List<String>? dislikedGenres,
     Map<String, double>? genreWeights,
     List<TrackHistory>? recentlyPlayed,
@@ -62,6 +64,7 @@ class EnhancedUserPreferences {
     return EnhancedUserPreferences(
       favoriteGenres: favoriteGenres ?? this.favoriteGenres,
       favoriteArtists: favoriteArtists ?? this.favoriteArtists,
+      favoriteAlbums: favoriteAlbums ?? this.favoriteAlbums,
       dislikedGenres: dislikedGenres ?? this.dislikedGenres,
       genreWeights: genreWeights ?? this.genreWeights,
       recentlyPlayed: recentlyPlayed ?? this.recentlyPlayed,
@@ -88,6 +91,7 @@ class EnhancedUserPreferences {
     return {
       'favoriteGenres': favoriteGenres,
       'favoriteArtists': favoriteArtists,
+      'favoriteAlbums': favoriteAlbums,
       'dislikedGenres': dislikedGenres,
       'genreWeights': genreWeights,
       'recentlyPlayed': recentlyPlayed.map((track) => track.toJson()).toList(),
@@ -160,6 +164,7 @@ class EnhancedUserPreferences {
     return EnhancedUserPreferences(
       favoriteGenres: safeStringList(json['favoriteGenres']),
       favoriteArtists: safeStringList(json['favoriteArtists']),
+      favoriteAlbums: safeStringList(json['favoriteAlbums']),
       dislikedGenres: safeStringList(json['dislikedGenres']),
       genreWeights: safeDoubleMap(json['genreWeights']),
       recentlyPlayed: (json['recentlyPlayed'] as List<dynamic>?)

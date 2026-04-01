@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
@@ -10,6 +11,8 @@ import 'package:flutter_test_project/providers/crate_comments_provider.dart';
 import 'package:flutter_test_project/providers/user_playlist_provider.dart';
 import 'package:flutter_test_project/services/crate_comment_service.dart';
 import 'package:flutter_test_project/services/user_playlist_service.dart';
+import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
+import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/ui/screens/playlists/add_songs_screen.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/utils/helpers.dart';
@@ -763,6 +766,99 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
     super.dispose();
   }
 
+  void _showSignInPrompt(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Join the discussion!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Sign up or sign in to post comments and interact with crates.',
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProfileSignUp()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF39FF6A),
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF39FF6A).withOpacity(0.35),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Sign Up',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SignInScreen()),
+                  );
+                },
+                child: const Text(
+                  'Sign In',
+                  style: TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _post() async {
     final text = _input.text.trim();
     if (text.isEmpty || widget.currentUserId == null) return;
@@ -869,69 +965,96 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
           ),
           const SizedBox(height: 14),
 
-          // ── Input box (signed-in users only) ────────────────────
-          if (widget.currentUserId != null) ...[
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white24, width: 0.8),
-              ),
-              child: Column(
+          // ── Input box (real signed-in users only) ───────────────
+          Builder(builder: (context) {
+            final isAnonymous =
+                FirebaseAuth.instance.currentUser?.isAnonymous ?? true;
+            if (widget.currentUserId != null && !isAnonymous) {
+              // Real user — show comment input
+              return Column(
                 children: [
-                  TextField(
-                    controller: _input,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    maxLines: 3,
-                    minLines: 2,
-                    decoration: const InputDecoration(
-                      hintText: 'Join the discussion...',
-                      hintStyle: TextStyle(color: Colors.white30),
-                      border: InputBorder.none,
-                      contentPadding:
-                          EdgeInsets.fromLTRB(14, 12, 14, 4),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white24, width: 0.8),
                     ),
-                  ),
-                  Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(8, 4, 8, 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    child: Column(
                       children: [
-                        GestureDetector(
-                          onTap: _posting ? null : _post,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 7),
-                            decoration: BoxDecoration(
-                              color: _posting
-                                  ? Colors.grey[700]
-                                  : Colors.red[700],
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            child: _posting
-                                ? const SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white),
-                                  )
-                                : const Text('Send',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
+                        TextField(
+                          controller: _input,
+                          style:
+                              const TextStyle(color: Colors.white, fontSize: 14),
+                          maxLines: 3,
+                          minLines: 2,
+                          decoration: const InputDecoration(
+                            hintText: 'Join the discussion...',
+                            hintStyle: TextStyle(color: Colors.white30),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.fromLTRB(14, 12, 14, 4),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              GestureDetector(
+                                onTap: _posting ? null : _post,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: _posting
+                                        ? Colors.grey[700]
+                                        : Colors.red[700],
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: _posting
+                                      ? const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white),
+                                        )
+                                      : const Text('Send',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              );
+            } else {
+              // Anonymous user — tappable prompt
+              return GestureDetector(
+                onTap: () => _showSignInPrompt(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white12, width: 0.8),
+                  ),
+                  child: const Text(
+                    'Sign up or Sign in to join the discussion!',
+                    style: TextStyle(color: Colors.white38, fontSize: 14),
+                  ),
+                ),
+              );
+            }
+          }),
 
           // ── Comment list ─────────────────────────────────────────
           commentsAsync.when(

@@ -193,6 +193,7 @@ USER PREFERENCES:
 - Favorite Genres: ${userPrefs.favoriteGenres}
 - Genre Weights: ${userPrefs.genreWeights}
 - Favorite Artists: ${userPrefs.favoriteArtists}
+- Favorite Albums: ${userPrefs.favoriteAlbums}
 - Disliked Genres: ${userPrefs.dislikedGenres}
 '''
         : 'USER PREFERENCES: None set.';
