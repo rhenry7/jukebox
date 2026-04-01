@@ -859,7 +859,7 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
                 ),
               ],
             ),
-            loading: () => const Text('COMMUNITY',
+            loading: () => const Text('Discussion',
                 style: TextStyle(
                     color: Colors.white54,
                     fontSize: 11,
@@ -885,7 +885,7 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
                     maxLines: 3,
                     minLines: 2,
                     decoration: const InputDecoration(
-                      hintText: 'Add a comment...',
+                      hintText: 'Join the discussion...',
                       hintStyle: TextStyle(color: Colors.white30),
                       border: InputBorder.none,
                       contentPadding:
@@ -907,7 +907,7 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
                               color: _posting
                                   ? Colors.grey[700]
                                   : Colors.red[700],
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(25),
                             ),
                             child: _posting
                                 ? const SizedBox(
@@ -917,7 +917,7 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
                                         strokeWidth: 2,
                                         color: Colors.white),
                                   )
-                                : const Text('Comment',
+                                : const Text('Send',
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 13,
@@ -1071,7 +1071,7 @@ class _CommentTile extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${comment.likes + (isLiked ? 1 : 0)}',
+                            '${comment.likes}',
                             style: const TextStyle(
                                 color: Colors.white38, fontSize: 12),
                           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
 
 import 'community_reviews.dart';
 import 'friends_reviews.dart';
@@ -21,21 +22,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
   static const Duration _headerTweenDuration = Duration(milliseconds: 280);
   static const double _scrollToggleThreshold = 14.0;
   static const double _topLockThreshold = 8.0;
-  static const List<String> _genreOptions = <String>[
-    'All',
-    'Chill',
-    'Rap',
-    'Rock',
-    'Electronic',
-    'Classy',
-    'Reggae',
-    'Soul Funk',
-    'Jazz',
-    'Acoustic',
-  ];
-
   bool _isTabBarVisible = true;
-  final Set<String> _selectedGenres = <String>{};
   double _accumulatedScrollDelta = 0.0;
   double? _lastScrollPixels;
 
@@ -109,67 +96,44 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
     );
   }
 
-  Widget _buildGenreFilterRow() {
-    return Container(
-      padding: const EdgeInsets.only(
-        left: 14.0,
-        right: 14.0,
-        bottom: 12.0,
-      ),
-      alignment: Alignment.centerLeft,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: _genreOptions.map((genre) {
-            final key = genre.toLowerCase();
-            final selected = key == 'all'
-                ? _selectedGenres.isEmpty
-                : _selectedGenres.contains(key);
-
-            return Padding(
-              padding: const EdgeInsets.only(right: 10.0),
-              child: FilterChip(
-                label: Text(
-                  genre,
+  Widget _buildSearchBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SearchScreen()),
+        ),
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1C),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: [
+              const Icon(Icons.manage_search,
+                  color: Colors.white54, size: 22),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Search for crates, artists, or friends...',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                    color: Colors.white38,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                selected: selected,
-                onSelected: (_) => _toggleGenreFilter(genre),
-                showCheckmark: false,
-                backgroundColor: Colors.white10,
-                selectedColor: const Color(0xFF5A5A5A),
-                side: BorderSide(
-                  color: Colors.white.withOpacity(0.12),
-                  width: 0.8,
-                ),
-                shape: const StadiumBorder(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-            );
-          }).toList(),
+              const SizedBox(width: 8),
+              Icon(Icons.mic, color: Colors.red[300], size: 20),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  void _toggleGenreFilter(String genre) {
-    final key = genre.toLowerCase();
-    setState(() {
-      if (key == 'all') {
-        _selectedGenres.clear();
-        return;
-      }
-
-      if (_selectedGenres.contains(key)) {
-        _selectedGenres.remove(key);
-      } else {
-        _selectedGenres.add(key);
-      }
-    });
   }
 
   void _setBarsVisible(bool visible) {
@@ -277,7 +241,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildTabBarHeader(),
-                    _buildGenreFilterRow(),
+                    _buildSearchBar(context),
                   ],
                 ),
                 builder: (context, value, child) {
@@ -300,16 +264,10 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
               child: NotificationListener<ScrollNotification>(
                 onNotification: _onScrollNotification,
                 child: TabBarView(
-                  children: [
-                    CommunityReviewsCollection(
-                      selectedGenres: Set<String>.from(_selectedGenres),
-                    ),
-                    FriendsReviewsCollection(
-                      selectedGenres: Set<String>.from(_selectedGenres),
-                    ),
-                    RecommendedReviewsCollection(
-                      selectedGenres: Set<String>.from(_selectedGenres),
-                    ),
+                  children: const [
+                    CommunityReviewsCollection(selectedGenres: {}),
+                    FriendsReviewsCollection(selectedGenres: {}),
+                    RecommendedReviewsCollection(selectedGenres: {}),
                   ],
                 ),
               ),

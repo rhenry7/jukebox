@@ -8,6 +8,7 @@ import 'package:flutter_test_project/providers/user_playlist_provider.dart';
 import 'package:flutter_test_project/services/playlist_likes_service.dart';
 import 'package:flutter_test_project/ui/screens/playlists/create_playlist_screen.dart';
 import 'package:flutter_test_project/ui/screens/playlists/playlist_detail_screen.dart';
+import 'package:flutter_test_project/providers/crate_comments_provider.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:ionicons/ionicons.dart';
 
@@ -416,16 +417,18 @@ class _CrateCard extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        // Comment count
-                        const Row(
+                        // Comment count (live from Firestore)
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Ionicons.chatbubble_outline,
+                            const Icon(Ionicons.chatbubble_outline,
                                 size: 13, color: Colors.white38),
-                            SizedBox(width: 3),
-                            Text('0',
-                                style: TextStyle(
-                                    color: Colors.white38, fontSize: 11)),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${ref.watch(crateCommentsProvider(playlist.id)).value?.length ?? 0}',
+                              style: const TextStyle(
+                                  color: Colors.white38, fontSize: 11),
+                            ),
                           ],
                         ),
                         // Heart
