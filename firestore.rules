@@ -96,6 +96,26 @@ service cloud.firestore {
       // Allow users to update/delete their own playlists
       allow update, delete: if isAuthenticated() &&
                                resource.data.userId == request.auth.uid;
+
+      // Comments subcollection on a crate/playlist
+      match /comments/{commentId} {
+        // Any authenticated user can read all comments
+        allow read: if isAuthenticated();
+        // Any authenticated user can post a comment (must own the userId field)
+        allow create: if isAuthenticated() &&
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.text is string &&
+                         request.resource.data.text.size() > 0 &&
+                         request.resource.data.text.size() <= 1000;
+        // Only the comment author can update their own comment
+        allow update: if isAuthenticated() &&
+                         resource.data.userId == request.auth.uid;
+        // Comment author OR playlist owner can delete
+        allow delete: if isAuthenticated() && (
+                         resource.data.userId == request.auth.uid ||
+                         get(/databases/$(database)/documents/playlists/$(playlistId)).data.userId == request.auth.uid
+                       );
+      }
     }
     
     // Collection group queries for reviews (allows reading reviews across all users)
