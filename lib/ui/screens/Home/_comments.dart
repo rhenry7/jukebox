@@ -540,7 +540,7 @@ class ReviewCardWidget extends ConsumerWidget {
           if (review.review.isNotEmpty) ...[
             const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10.0),
+              padding: const EdgeInsets.symmetric(vertical: 5.0),
               child: Text(
                 review.review,
                 style: const TextStyle(
@@ -602,7 +602,7 @@ class ReviewCardWidget extends ConsumerWidget {
           //   ),
           // ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10.0),
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -681,7 +681,7 @@ class ReviewCardWidget extends ConsumerWidget {
                               review.displayName,
                               style: const TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 20,
+                                  fontSize: 14,
                                   fontStyle: FontStyle.normal,
                                   fontWeight: FontWeight.w400),
                             ),
@@ -814,7 +814,7 @@ class _UserProfileSheetState extends ConsumerState<_UserProfileSheet> {
           Container(
             width: 40,
             height: 4,
-            margin: const EdgeInsets.only(bottom: 20),
+            margin: const EdgeInsets.only(bottom: 10),
             decoration: BoxDecoration(
               color: Colors.grey[600],
               borderRadius: BorderRadius.circular(2),

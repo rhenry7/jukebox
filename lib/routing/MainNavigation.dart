@@ -13,6 +13,7 @@ import 'package:flutter_test_project/services/data_preloader.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
 
 class MainNav extends ConsumerStatefulWidget {
   const MainNav(
@@ -193,6 +194,29 @@ class MainNavState extends ConsumerState<MainNav> {
               titleTextStyle:
                   const TextStyle(color: Colors.white, fontSize: 46),
               toolbarHeight: 70.0,
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SearchScreen(),
+                      ),
+                    ),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey[850],
+                      ),
+                      child: const Icon(Icons.search,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             )
           : null,
       body: DataPreloader(child: _pages[currentPageIndex]),
