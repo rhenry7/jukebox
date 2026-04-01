@@ -85,7 +85,7 @@ class _DiscoveryTapBarState extends State<DiscoveryTapBar> {
             labelPadding: EdgeInsets.zero,
             tabs: [
               _buildPillTab('Discovery'),
-              _buildPillTab('Playlists'),
+              _buildPillTab('Crates'),
               _buildPillTab('Explore'),
             ],
           ),

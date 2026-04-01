@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/models/user_playlist.dart';
@@ -10,631 +9,562 @@ import 'package:flutter_test_project/services/playlist_likes_service.dart';
 import 'package:flutter_test_project/ui/screens/playlists/create_playlist_screen.dart';
 import 'package:flutter_test_project/ui/screens/playlists/playlist_detail_screen.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
+import 'package:ionicons/ionicons.dart';
 
-/// Main playlists screen — tabbed layout with Your Playlists / Community / Friends
-class PlaylistsScreen extends StatefulWidget {
+// ---------------------------------------------------------------------------
+// Main Crates screen — three horizontal-scroll rows
+// ---------------------------------------------------------------------------
+
+class PlaylistsScreen extends ConsumerWidget {
   const PlaylistsScreen({super.key});
-
-  @override
-  State<PlaylistsScreen> createState() => _PlaylistsScreenState();
-}
-
-class _PlaylistsScreenState extends State<PlaylistsScreen> {
-  static const Duration _headerTweenDuration = Duration(milliseconds: 280);
-  static const double _scrollToggleThreshold = 14.0;
-  static const double _topLockThreshold = 8.0;
-  static const List<String> _genreOptions = <String>[
-    'All',
-    'Chill',
-    'Rap',
-    'Rock',
-    'Electronic',
-    'Classy',
-    'Reggae',
-    'Soul Funk',
-    'Jazz',
-    'Acoustic',
-  ];
-
-  bool _isTabBarVisible = true;
-  final Set<String> _selectedGenres = <String>{};
-  double _accumulatedScrollDelta = 0.0;
-  double? _lastScrollPixels;
-
-  Widget _buildPillTab(String label) {
-    return Tab(
-      child: SizedBox(
-        height: 42,
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabBarHeader() {
-    return Container(
-      padding: const EdgeInsets.only(
-        left: 14.0,
-        right: 14.0,
-        top: 8.0,
-        bottom: 16.0,
-      ),
-      alignment: Alignment.centerLeft,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white10,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.12),
-            width: 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
-              blurRadius: 18,
-              spreadRadius: 1,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(6.0),
-          child: TabBar(
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white.withValues(alpha: 0.92),
-            isScrollable: false,
-            tabAlignment: TabAlignment.fill,
-            splashFactory: NoSplash.splashFactory,
-            overlayColor: WidgetStateProperty.all(Colors.transparent),
-            indicator: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              color: const Color(0xFF5A5A5A),
-            ),
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: Colors.transparent,
-            labelPadding: EdgeInsets.zero,
-            tabs: [
-              _buildPillTab('Library'),
-              _buildPillTab('Community'),
-              _buildPillTab('Friends'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGenreFilterRow() {
-    return Container(
-      padding: const EdgeInsets.only(
-        left: 14.0,
-        right: 14.0,
-        bottom: 12.0,
-      ),
-      alignment: Alignment.centerLeft,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: _genreOptions.map((genre) {
-            final key = genre.toLowerCase();
-            final selected = key == 'all'
-                ? _selectedGenres.isEmpty
-                : _selectedGenres.contains(key);
-
-            return Padding(
-              padding: const EdgeInsets.only(right: 10.0),
-              child: FilterChip(
-                label: Text(
-                  genre,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                selected: selected,
-                onSelected: (_) => _toggleGenreFilter(genre),
-                showCheckmark: false,
-                backgroundColor: Colors.white10,
-                selectedColor: const Color(0xFF5A5A5A),
-                side: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  width: 0.8,
-                ),
-                shape: const StadiumBorder(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _toggleGenreFilter(String genre) {
-    final key = genre.toLowerCase();
-    setState(() {
-      if (key == 'all') {
-        _selectedGenres.clear();
-        return;
-      }
-
-      if (_selectedGenres.contains(key)) {
-        _selectedGenres.remove(key);
-      } else {
-        _selectedGenres.add(key);
-      }
-    });
-  }
-
-  void _setBarsVisible(bool visible) {
-    if (_isTabBarVisible == visible) return;
-    setState(() {
-      _isTabBarVisible = visible;
-    });
-  }
-
-  bool _isNearTop(ScrollMetrics metrics) {
-    return metrics.extentBefore <= _topLockThreshold ||
-        metrics.pixels <= metrics.minScrollExtent + _topLockThreshold;
-  }
-
-  bool _onScrollNotification(ScrollNotification notification) {
-    if (notification.metrics.axis != Axis.vertical) return false;
-
-    if (_isNearTop(notification.metrics)) {
-      _lastScrollPixels = notification.metrics.pixels;
-      _accumulatedScrollDelta = 0.0;
-      _setBarsVisible(true);
-      return false;
-    }
-
-    if (notification is ScrollStartNotification) {
-      _lastScrollPixels = notification.metrics.pixels;
-      _accumulatedScrollDelta = 0.0;
-      return false;
-    }
-
-    if (notification is ScrollUpdateNotification) {
-      final currentPixels = notification.metrics.pixels;
-      final lastPixels = _lastScrollPixels;
-      _lastScrollPixels = currentPixels;
-      if (lastPixels == null) return false;
-
-      final delta = currentPixels - lastPixels;
-      if (delta.abs() < 0.1) return false;
-
-      final sameDirection = _accumulatedScrollDelta == 0.0 ||
-          (_accumulatedScrollDelta.isNegative == delta.isNegative);
-      _accumulatedScrollDelta =
-          sameDirection ? (_accumulatedScrollDelta + delta) : delta;
-
-      if (_accumulatedScrollDelta.abs() >= _scrollToggleThreshold) {
-        if (_accumulatedScrollDelta > 0) {
-          _setBarsVisible(false);
-        } else {
-          _setBarsVisible(true);
-        }
-        _accumulatedScrollDelta = 0.0;
-      }
-      return false;
-    }
-
-    if (notification is UserScrollNotification &&
-        notification.metrics.extentAfter <= 1.0 &&
-        notification.direction == ScrollDirection.idle) {
-      _accumulatedScrollDelta = 0.0;
-      _setBarsVisible(true);
-      return false;
-    }
-
-    if (notification is ScrollEndNotification) {
-      _accumulatedScrollDelta = 0.0;
-      _lastScrollPixels = null;
-    }
-
-    return false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Column(
-          children: [
-            ClipRect(
-              child: TweenAnimationBuilder<double>(
-                duration: _headerTweenDuration,
-                curve:
-                    _isTabBarVisible ? Curves.easeOutCubic : Curves.easeInCubic,
-                tween: Tween<double>(end: _isTabBarVisible ? 1.0 : 0.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildTabBarHeader(),
-                    _buildGenreFilterRow(),
-                  ],
-                ),
-                builder: (context, value, child) {
-                  final visibility = value.clamp(0.0, 1.0);
-                  return Align(
-                    alignment: Alignment.topCenter,
-                    heightFactor: visibility == 0 ? 0.0001 : visibility,
-                    child: Opacity(
-                      opacity: visibility,
-                      child: Transform.translate(
-                        offset: Offset(0, -(1 - visibility) * 10),
-                        child: child,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _onScrollNotification,
-                child: TabBarView(
-                  children: [
-                    _YourPlaylistsTab(
-                      selectedGenres: _selectedGenres,
-                    ),
-                    _CommunityPlaylistsTab(
-                      selectedGenres: _selectedGenres,
-                    ),
-                    _FriendsPlaylistsTab(
-                      selectedGenres: _selectedGenres,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
-
-List<UserPlaylist> _filterPlaylistsByTags(
-    List<UserPlaylist> playlists, Set<String> selectedGenres) {
-  if (selectedGenres.isEmpty) return playlists;
-  return playlists.where((p) {
-    final tags = p.tags.map((t) => t.toLowerCase().trim()).toSet();
-    return selectedGenres
-        .any((g) => tags.any((t) => t.contains(g) || g.contains(t)));
-  }).toList();
-}
-
-// ---------------------------------------------------------------------------
-// Your Playlists tab
-// ---------------------------------------------------------------------------
-
-class _YourPlaylistsTab extends ConsumerWidget {
-  final Set<String> selectedGenres;
-
-  const _YourPlaylistsTab({required this.selectedGenres});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userId = ref.watch(currentUserIdProvider);
+    final communityAsync = ref.watch(communityPlaylistsProvider);
+    final friendIds = ref.watch(friendIdsProvider).value ?? [];
+    final friendsAsync = ref.watch(friendsPlaylistsProvider);
+    final yourAsync = ref.watch(userPlaylistsProvider);
 
-    if (userId == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return RefreshIndicator(
+      color: Colors.red[600],
+      onRefresh: () async {
+        ref.invalidate(communityPlaylistsProvider);
+        ref.invalidate(friendsPlaylistsProvider);
+        ref.invalidate(userPlaylistsProvider);
+        await Future.delayed(const Duration(milliseconds: 500));
+      },
+      child: ListView(
+        padding: EdgeInsets.only(
+          top: 12,
+          bottom: MediaQuery.paddingOf(context).bottom + 100,
+        ),
+        children: [
+          // ── Popular Crates ──────────────────────────────────────────────
+          _SectionHeader(
+            title: 'Popular Crates',
+            subtitle: 'Curated by the global archive community.',
+            onViewAll: () => _pushAllCrates(
+              context,
+              title: 'Popular Crates',
+              asyncPlaylists: communityAsync,
+            ),
+          ),
+          _HorizontalCrateRow(
+            asyncPlaylists: communityAsync,
+            emptyMessage: 'No community crates yet.',
+          ),
+          const SizedBox(height: 32),
+
+          // ── Friends' Crates ─────────────────────────────────────────────
+          _SectionHeader(
+            title: "Friend's Crates",
+            subtitle: 'What your network is listening to right now.',
+            onViewAll: friendIds.isEmpty
+                ? null
+                : () => _pushAllCrates(
+                      context,
+                      title: "Friends' Crates",
+                      asyncPlaylists: friendsAsync,
+                    ),
+          ),
+          if (friendIds.isEmpty)
+            _EmptyRow(message: 'Add friends to see their crates!')
+          else
+            _HorizontalCrateRow(
+              asyncPlaylists: friendsAsync,
+              emptyMessage: "Your friends haven't created any crates yet.",
+            ),
+          const SizedBox(height: 32),
+
+          // ── Your Crates ─────────────────────────────────────────────────
+          _SectionHeader(
+            title: 'Your Crates',
+            subtitle: 'Your personal collection.',
+            trailing: userId != null
+                ? GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const CreatePlaylistScreen()),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add, color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text('New',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          if (userId == null)
+            _EmptyRow(message: 'Sign in to create your own crates!')
+          else
+            _HorizontalCrateRow(
+              asyncPlaylists: yourAsync,
+              emptyMessage: 'No crates yet — tap New to create one!',
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _pushAllCrates(
+    BuildContext context, {
+    required String title,
+    required AsyncValue<List<UserPlaylist>> asyncPlaylists,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _AllCratesScreen(
+          title: title,
+          asyncPlaylists: asyncPlaylists,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section header
+// ---------------------------------------------------------------------------
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback? onViewAll;
+  final Widget? trailing;
+
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+    this.onViewAll,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(Icons.person_off, size: 80, color: Colors.grey),
-              SizedBox(height: 24),
-              Text(
-                'Sign In Required',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                  ),
                 ),
               ),
-              SizedBox(height: 16),
-              Text(
-                'Sign in to create and manage your playlists!',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
+              if (trailing != null) trailing!,
+              if (onViewAll != null && trailing == null)
+                GestureDetector(
+                  onTap: onViewAll,
+                  child: const Text(
+                    'VIEW ALL',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
             ],
           ),
-        ),
-      );
-    }
-
-    final playlistsAsync = ref.watch(userPlaylistsProvider);
-
-    // Watch liked IDs directly, then watch each playlist individually via
-    // singlePlaylistProvider so a newly liked playlist streams in immediately
-    // without waiting for a secondary Firestore query to complete.
-    final likedIds = ref.watch(likedPlaylistIdsProvider).value ?? [];
-    final likedPlaylists = likedIds
-        .map((id) => ref.watch(singlePlaylistProvider(id)).value)
-        .whereType<UserPlaylist>()
-        .toList();
-
-    return playlistsAsync.when(
-      data: (playlists) {
-        final filtered = _filterPlaylistsByTags(playlists, selectedGenres);
-        final filteredLiked =
-            _filterPlaylistsByTags(likedPlaylists, selectedGenres);
-
-        final hasOwn = filtered.isNotEmpty;
-        final hasLiked = filteredLiked.isNotEmpty;
-
-        if (!hasOwn && !hasLiked) {
-          return Stack(
-            children: [
-              const Center(
-                child: Text(
-                  'No playlists yet.\nTap + to create one!',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 16,
-                child: _AddButton(),
-              ),
-            ],
-          );
-        }
-
-        // Layout:
-        // 0          : _AddButton
-        // 1..own     : own playlists
-        // own+1      : "Saved Playlists" header  (only if hasLiked)
-        // own+2..end : liked playlists
-        final likedHeaderIndex = filtered.length + 1;
-        final totalCount =
-            1 + filtered.length + (hasLiked ? 1 + filteredLiked.length : 0);
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(userPlaylistsProvider);
-            ref.invalidate(likedPlaylistIdsProvider);
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
-          color: Colors.red[600],
-          child: ListView.builder(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: MediaQuery.paddingOf(context).bottom + 90,
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.45),
+              fontSize: 13,
             ),
-            itemCount: totalCount,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _AddButton(),
-                  ),
-                );
-              }
-              if (index <= filtered.length) {
-                return _PlaylistSection(playlist: filtered[index - 1]);
-              }
-              if (hasLiked) {
-                if (index == likedHeaderIndex) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16, top: 4),
-                    child: Row(
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Horizontal crate row
+// ---------------------------------------------------------------------------
+
+class _HorizontalCrateRow extends ConsumerWidget {
+  final AsyncValue<List<UserPlaylist>> asyncPlaylists;
+  final String emptyMessage;
+
+  const _HorizontalCrateRow({
+    required this.asyncPlaylists,
+    required this.emptyMessage,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return asyncPlaylists.when(
+      loading: () => const SizedBox(
+        height: 280,
+        child: Center(child: DiscoBallLoading()),
+      ),
+      error: (e, _) => SizedBox(
+        height: 100,
+        child: Center(
+          child: Text(
+            'Failed to load crates.',
+            style: TextStyle(color: Colors.white.withOpacity(0.4)),
+          ),
+        ),
+      ),
+      data: (playlists) {
+        if (playlists.isEmpty) {
+          return _EmptyRow(message: emptyMessage);
+        }
+        return SizedBox(
+          height: 330,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: playlists.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) =>
+                _CrateCard(playlist: playlists[index]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EmptyRow extends StatelessWidget {
+  final String message;
+  const _EmptyRow({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 100,
+      child: Center(
+        child: Text(
+          message,
+          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Crate card — portrait, fixed width, for horizontal scroll
+// ---------------------------------------------------------------------------
+
+class _CrateCard extends ConsumerWidget {
+  final UserPlaylist playlist;
+  static const double _cardWidth = 210;
+
+  const _CrateCard({required this.playlist});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.watch(currentUserIdProvider);
+    final isOwner = currentUserId == playlist.userId;
+    final isLiked =
+        ref.watch(playlistLikeStatusProvider(playlist.id)).value ?? false;
+    final creatorName =
+        ref.watch(userDisplayNameProvider(playlist.userId)).value ?? '';
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => PlaylistDetailScreen(playlistId: playlist.id)),
+      ),
+      child: Container(
+        width: _cardWidth,
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── 2×2 album art grid ────────────────────────────────────
+            ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
+              child: SizedBox(
+                width: _cardWidth,
+                height: 160,
+                child: _AlbumGrid(tracks: playlist.tracks),
+              ),
+            ),
+            // ── Info ──────────────────────────────────────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // ── Top content (clamped) ────────────────────────
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.favorite, color: Colors.red, size: 16),
-                        const SizedBox(width: 6),
+                        // Title
                         Text(
-                          'Saved Playlists',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.4,
+                          playlist.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (creatorName.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'By $creatorName',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.45),
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        // Description — 1 line max with ellipsis
+                        if (playlist.description != null &&
+                            playlist.description!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            playlist.description!,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.55),
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        // Tags
+                        if (playlist.tags.isNotEmpty) ...[
+                          const SizedBox(height: 5),
+                          Text(
+                            playlist.tags
+                                .take(3)
+                                .map((t) => '#${t.toLowerCase()}')
+                                .join('  '),
+                            style: const TextStyle(
+                              color: Color(0xFF4CAF50),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                    // ── Bottom row: four items evenly spread ─────────
+                    Row(
+                      //crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Track count
+                        Row(
+                          //mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.music_note_outlined,
+                                size: 13, color: Colors.white38),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${playlist.tracks.length}',
+                              style: const TextStyle(
+                                  color: Colors.white38, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                        // Comment count
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Ionicons.chatbubble_outline,
+                                size: 13, color: Colors.white38),
+                            SizedBox(width: 3),
+                            Text('0',
+                                style: TextStyle(
+                                    color: Colors.white38, fontSize: 11)),
+                          ],
+                        ),
+                        // Heart
+                        GestureDetector(
+                          onTap: currentUserId != null
+                              ? () async {
+                                  if (isLiked) {
+                                    await PlaylistLikesService.unlikePlaylist(
+                                        playlist.id, currentUserId);
+                                  } else {
+                                    await PlaylistLikesService.likePlaylist(
+                                        playlist.id, currentUserId);
+                                  }
+                                }
+                              : null,
+                          child: Icon(
+                            isLiked ? Icons.favorite : Icons.favorite_border,
+                            size: 18,
+                            color: isLiked ? Colors.red : Colors.white38,
+                          ),
+                        ),
+                        // Share
+                        GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Share "${playlist.name}" — coming soon'),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          child: const Icon(Icons.ios_share,
+                              size: 18, color: Colors.white38),
                         ),
                       ],
                     ),
-                  );
-                }
-                final likedIndex = index - likedHeaderIndex - 1;
-                if (likedIndex >= 0 && likedIndex < filteredLiked.length) {
-                  return _PlaylistSection(playlist: filteredLiked[likedIndex]);
-                }
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        );
-      },
-      loading: () => const DiscoBallLoading(),
-      error: (error, stack) => _ErrorView(
-        error: error,
-        onRetry: () => ref.invalidate(userPlaylistsProvider),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Community tab
-// ---------------------------------------------------------------------------
-
-class _CommunityPlaylistsTab extends ConsumerWidget {
-  final Set<String> selectedGenres;
-
-  const _CommunityPlaylistsTab({required this.selectedGenres});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final playlistsAsync = ref.watch(communityPlaylistsProvider);
-
-    return playlistsAsync.when(
-      data: (playlists) {
-        final filtered = _filterPlaylistsByTags(playlists, selectedGenres);
-
-        if (filtered.isEmpty) {
-          return const Center(
-            child: Text(
-              'No community playlists yet.',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-              textAlign: TextAlign.center,
+                  ],
+                ),
+              ),
             ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(communityPlaylistsProvider);
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
-          color: Colors.red[600],
-          child: ListView.builder(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: MediaQuery.paddingOf(context).bottom + 90,
-            ),
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              return _PlaylistSection(playlist: filtered[index]);
-            },
-          ),
-        );
-      },
-      loading: () => const DiscoBallLoading(),
-      error: (error, stack) => _ErrorView(
-        error: error,
-        onRetry: () => ref.invalidate(communityPlaylistsProvider),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Friends tab
-// ---------------------------------------------------------------------------
-
-class _FriendsPlaylistsTab extends ConsumerWidget {
-  final Set<String> selectedGenres;
-
-  const _FriendsPlaylistsTab({required this.selectedGenres});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final friendIds = ref.watch(friendIdsProvider).value ?? [];
-    final playlistsAsync = ref.watch(friendsPlaylistsProvider);
-
-    // No friends at all
-    if (friendIds.isEmpty) {
-      return const Center(
-        child: Text(
-          'Add friends to see their playlists!',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-          textAlign: TextAlign.center,
+          ],
         ),
-      );
-    }
-
-    return playlistsAsync.when(
-      data: (playlists) {
-        final filtered = _filterPlaylistsByTags(playlists, selectedGenres);
-
-        if (filtered.isEmpty) {
-          return const Center(
-            child: Text(
-              "Your friends haven't created any playlists yet.",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(friendsPlaylistsProvider);
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
-          color: Colors.red[600],
-          child: ListView.builder(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: MediaQuery.paddingOf(context).bottom + 90,
-            ),
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              return _PlaylistSection(playlist: filtered[index]);
-            },
-          ),
-        );
-      },
-      loading: () => const DiscoBallLoading(),
-      error: (error, stack) => _ErrorView(
-        error: error,
-        onRetry: () => ref.invalidate(friendsPlaylistsProvider),
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Shared widgets
-// ---------------------------------------------------------------------------
+// 2×2 grid of album art images
+class _AlbumGrid extends StatelessWidget {
+  final List<PlaylistTrack> tracks;
+  const _AlbumGrid({required this.tracks});
 
-/// Small circular "+" button that navigates to CreatePlaylistScreen
-class _AddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const CreatePlaylistScreen(),
-          ),
-        );
-      },
-      child: Container(
-        width: 40,
-        height: 20,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.grey[800],
-        ),
-        child: const Icon(Icons.add, color: Colors.white, size: 12),
+    return Column(
+      children: [
+        Expanded(child: _imageRow(0)),
+        Expanded(child: _imageRow(1)),
+      ],
+    );
+  }
+
+  Widget _imageRow(int rowIndex) {
+    return Row(
+      children: [
+        Expanded(child: _cell(rowIndex * 2)),
+        Expanded(child: _cell(rowIndex * 2 + 1)),
+      ],
+    );
+  }
+
+  Widget _cell(int index) {
+    final imageUrl = index < tracks.length ? tracks[index].imageUrl : null;
+    if (imageUrl != null) {
+      return AppCachedImage(imageUrl: imageUrl, fit: BoxFit.cover);
+    }
+    return const ColoredBox(
+      color: Color(0xFF1A1A1A),
+      child: Center(
+        child: Icon(Icons.music_note_outlined, color: Colors.white12, size: 24),
       ),
     );
   }
 }
 
-/// A single playlist card: title row, album art, tags, description, heart button.
+// ---------------------------------------------------------------------------
+// "View All" full-list screen
+// ---------------------------------------------------------------------------
+
+class _AllCratesScreen extends StatelessWidget {
+  final String title;
+  final AsyncValue<List<UserPlaylist>> asyncPlaylists;
+
+  const _AllCratesScreen({
+    required this.title,
+    required this.asyncPlaylists,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Text(title,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: asyncPlaylists.when(
+        loading: () => const Center(child: DiscoBallLoading()),
+        error: (e, _) => Center(
+          child: Text('Failed to load.',
+              style: TextStyle(color: Colors.white.withOpacity(0.5))),
+        ),
+        data: (playlists) {
+          if (playlists.isEmpty) {
+            return Center(
+              child: Text('No crates yet.',
+                  style: TextStyle(color: Colors.white.withOpacity(0.4))),
+            );
+          }
+          return ListView.builder(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.paddingOf(context).bottom + 90,
+            ),
+            itemCount: playlists.length,
+            itemBuilder: (context, index) =>
+                _PlaylistSection(playlist: playlists[index]),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full-size playlist card (used in "View All" screen)
+// ---------------------------------------------------------------------------
+
 class _PlaylistSection extends ConsumerWidget {
   final UserPlaylist playlist;
-
   const _PlaylistSection({required this.playlist});
 
   @override
@@ -649,19 +579,14 @@ class _PlaylistSection extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  PlaylistDetailScreen(playlistId: playlist.id),
-            ),
-          );
-        },
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => PlaylistDetailScreen(playlistId: playlist.id)),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Title + "By [creator]" ──────────────────────────────────
             RichText(
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -679,7 +604,7 @@ class _PlaylistSection extends ConsumerWidget {
                     TextSpan(
                       text: '  By $creatorName',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: Colors.white.withOpacity(0.55),
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                       ),
@@ -688,7 +613,6 @@ class _PlaylistSection extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // ── Card ───────────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -698,7 +622,6 @@ class _PlaylistSection extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Album art row
                   Row(
                     children: List.generate(4, (i) {
                       final track = i < playlist.tracks.length
@@ -714,16 +637,11 @@ class _PlaylistSection extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(6),
                               child: imageUrl != null
                                   ? AppCachedImage(
-                                      imageUrl: imageUrl,
-                                      fit: BoxFit.cover,
-                                    )
+                                      imageUrl: imageUrl, fit: BoxFit.cover)
                                   : ColoredBox(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.05),
-                                      child: const Icon(
-                                        Icons.music_note,
-                                        color: Colors.white24,
-                                      ),
+                                      color: Colors.white.withOpacity(0.05),
+                                      child: const Icon(Icons.music_note,
+                                          color: Colors.white24),
                                     ),
                             ),
                           ),
@@ -731,47 +649,38 @@ class _PlaylistSection extends ConsumerWidget {
                       );
                     }),
                   ),
-                  // Tags row
                   if (playlist.tags.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 6,
                       runSpacing: 4,
                       children: playlist.tags
-                          .map(
-                            (tag) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                border:
-                                    Border.all(color: Colors.white30, width: 1),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                tag,
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 12),
-                              ),
-                            ),
-                          )
+                          .map((tag) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.white30, width: 1),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(tag,
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 12)),
+                              ))
                           .toList(),
                     ),
                   ],
-                  // Description
                   if (playlist.description != null &&
                       playlist.description!.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Text(
                       playlist.description!,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 14),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  // Heart button — bottom right, only for non-owners
                   if (!isOwner && currentUserId != null) ...[
                     const SizedBox(height: 8),
                     Align(
@@ -800,10 +709,13 @@ class _PlaylistSection extends ConsumerWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared widgets
+// ---------------------------------------------------------------------------
+
 class _HeartButton extends StatelessWidget {
   final bool isLiked;
   final VoidCallback onTap;
-
   const _HeartButton({required this.isLiked, required this.onTap});
 
   @override
@@ -814,7 +726,7 @@ class _HeartButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isLiked ? Colors.red.withValues(alpha: 0.6) : Colors.white30,
+            color: isLiked ? Colors.red.withOpacity(0.6) : Colors.white30,
           ),
           borderRadius: BorderRadius.circular(999),
         ),
@@ -823,42 +735,6 @@ class _HeartButton extends StatelessWidget {
           color: isLiked ? Colors.red : Colors.white70,
           size: 16,
         ),
-      ),
-    );
-  }
-}
-
-/// Reusable error view with retry button
-class _ErrorView extends StatelessWidget {
-  final Object error;
-  final VoidCallback onRetry;
-
-  const _ErrorView({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-          const SizedBox(height: 16),
-          const Text(
-            'Error loading playlists',
-            style: TextStyle(color: Colors.white, fontSize: 18),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error.toString(),
-            style: const TextStyle(color: Colors.white70),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
-          ),
-        ],
       ),
     );
   }
