@@ -14,6 +14,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
+import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
 
 class MainNav extends ConsumerStatefulWidget {
   const MainNav(
@@ -90,6 +91,7 @@ class MainNavState extends ConsumerState<MainNav> {
   int currentPageIndex = 0;
   bool _isNavigationChromeVisible = true;
   final TextEditingController _controller = TextEditingController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late Future<MusicPreferences?> _preferencesFuture;
   late final List<Widget> _pages;
 
@@ -185,11 +187,30 @@ class MainNavState extends ConsumerState<MainNav> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       extendBody: true,
+      drawer: _AppDrawer(),
       appBar: _isNavigationChromeVisible
           ? AppBar(
               backgroundColor: const Color.fromARGB(4, 131, 131, 131),
               elevation: 0,
+              leading: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(50),
+                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey[850],
+                    ),
+                    child: const Icon(Icons.menu,
+                        color: Colors.white, size: 22),
+                  ),
+                ),
+              ),
               title: _NeonTitle(),
               titleTextStyle:
                   const TextStyle(color: Colors.white, fontSize: 46),
@@ -199,11 +220,7 @@ class MainNavState extends ConsumerState<MainNav> {
                   padding: const EdgeInsets.only(right: 12),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(50),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const SearchScreen(),
-                      ),
-                    ),
+                    onTap: () => setState(() => currentPageIndex = 4),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -211,8 +228,8 @@ class MainNavState extends ConsumerState<MainNav> {
                         shape: BoxShape.circle,
                         color: Colors.grey[850],
                       ),
-                      child: const Icon(Icons.search,
-                          color: Colors.white, size: 20),
+                      child: const Icon(Icons.person_outline,
+                          color: Colors.white, size: 22),
                     ),
                   ),
                 ),
@@ -321,6 +338,93 @@ class MainNavState extends ConsumerState<MainNav> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ── App drawer (hamburger menu) ───────────────────────────────────────────────
+
+class _AppDrawer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.grey[950] ?? const Color(0xFF0D0D0D),
+      width: MediaQuery.of(context).size.width * 0.82,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              const Padding(
+                padding: EdgeInsets.only(left: 8, bottom: 24),
+                child: Text(
+                  'MENU',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+
+              // Settings card
+              Card(
+                color: Colors.grey[900],
+                elevation: 0,
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                      color: Colors.white.withOpacity(0.1), width: 1),
+                ),
+                child: Column(
+                  children: [
+                    const ProfileButton(
+                      name: 'Notifications',
+                      icon: Ionicons.notifications_outline,
+                    ),
+                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    const ProfileButton(
+                      name: 'Preferences',
+                      icon: Ionicons.analytics_outline,
+                    ),
+                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    const ProfileButton(
+                      name: 'Legal',
+                      icon: Ionicons.document_text_outline,
+                    ),
+                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    const ProfileButton(
+                      name: 'LogOut',
+                      icon: Ionicons.exit_outline,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Danger zone
+              Card(
+                color: Colors.red.withOpacity(0.08),
+                elevation: 0,
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                      color: Colors.red.withOpacity(0.25), width: 1),
+                ),
+                child: const ProfileButton(
+                  name: 'Delete Account',
+                  icon: Ionicons.trash_outline,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

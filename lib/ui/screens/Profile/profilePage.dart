@@ -95,67 +95,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             ),
           ),
 
-          // ── Settings ───────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-              child: Card(
-                color: Colors.grey[900],
-                elevation: 0,
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                      color: Colors.white.withOpacity(0.1), width: 1),
-                ),
-                child: Column(
-                  children: [
-                    const ProfileButton(
-                      name: 'Notifications',
-                      icon: Ionicons.notifications_outline,
-                    ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                    const ProfileButton(
-                      name: 'Preferences',
-                      icon: Ionicons.analytics_outline,
-                    ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                    const ProfileButton(
-                      name: 'Legal',
-                      icon: Ionicons.document_text_outline,
-                    ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                    const ProfileButton(
-                      name: 'LogOut',
-                      icon: Ionicons.exit_outline,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Danger zone ────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Card(
-                color: Colors.red.withOpacity(0.08),
-                elevation: 0,
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side:
-                      BorderSide(color: Colors.red.withOpacity(0.25), width: 1),
-                ),
-                child: const ProfileButton(
-                  name: 'Delete Account',
-                  icon: Ionicons.trash_outline,
-                ),
-              ),
-            ),
-          ),
-
           // ── Bottom padding ─────────────────────────────────────
           SliverToBoxAdapter(
             child: SizedBox(

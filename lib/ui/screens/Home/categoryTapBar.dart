@@ -111,12 +111,11 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
             borderRadius: BorderRadius.circular(999),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(
+          child: const Row(
             children: [
-              const Icon(Icons.manage_search,
-                  color: Colors.white54, size: 22),
-              const SizedBox(width: 10),
-              const Expanded(
+              Icon(Icons.manage_search, color: Colors.white54, size: 22),
+              SizedBox(width: 10),
+              Expanded(
                 child: Text(
                   'Search for crates, artists, or friends...',
                   style: TextStyle(
@@ -127,8 +126,7 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.mic, color: Colors.red[300], size: 20),
+              SizedBox(width: 8),
             ],
           ),
         ),
