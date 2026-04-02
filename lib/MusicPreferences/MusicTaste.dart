@@ -309,6 +309,9 @@ class _MusicTasteProfileWidgetState extends State<MusicTasteProfileWidget>
         .collection('musicPreferences')
         .doc('profile')
         .set(data, SetOptions(merge: true));
+
+    // Invalidate recommendation cache so For You tab re-fetches on next focus.
+    ReviewRecommendationService.markNeedsRefresh(userId);
   }
 
   Future<EnhancedUserPreferences> _fetchPreferences() async {

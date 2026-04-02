@@ -8,6 +8,7 @@ import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/services/genre_cache_service.dart';
 import 'package:flutter_test_project/services/review_analysis_service.dart';
+import 'package:flutter_test_project/services/review_recommendation_service.dart';
 
 Future<List<Review>> fetchUserReviews() async {
   final snapshot = await FirebaseFirestore.instance
@@ -59,12 +60,16 @@ Future<void> submitReview(String review, double score, String artist,
       debugPrint('✅ Review saved successfully! Document ID: ${docRef.id}');
       debugPrint('📁 Path: users/$userId/reviews/${docRef.id}');
       
+      // Invalidate recommendation cache immediately so the For You tab
+      // re-fetches on next focus.
+      ReviewRecommendationService.markNeedsRefresh(userId);
+
       // Auto-update preferences and invalidate cache (run in background)
       unawaited(Future(() async {
         try {
           // Invalidate cache so next analysis will be fresh
           await ReviewAnalysisService.clearCache(userId);
-          
+
           // Update preferences from reviews
           await _updatePreferencesFromReviews(userId);
         } catch (e) {

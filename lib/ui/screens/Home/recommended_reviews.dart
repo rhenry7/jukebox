@@ -9,7 +9,7 @@ import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/recommended_reviews_provider.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
-import '../../../services/review_recommendation_service.dart' show ScoredReview;
+import '../../../services/review_recommendation_service.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
@@ -39,14 +39,48 @@ class _RecommendedReviewsCollectionState
   Future<List<ScoredReview>>? _genreFilteredFuture;
   String _genreRequestKey = '';
 
+  // Tab-focus tracking — detects when the For You tab (index 2) is selected.
+  TabController? _tabController;
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // Check on first mount in case a review was written before the tab opened.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndRefresh());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final tc = DefaultTabController.of(context);
+    if (_tabController != tc) {
+      _tabController?.removeListener(_onTabChanged);
+      _tabController = tc;
+      tc.addListener(_onTabChanged);
+    }
+  }
+
+  void _onTabChanged() {
+    // For You is tab index 2; only act once animation has settled.
+    if (_tabController?.index == 2 &&
+        !(_tabController?.indexIsChanging ?? true)) {
+      _checkAndRefresh();
+    }
+  }
+
+  /// If a review was submitted or preferences saved since last load, re-fetch.
+  void _checkAndRefresh() {
+    if (!mounted) return;
+    if (ReviewRecommendationService.consumeNeedsRefresh()) {
+      debugPrint('[FOR_YOU] Dirty flag detected — refreshing recommendations');
+      ref.invalidate(recommendedReviewsProvider);
+    }
   }
 
   @override
   void dispose() {
+    _tabController?.removeListener(_onTabChanged);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
