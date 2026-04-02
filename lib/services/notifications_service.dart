@@ -98,6 +98,65 @@ class NotificationsService {
     }
   }
 
+  Future<void> createRepostNotification({
+    required String targetUserId,
+    required String actorUserId,
+    required String reviewId,
+    String? reviewTitle,
+    String? reviewArtist,
+  }) async {
+    if (targetUserId == actorUserId) return;
+    try {
+      final actorInfo = await _fetchActorInfo(actorUserId);
+      await _notificationsRef(targetUserId).add({
+        'type': NotificationType.reviewRepost,
+        'actorId': actorUserId,
+        'actorDisplayName': actorInfo.displayName,
+        'actorPhotoUrl': actorInfo.photoUrl,
+        'reviewId': reviewId,
+        'reviewTitle': reviewTitle,
+        'reviewArtist': reviewArtist,
+        'createdAt': FieldValue.serverTimestamp(),
+        'read': false,
+      });
+    } catch (e) {
+      debugPrint('[NOTIF] ERROR creating repost notification: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> createReviewCommentNotification({
+    required String targetUserId,
+    required String actorUserId,
+    required String reviewId,
+    String? reviewTitle,
+    String? reviewArtist,
+    String? commentPreview,
+  }) async {
+    if (targetUserId == actorUserId) return;
+
+    try {
+      debugPrint('[NOTIF] Creating review-comment notification: '
+          'actor=$actorUserId → target=$targetUserId');
+      final actorInfo = await _fetchActorInfo(actorUserId);
+      await _notificationsRef(targetUserId).add({
+        'type': NotificationType.reviewComment,
+        'actorId': actorUserId,
+        'actorDisplayName': actorInfo.displayName,
+        'actorPhotoUrl': actorInfo.photoUrl,
+        'reviewId': reviewId,
+        'reviewTitle': reviewTitle,
+        'reviewArtist': reviewArtist,
+        'commentPreview': commentPreview,
+        'createdAt': FieldValue.serverTimestamp(),
+        'read': false,
+      });
+    } catch (e) {
+      debugPrint('[NOTIF] ERROR creating comment notification: $e');
+      rethrow;
+    }
+  }
+
   Future<_ActorInfo> _fetchActorInfo(String userId) async {
     try {
       final doc = await _firestore.collection('users').doc(userId).get();

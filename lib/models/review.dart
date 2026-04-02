@@ -66,6 +66,12 @@ class Review {
   final String title;
   final List<String>? genres; // Genres for the track (user-added + MusicBrainz, merged)
 
+  // Repost metadata — only set when this document is a repost copy
+  final bool isRepost;
+  final String? repostedByDisplayName;
+  final String? repostedByUserId;
+  final String? originalReviewId; // sanitized path of the original review
+
   Review({
     required this.displayName,
     required this.userId,
@@ -80,6 +86,10 @@ class Review {
     required this.reposts,
     required this.title,
     this.genres,
+    this.isRepost = false,
+    this.repostedByDisplayName,
+    this.repostedByUserId,
+    this.originalReviewId,
   });
 
   // Factory method to create a Review from Firestore document data
@@ -99,6 +109,10 @@ class Review {
       replies: data['replies'] ?? 0,
       reposts: data['reposts'] ?? 0,
       genres: _mergedGenresFromFirestore(data),
+      isRepost: data['isRepost'] == true,
+      repostedByDisplayName: data['repostedByDisplayName'],
+      repostedByUserId: data['repostedByUserId'],
+      originalReviewId: data['originalReviewId'],
     );
   }
 
@@ -117,6 +131,10 @@ class Review {
       replies: json['replies'] ?? 0,
       reposts: json['reposts'] ?? 0,
       genres: _mergedGenresFromJson(json),
+      isRepost: json['isRepost'] == true,
+      repostedByDisplayName: json['repostedByDisplayName'],
+      repostedByUserId: json['repostedByUserId'],
+      originalReviewId: json['originalReviewId'],
     );
   }
 
@@ -135,6 +153,11 @@ class Review {
       'replies': replies,
       'reposts': reposts,
       'genres': genres,
+      if (isRepost) 'isRepost': true,
+      if (repostedByDisplayName != null)
+        'repostedByDisplayName': repostedByDisplayName,
+      if (repostedByUserId != null) 'repostedByUserId': repostedByUserId,
+      if (originalReviewId != null) 'originalReviewId': originalReviewId,
     };
   }
 }

@@ -86,8 +86,10 @@ The bottom navigation is a pill-shaped "Dock" rather than a screen-wide bar.
 *   **DO** lean into "Breathing Room." If a layout feels crowded, increase spacing to the next tier in the scale (e.g., move from `6` to `8`).
 *   **DO** use overlapping imagery. Let album art slightly bleed over the edge of container boundaries to create a sense of physical layers.
 *   **DO** use the ionicons package
+*   **DO** use the discoball loading gif for loading screens instead of the default spinner, unless it is a small area under 24px 
 
 ### Don't
 *   **DON'T** use pure white (#ffffff) for long-form body text. Use `on-surface-variant` (#adaaaa) to reduce eye strain on dark backgrounds.
 *   **DON'T** use 100% opaque borders. They break the "Neon Archive" immersion.
 *   **DON'T** use standard "Material" ripple effects. Prefer subtle scale-downs (98%) or opacity shifts for active states to maintain a premium feel.
+*.  **DON't** use standard loading spinner, loading gifs, loading cards, UNLESS, the area is small - use the discoball.loading.gif for most - if the area is too small, then use the loading circle spinner

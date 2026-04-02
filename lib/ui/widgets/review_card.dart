@@ -12,7 +12,12 @@ import '../../services/genre_cache_service.dart';
 import '../../services/review_likes_service.dart';
 import '../../utils/helpers.dart';
 import '../../utils/cached_image.dart';
+import '../../providers/auth_provider.dart'
+    show currentUserProvider, isAnonymousUserProvider;
+import '../../providers/repost_provider.dart';
+import '../../services/repost_service.dart';
 import '../screens/review_detail/review_detail_page.dart';
+import 'auth_gate_modal.dart';
 
 /// Returns genres for the review, splitting any "/" concatenated strings
 /// (e.g. from Discogs/MusicBrainz), deduped by lowercase.
@@ -304,14 +309,14 @@ class ReviewCardWidget extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: () {}, // repost placeholder
-                    child: const Icon(
-                      Ionicons.repeat,
-                      color: Colors.white70,
-                      size: 26,
-                    ),
-                  ),
+                  if (reviewId != null)
+                    _RepostButton(
+                      reviewId: reviewId!,
+                      review: review,
+                    )
+                  else
+                    const Icon(Ionicons.repeat,
+                        color: Colors.white70, size: 22),
                 ],
               ),
             ],
@@ -599,6 +604,118 @@ class _LikeButton extends ConsumerWidget {
   }
 }
 
+// ── Repost header shown above a reposted card ────────────────────────────────
+class _RepostHeader extends StatelessWidget {
+  final String displayName;
+  const _RepostHeader({required this.displayName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Row(
+        children: [
+          const Icon(Ionicons.repeat, size: 14, color: Colors.white38),
+          const SizedBox(width: 6),
+          Text(
+            '$displayName reposted',
+            style: const TextStyle(
+              color: Colors.white38,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Repost toggle button ──────────────────────────────────────────────────────
+class _RepostButton extends ConsumerWidget {
+  final String reviewId;
+  final Review review;
+  const _RepostButton({required this.reviewId, required this.review});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.watch(currentUserIdProvider);
+    final isAnon = ref.watch(isAnonymousUserProvider);
+
+    final isReposted = currentUserId != null
+        ? ref
+                .watch(repostStatusProvider(
+                    (reviewId: reviewId, userId: currentUserId)))
+                .value ??
+            false
+        : false;
+
+    final repostCount =
+        ref.watch(repostCountProvider(reviewId)).value ?? review.reposts;
+
+    return GestureDetector(
+      onTap: () async {
+        if (isAnon) {
+          showAuthGateModal(context);
+          return;
+        }
+        if (currentUserId == null) return;
+        // Prevent reposting your own review
+        if (review.userId == currentUserId) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You can\'t repost your own review.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
+        try {
+          await RepostService().toggleRepost(
+            originalReviewId: reviewId,
+            reposterUserId: currentUserId,
+            reposterDisplayName:
+                ref.read(currentUserProvider)?.displayName ?? 'Someone',
+            originalReview: review,
+            originalUserId: review.userId,
+          );
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e')),
+            );
+          }
+        }
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Ionicons.repeat,
+            size: 22,
+            color: isReposted
+                ? const Color(0xFF3FFF8B) // secondary green when active
+                : Colors.white70,
+          ),
+          if (repostCount > 0) ...[
+            const SizedBox(width: 4),
+            Text(
+              '$repostCount',
+              style: TextStyle(
+                color: isReposted
+                    ? const Color(0xFF3FFF8B)
+                    : Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Wrapper around [ReviewCardWidget] that handles async genre loading via
 /// [GenreCacheService]. All screens should use this rather than
 /// [ReviewCardWidget] directly.
@@ -682,14 +799,26 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
 
   @override
   Widget build(BuildContext context) {
-    // Use genres from state if available, otherwise use review's genres
     final genres = _genres ?? widget.review.genres;
-
-    return ReviewCardWidget(
+    final card = ReviewCardWidget(
       review: widget.review.copyWith(genres: genres),
       reviewId: widget.reviewId,
       showLikeButton: widget.showLikeButton,
     );
+
+    // Show "X reposted" header when this card is a repost
+    if (widget.review.isRepost &&
+        widget.review.repostedByDisplayName != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _RepostHeader(displayName: widget.review.repostedByDisplayName!),
+          card,
+        ],
+      );
+    }
+
+    return card;
   }
 }
 
@@ -709,6 +838,10 @@ extension ReviewCopyWith on Review {
     int? reposts,
     String? title,
     List<String>? genres,
+    bool? isRepost,
+    String? repostedByDisplayName,
+    String? repostedByUserId,
+    String? originalReviewId,
   }) {
     return Review(
       displayName: displayName ?? this.displayName,
@@ -724,6 +857,11 @@ extension ReviewCopyWith on Review {
       reposts: reposts ?? this.reposts,
       title: title ?? this.title,
       genres: genres ?? this.genres,
+      isRepost: isRepost ?? this.isRepost,
+      repostedByDisplayName:
+          repostedByDisplayName ?? this.repostedByDisplayName,
+      repostedByUserId: repostedByUserId ?? this.repostedByUserId,
+      originalReviewId: originalReviewId ?? this.originalReviewId,
     );
   }
 }

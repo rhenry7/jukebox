@@ -9,6 +9,7 @@ class NotificationEvent {
   final String? reviewId;
   final String? reviewTitle;
   final String? reviewArtist;
+  final String? commentPreview;
   final DateTime? createdAt;
   final bool read;
 
@@ -21,6 +22,7 @@ class NotificationEvent {
     this.reviewId,
     this.reviewTitle,
     this.reviewArtist,
+    this.commentPreview,
     this.createdAt,
     this.read = false,
   });
@@ -37,6 +39,7 @@ class NotificationEvent {
       reviewId: data['reviewId'],
       reviewTitle: data['reviewTitle'],
       reviewArtist: data['reviewArtist'],
+      commentPreview: data['commentPreview'],
       createdAt: _parseDate(data['createdAt']),
       read: data['read'] == true,
     );
@@ -70,4 +73,6 @@ class NotificationEvent {
 class NotificationType {
   static const String reviewLike = 'review_like';
   static const String friendAdded = 'friend_added';
+  static const String reviewComment = 'review_comment';
+  static const String reviewRepost = 'review_repost';
 }

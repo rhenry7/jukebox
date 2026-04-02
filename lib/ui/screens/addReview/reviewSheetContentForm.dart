@@ -7,7 +7,6 @@ import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
 import 'package:flutter_test_project/services/signal_collection_service.dart';
-import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -17,6 +16,7 @@ import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
 import 'review_text_editor.dart';
+import '../../widgets/auth_gate_modal.dart';
 
 class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String title;
@@ -387,48 +387,6 @@ class _MyReviewSheetContentFormState
     );
   }
 
-  Future<void> showSubmissionAuthErrorModal(BuildContext context) {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text(
-            'User not logged in',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            'You must be logged in to leave a review',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Close',
-                style: TextStyle(color: Colors.redAccent),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog first
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (BuildContext context) => const ProfileSignUp(),
-                  ),
-                );
-              },
-              child: const Text(
-                'Log in',
-                style: TextStyle(color: Colors.greenAccent),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void toggleHeart() {
     setState(() {
@@ -437,8 +395,9 @@ class _MyReviewSheetContentFormState
   }
 
   Future<void> handleSubmit() async {
-    if (auth.currentUser == null) {
-      showSubmissionAuthErrorModal(context);
+    final user = auth.currentUser;
+    if (user == null || user.isAnonymous) {
+      showAuthGateModal(context);
       return;
     }
 

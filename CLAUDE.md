@@ -1,6 +1,9 @@
 # Project Rules
 Design System
 - For the design system reference the design_system.md file in the project root
+
+
+
 ## Shared Widgets
 
 ### Review Card
@@ -38,7 +41,9 @@ lib/ui/screens/review_detail/review_detail_page.dart
 
 
 ### Auth Gating / Feature Gating 
-- for action buttons: like, review, submit review, comment, share, repost, add friends, preferences, notifications
+- for action buttons: like, review, submit review, comment, share, repost, add friends, preferences, notifications.. 
 if a user is not signed in, or anonymous user, display a modal that says sign up - use the discoball.gif as a the art for the modal with a cheeky message for a CTA to sign up or sign in
-- limit anoymous user visiblity to popular reviews; popular tracks and suggested tracks; popular crates - else keep suggestion that they sign in / sign up 
+- do not allow anonymous users to submit reviews
+- prevent anonymous users from submitting or completing any action other than viewing content from specific pre-approved fields.
+- limit anonymous user visibility to popular reviews; popular tracks and suggested tracks; popular crates - else keep suggestion that they sign in / sign up 
 - default "anonymous user" as not signed in, anonymous user is for previewing functionality that should lead to CTA for sign up/ sign in

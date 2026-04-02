@@ -4,13 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ionicons/ionicons.dart';
 
 import '../../../models/review.dart';
-import '../../../providers/auth_provider.dart' show currentUserIdProvider;
+import '../../../models/review_comment.dart';
+import '../../../providers/auth_provider.dart'
+    show currentUserIdProvider, currentUserProvider, isAnonymousUserProvider;
 import '../../../providers/friends_provider.dart';
+import '../../../providers/review_comments_provider.dart';
 import '../../../providers/review_likes_provider.dart';
 import '../../../services/friends_service.dart';
+import '../../../services/review_comments_service.dart';
 import '../../../services/review_likes_service.dart';
 import '../../../utils/cached_image.dart';
 import '../../../utils/helpers.dart';
+import '../../widgets/auth_gate_modal.dart';
 
 // ─── Design system tokens ────────────────────────────────────────────────────
 const _bg = Color(0xFF0E0E0E);
@@ -37,11 +42,51 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
   final _commentController = TextEditingController();
   final _scrollController = ScrollController();
 
+  bool _isSubmitting = false;
+
   @override
   void dispose() {
     _commentController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitComment() async {
+    final text = _commentController.text.trim();
+    if (text.isEmpty || _isSubmitting) return;
+
+    final isAnon = ref.read(isAnonymousUserProvider);
+    if (isAnon) {
+      showAuthGateModal(context);
+      return;
+    }
+
+    final user = ref.read(currentUserProvider);
+    if (user == null || widget.reviewId == null) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await ReviewCommentsService().addComment(
+        reviewId: widget.reviewId!,
+        userId: user.uid,
+        displayName: user.displayName?.isNotEmpty == true
+            ? user.displayName!
+            : 'Anonymous',
+        text: text,
+        reviewOwnerUserId: widget.review.userId,
+        reviewTitle: widget.review.title,
+        reviewArtist: widget.review.artist,
+      );
+      _commentController.clear();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error posting comment: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -224,7 +269,10 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
                       const SizedBox(height: 32),
 
                       // ── Comments section ──────────────────────────────────
-                      _CommentsSection(review: review),
+                      _CommentsSection(
+                        review: review,
+                        reviewId: widget.reviewId,
+                      ),
                     ],
                   ),
                 ),
@@ -267,30 +315,45 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _commentController,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Write a comment...',
-                        hintStyle:
-                            const TextStyle(color: Colors.white38, fontSize: 14),
-                        filled: true,
-                        fillColor: _surfaceHigh,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide.none,
+                    child: Builder(builder: (context) {
+                      final isAnon = ref.watch(isAnonymousUserProvider);
+                      return GestureDetector(
+                        onTap: isAnon
+                            ? () => showAuthGateModal(context)
+                            : null,
+                        child: AbsorbPointer(
+                          absorbing: isAnon,
+                          child: TextField(
+                            controller: _commentController,
+                            maxLines: null,
+                            minLines: 1,
+                            keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.newline,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14, height: 1.4),
+                            decoration: InputDecoration(
+                              hintText: isAnon
+                                  ? 'Sign in to comment...'
+                                  : 'Write a comment...',
+                              hintStyle: const TextStyle(
+                                  color: Colors.white38, fontSize: 14),
+                              filled: true,
+                              fillColor: _surfaceHigh,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(25),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: () {
-                      // TODO: submit comment
-                      _commentController.clear();
-                    },
+                    onTap: _submitComment,
                     child: Container(
                       width: 44,
                       height: 44,
@@ -537,43 +600,60 @@ class _StatsBar extends ConsumerWidget {
 }
 
 // ── Comments section ─────────────────────────────────────────────────────────
-class _CommentsSection extends StatelessWidget {
+class _CommentsSection extends ConsumerWidget {
   final Review review;
-  const _CommentsSection({required this.review});
+  final String? reviewId;
+  const _CommentsSection({required this.review, this.reviewId});
 
   @override
-  Widget build(BuildContext context) {
-    // Comments require a Firestore subcollection (future implementation).
-    // Displaying header + empty state for now.
+  Widget build(BuildContext context, WidgetRef ref) {
+    final commentsAsync = reviewId != null
+        ? ref.watch(reviewCommentsProvider(reviewId!))
+        : null;
+
+    final comments = commentsAsync?.value ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Comments (${review.replies})',
+              'Comments (${comments.length})',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Row(
-              children: [
-                const Icon(Ionicons.swap_vertical_outline,
-                    color: Colors.white54, size: 16),
-                const SizedBox(width: 4),
-                const Text(
-                  'Newest',
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
-                ),
-              ],
-            ),
+            if (comments.isNotEmpty)
+              Row(
+                children: [
+                  const Icon(Ionicons.swap_vertical_outline,
+                      color: Colors.white54, size: 16),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Newest',
+                    style: TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                ],
+              ),
           ],
         ),
-        const SizedBox(height: 20),
-        if (review.replies == 0)
+        const SizedBox(height: 16),
+        // Loading state
+        if (commentsAsync != null && commentsAsync.isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white24),
+            ),
+          )
+        // Empty state
+        else if (comments.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(
@@ -582,8 +662,320 @@ class _CommentsSection extends StatelessWidget {
                 style: TextStyle(color: Colors.white38, fontSize: 14),
               ),
             ),
+          )
+        // Comment list
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: comments.length,
+            separatorBuilder: (_, __) => Divider(
+              color: Colors.white.withOpacity(0.06),
+              height: 1,
+            ),
+            itemBuilder: (context, i) => _CommentTile(
+              comment: comments[i],
+              reviewId: reviewId!,
+            ),
           ),
       ],
+    );
+  }
+}
+
+// ── Single comment tile ───────────────────────────────────────────────────────
+class _CommentTile extends ConsumerStatefulWidget {
+  final ReviewComment comment;
+  final String reviewId;
+  const _CommentTile({required this.comment, required this.reviewId});
+
+  @override
+  ConsumerState<_CommentTile> createState() => _CommentTileState();
+}
+
+class _CommentTileState extends ConsumerState<_CommentTile> {
+  bool _isEditing = false;
+  bool _isSaving = false;
+  late final TextEditingController _editController;
+
+  @override
+  void initState() {
+    super.initState();
+    _editController = TextEditingController(text: widget.comment.text);
+  }
+
+  @override
+  void dispose() {
+    _editController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveEdit(String currentUserId) async {
+    final trimmed = _editController.text.trim();
+    if (trimmed.isEmpty || trimmed == widget.comment.text) {
+      setState(() => _isEditing = false);
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      await ReviewCommentsService().updateComment(
+        reviewId: widget.reviewId,
+        commentId: widget.comment.id,
+        userId: currentUserId,
+        newText: trimmed,
+      );
+      if (mounted) setState(() => _isEditing = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save edit: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUserId = ref.watch(currentUserIdProvider);
+    final isAnon = ref.watch(isAnonymousUserProvider);
+    final isOwn = widget.comment.userId == currentUserId;
+
+    final likeKey = (
+      reviewId: widget.reviewId,
+      commentId: widget.comment.id,
+      userId: currentUserId ?? '',
+    );
+    final isLiked = currentUserId != null
+        ? ref.watch(commentLikeStatusProvider(likeKey)).value ?? false
+        : false;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[850],
+            ),
+            child: const Icon(Icons.person, size: 18, color: Colors.white38),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Name + time
+                Row(
+                  children: [
+                    Text(
+                      widget.comment.displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (widget.comment.createdAt != null)
+                      Text(
+                        formatRelativeTime(widget.comment.createdAt),
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+
+                // ── Comment body OR inline edit field ────────────────────
+                if (_isEditing) ...[
+                  TextField(
+                    controller: _editController,
+                    autofocus: true,
+                    maxLines: null,
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 14, height: 1.45),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFF201F1F),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _isSaving
+                            ? null
+                            : () => _saveEdit(currentUserId!),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 1.5, color: Colors.white54),
+                              )
+                            : const Text(
+                                'SAVE',
+                                style: TextStyle(
+                                  color: Color(0xFF3FFF8B),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 20),
+                      GestureDetector(
+                        onTap: () {
+                          _editController.text = widget.comment.text;
+                          setState(() => _isEditing = false);
+                        },
+                        child: const Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    widget.comment.text,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Like + Reply + Edit + Delete actions
+                  Row(
+                    children: [
+                      // Like
+                      GestureDetector(
+                        onTap: () async {
+                          if (isAnon) {
+                            showAuthGateModal(context);
+                            return;
+                          }
+                          if (currentUserId == null) return;
+                          try {
+                            await ReviewCommentsService().toggleCommentLike(
+                              reviewId: widget.reviewId,
+                              commentId: widget.comment.id,
+                              userId: currentUserId,
+                            );
+                          } catch (_) {}
+                        },
+                        child: Row(
+                          children: [
+                            Icon(
+                              isLiked
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 15,
+                              color: isLiked
+                                  ? const Color(0xFFEE2309)
+                                  : Colors.white38,
+                            ),
+                            if (widget.comment.likes > 0) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '${widget.comment.likes}',
+                                style: TextStyle(
+                                  color: isLiked
+                                      ? const Color(0xFFEE2309)
+                                      : Colors.white38,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Reply
+                      GestureDetector(
+                        onTap: () {
+                          if (isAnon) {
+                            showAuthGateModal(context);
+                            return;
+                          }
+                          // TODO: reply threading
+                        },
+                        child: const Text(
+                          'REPLY',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      // Edit + Delete (own comments only)
+                      if (isOwn) ...[
+                        const SizedBox(width: 20),
+                        GestureDetector(
+                          onTap: () => setState(() => _isEditing = true),
+                          child: const Text(
+                            'EDIT',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        GestureDetector(
+                          onTap: () async {
+                            try {
+                              await ReviewCommentsService().deleteComment(
+                                reviewId: widget.reviewId,
+                                commentId: widget.comment.id,
+                                userId: currentUserId!,
+                              );
+                            } catch (_) {}
+                          },
+                          child: const Text(
+                            'DELETE',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

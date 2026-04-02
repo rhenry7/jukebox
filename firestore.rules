@@ -6,10 +6,20 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
+    // True only for real (non-anonymous) signed-in users
+    function isRealUser() {
+      return isAuthenticated() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     // Helper function to check if user owns the document
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Real user who owns the document
+    function isRealOwner(userId) {
+      return isRealUser() && request.auth.uid == userId;
     }
     
     // Users collection
@@ -24,9 +34,15 @@ service cloud.firestore {
       match /reviews/{reviewId} {
         // Allow authenticated users to read all reviews (for community feed)
         allow read: if isAuthenticated();
-        // Allow users to write their own reviews
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isOwner(userId) && resource.data.userId == userId;
+        // Only real (non-anonymous) users can create or modify reviews.
+        // Repost copies have the original author's userId, so we check
+        // repostedByUserId == auth.uid instead for those documents.
+        allow create: if isRealOwner(userId) && (
+          request.resource.data.userId == userId ||
+          (request.resource.data.isRepost == true &&
+           request.resource.data.repostedByUserId == request.auth.uid)
+        );
+        allow update, delete: if isRealOwner(userId) && resource.data.userId == userId;
       }
       
       // Music preferences subcollection
@@ -124,8 +140,8 @@ service cloud.firestore {
     match /{path=**}/reviews/{reviewId} {
       // Allow authenticated users to read any review (for community feed)
       allow read: if isAuthenticated();
-      // Allow users to write only their own reviews (enforced by userId check)
-      allow write: if isAuthenticated() && 
+      // Only real (non-anonymous) users can write reviews
+      allow write: if isRealUser() &&
                       request.resource.data.userId == request.auth.uid;
     }
     
@@ -151,6 +167,49 @@ service cloud.firestore {
     match /userLikedPlaylists/{userId} {
       // Users can only read/write their own saved list
       allow read, write: if isOwner(userId);
+    }
+
+    // Reposts collection (top-level)
+    // Structure: reposts/{sanitizedReviewId} (count doc) + /reposters/{userId}
+    match /reposts/{reviewId} {
+      allow read: if isAuthenticated();
+      // Real users can write the count document (incremented on repost/unrepost)
+      allow write: if isRealUser();
+
+      match /reposters/{userId} {
+        allow read: if isAuthenticated();
+        allow create: if isRealUser() && request.auth.uid == userId;
+        allow delete: if isRealUser() && request.auth.uid == userId;
+        allow update: if false;
+      }
+    }
+
+    // Review comments collection (top-level)
+    // Structure: reviewComments/{sanitizedReviewId}/comments/{commentId}
+    match /reviewComments/{reviewId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // only subcollection matters
+
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() &&
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.text is string &&
+                         request.resource.data.text.size() > 0 &&
+                         request.resource.data.text.size() <= 1000;
+        allow update: if isAuthenticated() &&
+                         resource.data.userId == request.auth.uid;
+        allow delete: if isAuthenticated() &&
+                         resource.data.userId == request.auth.uid;
+
+        // Per-user comment likes
+        match /likes/{userId} {
+          allow read: if isAuthenticated();
+          allow create: if isAuthenticated() && request.auth.uid == userId;
+          allow delete: if isAuthenticated() && request.auth.uid == userId;
+          allow update: if false;
+        }
+      }
     }
 
     // Review likes collection (top-level)
