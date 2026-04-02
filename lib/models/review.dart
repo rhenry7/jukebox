@@ -1,13 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Splits a raw tag string by "/" and returns individual trimmed tags.
+/// Handles Discogs/MusicBrainz tags that concatenate multiple values with "/".
+Iterable<String> _splitTag(String raw) =>
+    raw.split('/').map((s) => s.trim()).where((s) => s.isNotEmpty);
+
 /// Merges genres and tags (legacy) from Firestore, deduped by lowercase.
+/// Tags that contain "/" are split into individual entries.
 List<String>? _mergedGenresFromFirestore(Map<String, dynamic> data) {
   final g = data['genres'] as List?;
   final t = data['tags'] as List?;
   if (g == null && t == null) return null;
   final combined = [
-    ...?g?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
-    ...?t?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
+    ...?g?.expand((e) => _splitTag(e.toString())),
+    ...?t?.expand((e) => _splitTag(e.toString())),
   ];
   if (combined.isEmpty) return null;
   final seen = <String>{};
@@ -23,13 +29,14 @@ List<String>? _mergedGenresFromFirestore(Map<String, dynamic> data) {
 }
 
 /// Merges genres and tags (legacy) from JSON, deduped by lowercase.
+/// Tags that contain "/" are split into individual entries.
 List<String>? _mergedGenresFromJson(Map<String, dynamic> json) {
   final g = json['genres'] as List?;
   final t = json['tags'] as List?;
   if (g == null && t == null) return null;
   final combined = [
-    ...?g?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
-    ...?t?.map((e) => e.toString().trim()).where((e) => e.isNotEmpty),
+    ...?g?.expand((e) => _splitTag(e.toString())),
+    ...?t?.expand((e) => _splitTag(e.toString())),
   ];
   if (combined.isEmpty) return null;
   final seen = <String>{};

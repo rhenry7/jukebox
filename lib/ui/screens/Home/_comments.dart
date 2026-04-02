@@ -413,16 +413,24 @@ class FriendsReviewList extends ConsumerWidget {
   }
 }
 
-/// Returns genres for the review (deduped by lowercase).
+/// Returns genres for the review, splitting any "/" concatenated strings
+/// (e.g. from Discogs/MusicBrainz), deduped by lowercase.
 List<String> _allTagsForReview(Review review) {
-  final combined = review.genres ?? <String>[];
+  final raw = review.genres ?? <String>[];
   final seen = <String>{};
-  return combined.map((t) => t.trim()).where((t) => t.isNotEmpty).where((t) {
-    final lower = t.toLowerCase();
-    if (seen.contains(lower)) return false;
-    seen.add(lower);
-    return true;
-  }).toList();
+  final result = <String>[];
+  for (final entry in raw) {
+    // Split on "/" — handles tags stored as "jazz/funk/rap" style strings.
+    final parts = entry.split('/').map((s) => s.trim()).where((s) => s.isNotEmpty);
+    for (final tag in parts) {
+      final lower = tag.toLowerCase();
+      if (!seen.contains(lower)) {
+        seen.add(lower);
+        result.add(tag);
+      }
+    }
+  }
+  return result;
 }
 
 class ReviewCardWidget extends ConsumerWidget {
@@ -996,11 +1004,25 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
   @override
   void initState() {
     super.initState();
-    _genres = widget.review.genres;
-    // If no genres, fetch them
+    _genres = _splitGenres(widget.review.genres);
+    // If no genres after splitting, fetch them
     if (_genres == null || _genres!.isEmpty) {
       _loadGenres();
     }
+  }
+
+  /// Splits any "/" concatenated genre strings into individual tags.
+  List<String>? _splitGenres(List<String>? raw) {
+    if (raw == null) return null;
+    final seen = <String>{};
+    final result = <String>[];
+    for (final entry in raw) {
+      for (final tag in entry.split('/').map((s) => s.trim()).where((s) => s.isNotEmpty)) {
+        final lower = tag.toLowerCase();
+        if (seen.add(lower)) result.add(tag);
+      }
+    }
+    return result.isEmpty ? null : result;
   }
 
   Future<void> _loadGenres() async {
