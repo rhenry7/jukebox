@@ -26,3 +26,12 @@ Screens currently using this widget:
 - `lib/ui/screens/search/search_screen.dart` (Search results)
 
 `lib/ui/screens/Home/_comments.dart` contains `UserReviewsCollection` and `FriendsReviewList` (the dismissible list wrapper used by the Profile screen). It imports `ReviewCardWithGenres` from the shared widget file.
+
+### Review Detail Page
+Tapping anywhere on a review card (outside the bottom action row) navigates to:
+
+```
+lib/ui/screens/review_detail/review_detail_page.dart
+```
+
+`ReviewDetailPage(review: Review, reviewId: String?)` — full-screen detail view with hero album art, drop-cap review body, live like button, stats bar, and comments section. The tap is wired directly inside `ReviewCardWidget`; no screens need to handle navigation themselves.

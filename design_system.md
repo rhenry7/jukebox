@@ -85,6 +85,7 @@ The bottom navigation is a pill-shaped "Dock" rather than a screen-wide bar.
 *   **DO** use `secondary` (#3fff8b) sparingly for "positive" data, such as a high rating or a trending track.
 *   **DO** lean into "Breathing Room." If a layout feels crowded, increase spacing to the next tier in the scale (e.g., move from `6` to `8`).
 *   **DO** use overlapping imagery. Let album art slightly bleed over the edge of container boundaries to create a sense of physical layers.
+*   **DO** use the ionicons package
 
 ### Don't
 *   **DON'T** use pure white (#ffffff) for long-form body text. Use `on-surface-variant` (#adaaaa) to reduce eye strain on dark backgrounds.

@@ -12,6 +12,7 @@ import '../../services/genre_cache_service.dart';
 import '../../services/review_likes_service.dart';
 import '../../utils/helpers.dart';
 import '../../utils/cached_image.dart';
+import '../screens/review_detail/review_detail_page.dart';
 
 /// Returns genres for the review, splitting any "/" concatenated strings
 /// (e.g. from Discogs/MusicBrainz), deduped by lowercase.
@@ -56,6 +57,20 @@ class ReviewCardWidget extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Tappable area: album art, review text, tags → navigates to detail
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ReviewDetailPage(
+                  review: review,
+                  reviewId: reviewId,
+                ),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           // Top Row: Album art + Artist / Title / Rating
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,6 +205,10 @@ class ReviewCardWidget extends ConsumerWidget {
               ),
             ];
           }(),
+              ],
+            ),
+          ),
+          // Bottom row: user info + action buttons (independently tappable)
           const SizedBox(height: 20),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
