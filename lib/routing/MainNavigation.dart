@@ -213,7 +213,7 @@ class MainNavState extends ConsumerState<MainNav> {
               ),
               title: _NeonTitle(),
               titleTextStyle:
-                  const TextStyle(color: Colors.white, fontSize: 46),
+                  const TextStyle(color: Colors.white, fontSize: 28),
               toolbarHeight: 70.0,
               actions: [
                 Padding(
