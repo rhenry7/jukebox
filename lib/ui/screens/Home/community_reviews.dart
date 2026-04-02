@@ -11,7 +11,7 @@ import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
-import '_comments.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
 
 /// Community reviews widget - shows all users' reviews with lazy loading
 class CommunityReviewsCollection extends ConsumerStatefulWidget {

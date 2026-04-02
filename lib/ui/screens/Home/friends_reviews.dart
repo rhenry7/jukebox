@@ -10,7 +10,7 @@ import '../../../providers/friends_provider.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
-import '_comments.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
 
 /// Friends reviews feed – shows reviews from users the current user has added
 /// as friends. Mirrors the layout and UX of [CommunityReviewsCollection].

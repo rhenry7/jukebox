@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/search_reviews_provider.dart';
-import 'package:flutter_test_project/ui/screens/Home/_comments.dart';
+import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});

@@ -14,7 +14,7 @@ import 'package:flutter_test_project/ui/screens/Profile/review_heatmap.dart';
 import 'package:flutter_test_project/ui/screens/Profile/review_stats_cards.dart';
 import 'package:flutter_test_project/ui/screens/Profile/top_artists_card.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/ui/screens/Home/_comments.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
 import 'package:flutter_test_project/ui/screens/playlists/playlist_detail_screen.dart';
 import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:ionicons/ionicons.dart';

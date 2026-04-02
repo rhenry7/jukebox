@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/providers/album_reviews_provider.dart';
 import 'package:flutter_test_project/providers/recommended_albums_provider.dart';
-import 'package:flutter_test_project/ui/screens/Home/_comments.dart'
-    show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';

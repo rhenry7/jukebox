@@ -13,7 +13,7 @@ import '../../../services/review_recommendation_service.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
-import '_comments.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
 
 /// "For You" tab — shows NLP-recommended community reviews
 /// personalized to the user's taste profile.
