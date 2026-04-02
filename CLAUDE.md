@@ -35,3 +35,10 @@ lib/ui/screens/review_detail/review_detail_page.dart
 ```
 
 `ReviewDetailPage(review: Review, reviewId: String?)` — full-screen detail view with hero album art, drop-cap review body, live like button, stats bar, and comments section. The tap is wired directly inside `ReviewCardWidget`; no screens need to handle navigation themselves.
+
+
+### Auth Gating / Feature Gating 
+- for action buttons: like, review, submit review, comment, share, repost, add friends, preferences, notifications
+if a user is not signed in, or anonymous user, display a modal that says sign up - use the discoball.gif as a the art for the modal with a cheeky message for a CTA to sign up or sign in
+- limit anoymous user visiblity to popular reviews; popular tracks and suggested tracks; popular crates - else keep suggestion that they sign in / sign up 
+- default "anonymous user" as not signed in, anonymous user is for previewing functionality that should lead to CTA for sign up/ sign in
