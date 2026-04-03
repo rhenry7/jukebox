@@ -15,7 +15,7 @@ typedef AlbumReviewsParam = ({String artist, String title});
 /// filters client-side by normalized artist + title. No new Firestore
 /// indexes required.
 final albumReviewsProvider =
-    FutureProvider.family<List<ReviewWithDocId>, AlbumReviewsParam>(
+    FutureProvider.autoDispose.family<List<ReviewWithDocId>, AlbumReviewsParam>(
         (ref, param) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return [];

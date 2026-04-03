@@ -18,7 +18,7 @@ final userPlaylistsProvider = StreamProvider<List<UserPlaylist>>((ref) {
 });
 
 /// Provider for a single playlist by ID (stream for real-time updates)
-final singlePlaylistProvider = StreamProvider.family<UserPlaylist?, String>((ref, playlistId) {
+final singlePlaylistProvider = StreamProvider.autoDispose.family<UserPlaylist?, String>((ref, playlistId) {
   return UserPlaylistService.getPlaylistStream(playlistId);
 });
 
@@ -49,7 +49,7 @@ final likedPlaylistsProvider = StreamProvider<List<UserPlaylist>>((ref) {
 
 /// Per-playlist like status for the current user.
 final playlistLikeStatusProvider =
-    StreamProvider.family<bool, String>((ref, playlistId) {
+    StreamProvider.autoDispose.family<bool, String>((ref, playlistId) {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return Stream.value(false);
   return PlaylistLikesService.likeStatusStream(playlistId, userId);
@@ -57,7 +57,7 @@ final playlistLikeStatusProvider =
 
 /// Display name for a given userId (fetched once from Firestore).
 final userDisplayNameProvider =
-    FutureProvider.family<String, String>((ref, userId) async {
+    FutureProvider.autoDispose.family<String, String>((ref, userId) async {
   if (userId.isEmpty) return '';
   try {
     final doc = await FirebaseFirestore.instance

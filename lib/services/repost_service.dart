@@ -75,9 +75,17 @@ class RepostService {
     required Review originalReview,
     required String originalUserId,
   }) async {
-    // 1. Write a copy into the reposter's reviews collection
+    // 1. Write a copy into the reposter's reviews collection.
+    // Strip any existing repost metadata from the source so reposts of reposts
+    // are not created — the copy always points to the original author's content.
+    final baseData = Map<String, dynamic>.from(originalReview.toJson())
+      ..remove('isRepost')
+      ..remove('repostedByDisplayName')
+      ..remove('repostedByUserId')
+      ..remove('originalReviewId');
+
     final repostData = {
-      ...originalReview.toJson(),
+      ...baseData,
       'isRepost': true,
       'repostedByDisplayName': reposterDisplayName,
       'repostedByUserId': reposterUserId,
@@ -132,7 +140,7 @@ class RepostService {
     final batch = _db.batch();
 
     // Remove the repost copy from the reposter's reviews
-    if (repostedDocId != null) {
+    if (repostedDocId != null && repostedDocId.isNotEmpty) {
       batch.delete(
         _db
             .collection('users')

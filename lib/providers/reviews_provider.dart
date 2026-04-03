@@ -53,7 +53,7 @@ final reviewCountProvider = Provider<int>((ref) {
 });
 
 /// Get reviews for a specific user (by userId)
-final userReviewsByIdProvider = StreamProvider.family<List<Review>, String>((ref, userId) {
+final userReviewsByIdProvider = StreamProvider.autoDispose.family<List<Review>, String>((ref, userId) {
   return FirebaseFirestore.instance
       .collection('users')
       .doc(userId)

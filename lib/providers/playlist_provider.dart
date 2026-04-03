@@ -3,7 +3,7 @@ import 'package:flutter_test_project/providers/preferences_provider.dart';
 import 'package:flutter_test_project/services/playlist_generation_service.dart';
 
 /// Provider for generating playlists based on user preferences
-final playlistProvider = FutureProvider.family<List<PlaylistTrack>, PlaylistRequest>((ref, request) async {
+final playlistProvider = FutureProvider.autoDispose.family<List<PlaylistTrack>, PlaylistRequest>((ref, request) async {
   final preferencesAsync = ref.watch(userPreferencesProvider);
   
   return preferencesAsync.when(
@@ -54,7 +54,7 @@ class PlaylistRequest {
 }
 
 /// Provider for playlist by type
-final playlistByTypeProvider = FutureProvider.family<List<PlaylistTrack>, Map<String, dynamic>>((ref, params) async {
+final playlistByTypeProvider = FutureProvider.autoDispose.family<List<PlaylistTrack>, Map<String, dynamic>>((ref, params) async {
   final preferencesAsync = ref.watch(userPreferencesProvider);
   
   return preferencesAsync.when(

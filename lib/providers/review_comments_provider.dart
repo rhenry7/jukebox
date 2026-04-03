@@ -4,7 +4,7 @@ import '../models/review_comment.dart';
 import '../services/review_comments_service.dart';
 
 final reviewCommentsProvider =
-    StreamProvider.family<List<ReviewComment>, String>((ref, reviewId) {
+    StreamProvider.autoDispose.family<List<ReviewComment>, String>((ref, reviewId) {
   return ReviewCommentsService().commentsStream(reviewId);
 });
 
@@ -16,7 +16,7 @@ typedef _CommentLikeKey = ({
 });
 
 final commentLikeStatusProvider =
-    StreamProvider.family<bool, _CommentLikeKey>((ref, key) {
+    StreamProvider.autoDispose.family<bool, _CommentLikeKey>((ref, key) {
   return ReviewCommentsService().commentLikeStream(
     key.reviewId,
     key.commentId,

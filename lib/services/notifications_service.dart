@@ -9,6 +9,12 @@ class NotificationsService {
   NotificationsService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
+  // In-process cache to avoid repeated Firestore reads for the same user.
+  static final Map<String, _ActorInfo> _actorCache = {};
+
+  static String _sanitizeId(String id) =>
+      id.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+
   CollectionReference<Map<String, dynamic>> _notificationsRef(String userId) {
     return _firestore.collection('users').doc(userId).collection('notifications');
   }
@@ -47,7 +53,9 @@ class NotificationsService {
       debugPrint('[NOTIF] Creating friend-added notification: '
           'actor=$actorUserId → target=$targetUserId');
       final actorInfo = await _fetchActorInfo(actorUserId);
-      final docRef = await _notificationsRef(targetUserId).add({
+      // Deterministic ID: one friend-added notification per actor per target.
+      final docId = '${_sanitizeId(actorUserId)}_fa';
+      await _notificationsRef(targetUserId).doc(docId).set({
         'type': NotificationType.friendAdded,
         'actorId': actorUserId,
         'actorDisplayName': actorInfo.displayName,
@@ -55,7 +63,7 @@ class NotificationsService {
         'createdAt': FieldValue.serverTimestamp(),
         'read': false,
       });
-      debugPrint('[NOTIF] Friend notification created: ${docRef.id} '
+      debugPrint('[NOTIF] Friend notification upserted: $docId '
           'in users/$targetUserId/notifications');
     } catch (e) {
       debugPrint('[NOTIF] ERROR creating friend notification: $e');
@@ -79,7 +87,9 @@ class NotificationsService {
       debugPrint('[NOTIF] Creating review-like notification: '
           'actor=$actorUserId → target=$targetUserId, review=$reviewTitle');
       final actorInfo = await _fetchActorInfo(actorUserId);
-      final docRef = await _notificationsRef(targetUserId).add({
+      // Deterministic ID: one like notification per actor+review, deduplicates rapid re-likes.
+      final docId = '${_sanitizeId(actorUserId)}_${_sanitizeId(reviewId)}_rl';
+      await _notificationsRef(targetUserId).doc(docId).set({
         'type': NotificationType.reviewLike,
         'actorId': actorUserId,
         'actorDisplayName': actorInfo.displayName,
@@ -90,7 +100,7 @@ class NotificationsService {
         'createdAt': FieldValue.serverTimestamp(),
         'read': false,
       });
-      debugPrint('[NOTIF] Like notification created: ${docRef.id} '
+      debugPrint('[NOTIF] Like notification upserted: $docId '
           'in users/$targetUserId/notifications');
     } catch (e) {
       debugPrint('[NOTIF] ERROR creating like notification: $e');
@@ -108,7 +118,9 @@ class NotificationsService {
     if (targetUserId == actorUserId) return;
     try {
       final actorInfo = await _fetchActorInfo(actorUserId);
-      await _notificationsRef(targetUserId).add({
+      // Deterministic ID: one repost notification per actor+review.
+      final docId = '${_sanitizeId(actorUserId)}_${_sanitizeId(reviewId)}_rr';
+      await _notificationsRef(targetUserId).doc(docId).set({
         'type': NotificationType.reviewRepost,
         'actorId': actorUserId,
         'actorDisplayName': actorInfo.displayName,
@@ -158,6 +170,7 @@ class NotificationsService {
   }
 
   Future<_ActorInfo> _fetchActorInfo(String userId) async {
+    if (_actorCache.containsKey(userId)) return _actorCache[userId]!;
     try {
       final doc = await _firestore.collection('users').doc(userId).get();
       final data = doc.data();
@@ -174,7 +187,9 @@ class NotificationsService {
       final photoUrl =
           (data?['photoUrl'] as String?) ?? (data?['userImageUrl'] as String?);
 
-      return _ActorInfo(displayName: resolvedName, photoUrl: photoUrl);
+      final result = _ActorInfo(displayName: resolvedName, photoUrl: photoUrl);
+      _actorCache[userId] = result;
+      return result;
     } catch (e) {
       debugPrint('Error fetching actor info: $e');
       return const _ActorInfo(displayName: 'Someone');

@@ -7,7 +7,7 @@ import 'package:flutter_test_project/providers/reviews_provider.dart';
 /// Fetches up to 400 recent reviews from all users and filters client-side
 /// against [query], matching artist, title, and genres (case-insensitive).
 final searchReviewsProvider =
-    FutureProvider.family<List<ReviewWithDocId>, String>((ref, query) async {
+    FutureProvider.autoDispose.family<List<ReviewWithDocId>, String>((ref, query) async {
   final q = query.trim().toLowerCase();
   if (q.isEmpty) return [];
 

@@ -204,26 +204,61 @@ class UserReviewsCollection extends ConsumerWidget {
   }
 }
 
-class FriendsReviewList extends ConsumerWidget {
+class FriendsReviewList extends ConsumerStatefulWidget {
   final List<ReviewWithDocId> reviews;
   const FriendsReviewList({super.key, required this.reviews});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FriendsReviewList> createState() => _FriendsReviewListState();
+}
+
+class _FriendsReviewListState extends ConsumerState<FriendsReviewList> {
+  static const int _pageSize = 20;
+  int _displayLimit = _pageSize;
+
+  @override
+  void didUpdateWidget(FriendsReviewList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset pagination when the review list is replaced (e.g. refresh)
+    if (oldWidget.reviews != widget.reviews) {
+      _displayLimit = _pageSize;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = widget.reviews.take(_displayLimit).toList();
+    final hasMore = widget.reviews.length > _displayLimit;
+
     return ListView.builder(
-      itemCount: reviews.length,
+      itemCount: visible.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        final review = reviews[index];
+        if (index == visible.length) {
+          // "Load more" footer
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            child: Center(
+              child: TextButton(
+                onPressed: () =>
+                    setState(() => _displayLimit += _pageSize),
+                child: const Text(
+                  'Load more',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final review = visible[index];
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           child: Dismissible(
-            key:
-                Key(review.docId.toString()), // Assuming Review has an id field
+            key: Key(review.docId.toString()),
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
-              // Show dialog instead of dismissing
-              _showReviewOptionsDialog(context, review, ref);
-              return false; // Don't actually dismiss the card
+              _showReviewOptionsDialog(context, review);
+              return false;
             },
             background: Container(
               decoration: const BoxDecoration(
@@ -239,7 +274,7 @@ class FriendsReviewList extends ConsumerWidget {
               ),
             ),
             child: GestureDetector(
-              onLongPress: () => _showReviewOptionsDialog(context, review, ref),
+              onLongPress: () => _showReviewOptionsDialog(context, review),
               child: Card(
                 elevation: 1,
                 margin: const EdgeInsets.all(0),
@@ -248,9 +283,7 @@ class FriendsReviewList extends ConsumerWidget {
                   side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
                 ),
                 color: Colors.white10,
-                child: ReviewCardWithGenres(
-                    review:
-                        review.review), // Pass review data with genre loading
+                child: ReviewCardWithGenres(review: review.review),
               ),
             ),
           ),
@@ -260,7 +293,7 @@ class FriendsReviewList extends ConsumerWidget {
   }
 
   void _showReviewOptionsDialog(
-      BuildContext context, ReviewWithDocId review, WidgetRef ref) {
+      BuildContext context, ReviewWithDocId review) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -287,7 +320,7 @@ class FriendsReviewList extends ConsumerWidget {
                 ),
               ),
               // Edit option (if it's user's own review)
-              if (_isUserReview(review.review, ref))
+              if (_isUserReview(review.review))
                 ListTile(
                   leading: const Icon(Icons.edit),
                   title: const Text('Edit Review'),
@@ -298,7 +331,7 @@ class FriendsReviewList extends ConsumerWidget {
                   },
                 ),
               // Delete option (if it's user's own review)
-              if (_isUserReview(review.review, ref))
+              if (_isUserReview(review.review))
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
                   title: const Text(
@@ -311,7 +344,7 @@ class FriendsReviewList extends ConsumerWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    _deleteReview(context, review, ref);
+                    _deleteReview(context, review);
                   },
                 ),
             ],
@@ -328,20 +361,18 @@ class FriendsReviewList extends ConsumerWidget {
   }
 
   // Helper method to check if review belongs to current user
-  bool _isUserReview(Review review, WidgetRef ref) {
+  bool _isUserReview(Review review) {
     final userId = ref.read(currentUserIdProvider);
     return review.userId == userId;
   }
 
   void _editReview(BuildContext context, ReviewWithDocId review) {
-    // Navigate to edit review screen or show edit dialog
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Edit review: ${review.docId}')),
     );
   }
 
-  void _deleteReview(
-      BuildContext context, ReviewWithDocId review, WidgetRef ref) {
+  void _deleteReview(BuildContext context, ReviewWithDocId review) {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(

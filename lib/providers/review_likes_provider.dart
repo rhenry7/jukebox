@@ -4,13 +4,13 @@ import 'package:flutter_test_project/services/review_likes_service.dart';
 
 /// Provider for like count of a review
 /// reviewId should be the full path: users/{userId}/reviews/{reviewId}
-final reviewLikeCountProvider = StreamProvider.family<int, String>((ref, reviewId) {
+final reviewLikeCountProvider = StreamProvider.autoDispose.family<int, String>((ref, reviewId) {
   final service = ReviewLikesService();
   return service.getLikeCountStream(reviewId);
 });
 
 /// Provider for user's like status on a review
-final reviewUserLikeStatusProvider = StreamProvider.family<bool, String>((ref, reviewId) {
+final reviewUserLikeStatusProvider = StreamProvider.autoDispose.family<bool, String>((ref, reviewId) {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) {
     return Stream.value(false);

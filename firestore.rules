@@ -216,8 +216,9 @@ service cloud.firestore {
     match /reviewLikes/{reviewId} {
       // Allow authenticated users to read like counts
       allow read: if isAuthenticated();
-      // Allow authenticated users to update like counts (only via increment/decrement)
-      allow write: if isAuthenticated();
+      // Allow create/update for count increments; block delete to protect count integrity.
+      allow create, update: if isAuthenticated();
+      allow delete: if false;
       
       // Likes subcollection (individual user likes)
       match /likes/{userId} {

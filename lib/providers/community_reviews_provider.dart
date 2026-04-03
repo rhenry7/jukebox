@@ -9,7 +9,7 @@ import 'package:flutter_test_project/providers/reviews_provider.dart';
 ///
 /// Anonymous sign-in is handled at app startup (main.dart) so that Firestore
 /// auth rules are satisfied before this provider first runs.
-final communityReviewsProvider = StreamProvider.family<List<ReviewWithDocId>, int>((ref, limit) {
+final communityReviewsProvider = StreamProvider.autoDispose.family<List<ReviewWithDocId>, int>((ref, limit) {
   final userId = ref.watch(currentUserIdProvider);
 
   // No auth session yet — keep showing loading until the auth state resolves.
