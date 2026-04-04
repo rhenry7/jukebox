@@ -387,7 +387,6 @@ class _MyReviewSheetContentFormState
     );
   }
 
-
   void toggleHeart() {
     setState(() {
       liked = !liked;
@@ -507,7 +506,7 @@ class _MyReviewSheetContentFormState
         Row(
           children: [
             Text(
-              auth.currentUser?.displayName ?? 'NotSignedIn',
+              auth.currentUser?.displayName ?? 'Stranger',
               style: const TextStyle(color: Colors.white),
             ),
             const Gap(8),

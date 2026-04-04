@@ -100,17 +100,46 @@ class _RecommendationCardState extends State<_RecommendationCard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: (_imageUrl != null && _imageUrl!.isNotEmpty)
-                  ? Image.network(
-                      _imageUrl!,
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: (_imageUrl != null && _imageUrl!.isNotEmpty)
+                      ? Image.network(
+                          _imageUrl!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.music_note,
+                                color: Colors.white70,
+                                size: 30,
+                              ),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Center(
+                                child: DiscoBallLoading(),
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
@@ -122,154 +151,128 @@ class _RecommendationCardState extends State<_RecommendationCard> {
                             color: Colors.white70,
                             size: 30,
                           ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[800],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Center(
-                            child: DiscoBallLoading(),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.music_note,
-                        color: Colors.white70,
-                        size: 30,
-                      ),
-                    ),
-            ),
-            const SizedBox(width: 16),
-            // Expanded content with proper constraints
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.album.song,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    widget.album.artist,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    widget.album.album,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // Genre chips + Add Review button on same row
-                  const SizedBox(height: 8),
-                  Row(
+                        ),
+                ),
+                const SizedBox(width: 16),
+                // Expanded content with proper constraints
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Wrap(
-                          spacing: 6.0,
-                          runSpacing: 6.0,
-                          children: widget.album.displayTags.take(3).map((genre) {
-                            return Chip(
-                              label: Text(
-                                genre,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              backgroundColor: Colors.white.withOpacity(0.1),
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 1,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
+                      Text(
+                        widget.album.song,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        widget.album.artist,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        widget.album.album,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // Genre chips + Add Review button on same row
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Wrap(
+                              spacing: 6.0,
+                              runSpacing: 6.0,
+                              children:
+                                  widget.album.displayTags.take(3).map((genre) {
+                                return Chip(
+                                  label: Text(
+                                    genre,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.1),
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            onPressed: () {
+                              SignalCollectionService.logRecClick(
+                                artist: widget.album.artist,
+                                track: widget.album.song,
+                                genres: widget.album.genres,
+                                sourceContext: 'discovery_tab',
+                              );
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (BuildContext context) {
+                                  return MyReviewSheetContentForm(
+                                    title: widget.album.song,
+                                    artist: widget.album.artist,
+                                    albumImageUrl:
+                                        _imageUrl ?? widget.album.imageUrl,
+                                  );
+                                },
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.black,
+                              backgroundColor:
+                                  const Color.fromARGB(255, 239, 239, 239),
+                              side: BorderSide.none,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(25),
                               ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        onPressed: () {
-                          SignalCollectionService.logRecClick(
-                            artist: widget.album.artist,
-                            track: widget.album.song,
-                            genres: widget.album.genres,
-                            sourceContext: 'discovery_tab',
-                          );
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (BuildContext context) {
-                              return MyReviewSheetContentForm(
-                                title: widget.album.song,
-                                artist: widget.album.artist,
-                                albumImageUrl:
-                                    _imageUrl ?? widget.album.imageUrl,
-                              );
-                            },
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.black,
-                          backgroundColor: const Color.fromARGB(255, 239, 239, 239),
-                          side: BorderSide.none,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 12),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: const Text(
+                              'Review',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w500),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 12),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        child: const Text(
-                          '+ Add Review',
-                          style: TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.w500),
-                        ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ],
-        ), // end inner Row
+                ),
+              ],
+            ), // end inner Row
             if (widget.album.reason.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(

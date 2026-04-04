@@ -279,15 +279,27 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         if (playlist.tags.isNotEmpty) ...[
                           Wrap(
                             spacing: 6,
-                            runSpacing: 4,
+                            runSpacing: 6,
                             children: playlist.tags.map((tag) {
-                              return Text(
-                                '#${tag.toUpperCase()}',
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Colors.red.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  '#${tag.toUpperCase()}',
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               );
                             }).toList(),

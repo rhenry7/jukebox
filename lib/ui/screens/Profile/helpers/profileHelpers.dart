@@ -49,6 +49,9 @@ Widget profileRoute(String route) {
     case 'Notifications':
       return const NotificationsPage();
     case 'Preferences':
+      if (auth.currentUser == null) {
+        return const SignInScreen();
+      }
       return MusicTasteProfileWidget(
         onPreferencesChanged: (EnhancedUserPreferences) {},
       );
