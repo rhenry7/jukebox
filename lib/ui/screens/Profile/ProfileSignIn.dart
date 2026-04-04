@@ -61,8 +61,7 @@ class _SignInScreenState extends State<SignInScreen> {
   void _checkAuthState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = _auth.currentUser;
-      // Only redirect if a real (non-anonymous) user is already signed in
-      if (user != null && !user.isAnonymous) {
+      if (user != null) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => const MainNav(title: 'CRATEBOXD'),
@@ -343,7 +342,7 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = _auth.currentUser;
-    if (currentUser != null && !currentUser.isAnonymous) {
+    if (currentUser != null) {
       return const Scaffold(backgroundColor: Colors.black, body: DiscoBallLoading());
     }
 

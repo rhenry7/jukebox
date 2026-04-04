@@ -396,7 +396,7 @@ class _MyReviewSheetContentFormState
 
   Future<void> handleSubmit() async {
     final user = auth.currentUser;
-    if (user == null || user.isAnonymous) {
+    if (user == null) {
       showAuthGateModal(context);
       return;
     }

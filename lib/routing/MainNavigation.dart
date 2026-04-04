@@ -220,7 +220,11 @@ class MainNavState extends ConsumerState<MainNav> {
                   padding: const EdgeInsets.only(right: 12),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(50),
-                    onTap: () => setState(() => currentPageIndex = 4),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const SearchScreen()),
+                    ),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -228,7 +232,7 @@ class MainNavState extends ConsumerState<MainNav> {
                         shape: BoxShape.circle,
                         color: Colors.grey[850],
                       ),
-                      child: const Icon(Icons.person_outline,
+                      child: const Icon(Icons.search,
                           color: Colors.white, size: 22),
                     ),
                   ),

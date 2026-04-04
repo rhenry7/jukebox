@@ -9,6 +9,7 @@ import 'package:flutter_test_project/MusicPreferences/musicRecommendationService
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/services/review_analysis_service.dart';
+import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -309,6 +310,68 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    // Not signed in — show disco ball CTA instead of triggering the API
+    if (FirebaseAuth.instance.currentUser == null) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: DiscoBallLoading(),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Your personal soundtrack awaits 🎶',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Sign in to get recommendations tailored to your taste.',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const SignInScreen()),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[700],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Sign In / Sign Up',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Column(
         children: [

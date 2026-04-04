@@ -965,11 +965,9 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
           ),
           const SizedBox(height: 14),
 
-          // ── Input box (real signed-in users only) ───────────────
+          // ── Input box (signed-in users only) ───────────────
           Builder(builder: (context) {
-            final isAnonymous =
-                FirebaseAuth.instance.currentUser?.isAnonymous ?? true;
-            if (widget.currentUserId != null && !isAnonymous) {
+            if (widget.currentUserId != null) {
               // Real user — show comment input
               return Column(
                 children: [

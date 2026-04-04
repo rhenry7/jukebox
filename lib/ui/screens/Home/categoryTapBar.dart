@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
 
 import 'community_reviews.dart';
 import 'friends_reviews.dart';
@@ -89,44 +88,6 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
               _buildPillTab('Popular'),
               _buildPillTab('Friends'),
               _buildPillTab('For You'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-      child: GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const SearchScreen()),
-        ),
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1C),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: const Row(
-            children: [
-              Icon(Icons.manage_search, color: Colors.white54, size: 22),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Search for crates, artists, or friends...',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SizedBox(width: 8),
             ],
           ),
         ),
@@ -239,7 +200,6 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildTabBarHeader(),
-                    _buildSearchBar(context),
                   ],
                 ),
                 builder: (context, value, child) {

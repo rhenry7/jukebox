@@ -29,11 +29,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // Allow users to create/update their own user document
       allow write: if isOwner(userId);
-      
+
       // Reviews subcollection
       match /reviews/{reviewId} {
-        // Allow authenticated users to read all reviews (for community feed)
-        allow read: if isAuthenticated();
+        // Reviews are public content — anyone can read without signing in.
+        allow read: if true;
         // Only real (non-anonymous) users can create or modify reviews.
         // Repost copies have the original author's userId, so we check
         // repostedByUserId == auth.uid instead for those documents.
@@ -138,8 +138,8 @@ service cloud.firestore {
     // This rule must come after the specific users/{userId}/reviews rule to avoid conflicts
     // The wildcard pattern matches any path ending in /reviews/{reviewId}
     match /{path=**}/reviews/{reviewId} {
-      // Allow authenticated users to read any review (for community feed)
-      allow read: if isAuthenticated();
+      // Reviews are public content — anyone can read without signing in.
+      allow read: if true;
       // Only real (non-anonymous) users can write reviews
       allow write: if isRealUser() &&
                       request.resource.data.userId == request.auth.uid;
@@ -214,8 +214,8 @@ service cloud.firestore {
 
     // Review likes collection (top-level)
     match /reviewLikes/{reviewId} {
-      // Allow authenticated users to read like counts
-      allow read: if isAuthenticated();
+      // Like counts are public — visible on review cards without signing in.
+      allow read: if true;
       // Allow create/update for count increments; block delete to protect count integrity.
       allow create, update: if isAuthenticated();
       allow delete: if false;

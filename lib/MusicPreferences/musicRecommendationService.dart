@@ -147,17 +147,18 @@ class MusicRecommendationService {
         });
       }
 
-      // Collect styles/genres from positively-rated recent reviews for Discogs lookup
+      // Collect styles/genres from positively-rated recent reviews for Discogs lookup.
+      // Use up to 15 reviews (was 5) to get a richer style signal, and always
+      // include favorite genres as a safety net so Discogs never gets empty input.
       final positiveStyles = <String>{};
       final positiveGenres = <String>{};
-      for (final review in reviews.take(5)) {
+      for (final review in reviews.take(15)) {
         if (review.score >= 3.5 && review.genres != null) {
           positiveStyles.addAll(review.genres!);
         }
       }
-      if (positiveStyles.isEmpty) {
-        positiveGenres.addAll(preferences.favoriteGenres.take(3));
-      }
+      // Always add favorite genres — they're the highest-confidence signal.
+      positiveGenres.addAll(preferences.favoriteGenres.take(3));
 
       final discogsCandidatesFuture = DiscogsService.searchByStyles(
         styles: positiveStyles.toList(),
@@ -1147,13 +1148,75 @@ Rules:
     throw Exception('Max retries exceeded');
   }
 
+  /// Escapes unescaped double quotes inside JSON string values.
+  ///
+  /// GPT sometimes returns names like `"Evelyn "Champagne" King"` where the
+  /// inner quotes are not escaped, breaking [jsonDecode]. This scanner repairs
+  /// those cases by checking whether each `"` encountered inside a string is
+  /// followed by a structural JSON character (`,`, `}`, `]`, `:`). If not, the
+  /// quote must be part of the string content and is escaped as `\"`.
+  static String _sanitizeJsonQuotes(String input) {
+    final buf = StringBuffer();
+    bool inString = false;
+    bool escaped = false;
+    for (int i = 0; i < input.length; i++) {
+      final c = input[i];
+      if (escaped) {
+        buf.write(c);
+        escaped = false;
+        continue;
+      }
+      if (c == r'\') {
+        buf.write(c);
+        escaped = true;
+        continue;
+      }
+      if (c != '"') {
+        buf.write(c);
+        continue;
+      }
+      // c == '"'
+      if (!inString) {
+        inString = true;
+        buf.write(c);
+      } else {
+        // Peek ahead past whitespace to find the next meaningful character.
+        int j = i + 1;
+        while (j < input.length &&
+            (input[j] == ' ' ||
+                input[j] == '\t' ||
+                input[j] == '\n' ||
+                input[j] == '\r')) {
+          j++;
+        }
+        final next = j < input.length ? input[j] : '\x00';
+        if (next == ',' || next == '}' || next == ']' || next == ':' || j >= input.length) {
+          // Real closing quote — exit string context.
+          inString = false;
+          buf.write(c);
+        } else {
+          // Unescaped quote inside a string value — escape it.
+          buf.write(r'\"');
+        }
+      }
+    }
+    return buf.toString();
+  }
+
   static List<MusicRecommendation> _parseRecommendations(String response) {
     try {
       // Clean response - remove markdown code blocks if present
       final cleanResponse =
           response.replaceAll('```json', '').replaceAll('```', '').trim();
 
-      final dynamic decoded = jsonDecode(cleanResponse);
+      // Try direct parse first; if it fails due to unescaped quotes (common
+      // with artist names like Evelyn "Champagne" King), sanitize and retry.
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(cleanResponse);
+      } on FormatException {
+        decoded = jsonDecode(_sanitizeJsonQuotes(cleanResponse));
+      }
 
       // Handle both array and single object responses
       List<dynamic> parsed;

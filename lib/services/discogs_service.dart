@@ -108,18 +108,21 @@ class DiscogsService {
       ...genres.take(2),
     ];
 
-    for (final query in queries) {
-      try {
-        final releases = await _searchDiscogs(style: query, perPage: perStyle * 2);
-        for (final r in releases) {
-          if (seen.contains(r.id)) continue;
-          if (r.communityRating < minRating) continue;
-          if (r.ratingCount < minRatingCount) continue;
-          seen.add(r.id);
-          results.add(r);
-        }
-      } catch (e) {
+    final responses = await Future.wait(
+      queries.map((query) => _searchDiscogs(style: query, perPage: perStyle * 2)
+          .catchError((e) {
         debugPrint('[Discogs] Error searching style "$query": $e');
+        return <DiscogsRelease>[];
+      })),
+    );
+
+    for (final releases in responses) {
+      for (final r in releases) {
+        if (seen.contains(r.id)) continue;
+        if (r.communityRating < minRating) continue;
+        if (r.ratingCount < minRatingCount) continue;
+        seen.add(r.id);
+        results.add(r);
       }
     }
 

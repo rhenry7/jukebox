@@ -29,8 +29,8 @@ final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
   return FirebaseAuth.instance;
 });
 
-/// True when no user is signed in OR the user is anonymous (guest preview mode)
+/// True when no user is signed in (anonymous auth is disabled).
 final isAnonymousUserProvider = Provider<bool>((ref) {
   final user = ref.watch(currentUserProvider);
-  return user == null || user.isAnonymous;
+  return user == null;
 });

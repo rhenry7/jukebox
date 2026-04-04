@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
@@ -37,9 +36,8 @@ class _FriendsReviewsCollectionState
     final ref = this.ref;
     final userId = ref.watch(currentUserIdProvider);
 
-    // Not signed in (or anonymous)
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (userId == null || currentUser?.isAnonymous == true) {
+    // Not signed in
+    if (userId == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

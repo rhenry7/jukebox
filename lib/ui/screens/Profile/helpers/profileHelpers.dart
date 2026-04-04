@@ -58,11 +58,11 @@ Widget profileRoute(String route) {
       return const DeleteAccountScreen();
     default:
       final user = auth.currentUser;
-      if (user != null && !user.isAnonymous) {
-        debugPrint('real user signed in');
+      if (user != null) {
+        debugPrint('user signed in');
         return const UserProfileSummary();
       } else {
-        debugPrint('anonymous or no user — showing sign-in');
+        debugPrint('no user — showing sign-in');
         return const SignInScreen();
       }
   }
@@ -77,14 +77,13 @@ void signOut() async {
   }
 }
 
-/// Returns true only if there is a real (non-anonymous) signed-in user.
+/// Returns true only if there is a signed-in user.
 bool isRealUserSignedIn() {
-  final user = FirebaseAuth.instance.currentUser;
-  return user != null && !user.isAnonymous;
+  return FirebaseAuth.instance.currentUser != null;
 }
 
-/// A reactive gate that shows [ProfilePage] for real users and [SignInScreen]
-/// for anonymous or unauthenticated users. Rebuilds on auth state changes.
+/// A reactive gate that shows [ProfilePage] for signed-in users and
+/// [SignInScreen] for unauthenticated users. Rebuilds on auth state changes.
 class ProfileGate extends StatelessWidget {
   const ProfileGate({super.key});
 
@@ -98,8 +97,7 @@ class ProfileGate extends StatelessWidget {
         // shows SignInScreen, whose _checkAuthState then pushes a new MainNav
         // and resets the tab to 0 (home).
         final user = snapshot.data ?? FirebaseAuth.instance.currentUser;
-        final isReal = user != null && !user.isAnonymous;
-        return isReal ? const ProfilePage() : const SignInScreen();
+        return user != null ? const ProfilePage() : const SignInScreen();
       },
     );
   }

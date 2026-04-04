@@ -62,13 +62,13 @@ class ReviewRecommendationService {
   static const _timeoutDuration = Duration(seconds: 45);
 
   /// Max community reviews fetched from Firestore.
-  static const _fetchLimit = 400;
+  static const _fetchLimit = 150;
 
   /// Reviews passed to stage-1 scoring (after low-quality filter).
   static const _minReviewScore = 3.0;
 
   /// Reviews forwarded to OpenAI after local pre-ranking.
-  static const _aiPoolSize = 80;
+  static const _aiPoolSize = 30;
 
   /// Max results returned from OpenAI stage.
   static const _maxTopN = 50;

@@ -198,7 +198,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null && !user.isAnonymous) {
+      if (user != null) {
         final uid = user.uid;
 
         final prefs = EnhancedUserPreferences(
