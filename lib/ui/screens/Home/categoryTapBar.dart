@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter/rendering.dart';
 
 import 'community_reviews.dart';
@@ -44,11 +45,14 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
 
   Widget _buildTabBarHeader() {
     return Container(
+      // Equal *visible* space above and below the pill (~16px each). The feed
+      // already starts its first card AppSpacing.lg below, so no bottom
+      // padding here. The top is 6px less than that because the logo's
+      // letters end ~6px above the app bar's edge (at fontSize 64).
       padding: const EdgeInsets.only(
-        left: 14.0,
-        right: 14.0,
-        top: 8.0,
-        bottom: 16.0,
+        left: AppSpacing.pageGutter,
+        right: AppSpacing.pageGutter,
+        top: AppSpacing.lg - 6,
       ),
       alignment: Alignment.centerLeft,
       child: DecoratedBox(
