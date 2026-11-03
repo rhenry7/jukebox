@@ -57,7 +57,7 @@ class _NeonTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = Text(
-      'REVRB',
+      'REVERB',
       style: GoogleFonts.gasoekOne(textStyle: _dimStyle),
     );
 
@@ -71,7 +71,7 @@ class _NeonTitle extends StatelessWidget {
             // value goes 0 → 1 → 0 on each cycle
             final style = TextStyle.lerp(_dimStyle, _brightStyle, value)!;
             return Text(
-              'REVRB',
+              'REVERB',
               style: GoogleFonts.gasoekOne(textStyle: style),
             );
           },
@@ -206,14 +206,14 @@ class MainNavState extends ConsumerState<MainNav> {
                       shape: BoxShape.circle,
                       color: Colors.grey[850],
                     ),
-                    child: const Icon(Icons.menu,
-                        color: Colors.white, size: 22),
+                    child:
+                        const Icon(Icons.menu, color: Colors.white, size: 22),
                   ),
                 ),
               ),
               title: _NeonTitle(),
               titleTextStyle:
-                  const TextStyle(color: Colors.white, fontSize: 28),
+                  const TextStyle(color: Colors.white, fontSize: 64),
               toolbarHeight: 70.0,
               actions: [
                 Padding(
@@ -222,8 +222,7 @@ class MainNavState extends ConsumerState<MainNav> {
                     borderRadius: BorderRadius.circular(50),
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const SearchScreen()),
+                      MaterialPageRoute(builder: (_) => const SearchScreen()),
                     ),
                     child: Container(
                       width: 40,
@@ -418,8 +417,8 @@ class _AppDrawer extends StatelessWidget {
                 margin: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                      color: Colors.red.withOpacity(0.25), width: 1),
+                  side:
+                      BorderSide(color: Colors.red.withOpacity(0.25), width: 1),
                 ),
                 child: const ProfileButton(
                   name: 'Delete Account',

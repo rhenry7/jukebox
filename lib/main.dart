@@ -21,7 +21,7 @@ void main() async {
   if (kIsWeb && firebaseWebOptionsKey.isEmpty) {
     runApp(
       MaterialApp(
-        title: 'REVRB',
+        title: 'REVERB',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -79,7 +79,7 @@ void main() async {
             'is configured correctly.\n\nError: $e';
     runApp(
       MaterialApp(
-        title: 'REVRB',
+        title: 'REVERB',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -169,7 +169,7 @@ class MyApp extends ConsumerWidget {
     // Show loading screen while checking auth state
     if (authState.isLoading) {
       return MaterialApp(
-        title: 'REVRB',
+        title: 'REVERB',
         themeMode: ThemeMode.dark,
         darkTheme: ThemeData(
           brightness: Brightness.dark,
@@ -191,7 +191,7 @@ class MyApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'REVRB',
+      title: 'REVERB',
       themeMode: ThemeMode.dark,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -219,7 +219,7 @@ class MyApp extends ConsumerWidget {
           },
         ),
       ),
-      home: const MainNav(title: 'REVRB'),
+      home: const MainNav(title: 'REVERB'),
     );
   }
 }

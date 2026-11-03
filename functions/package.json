@@ -1,5 +1,5 @@
 {
-  "name": "revrb-functions",
+  "name": "reverb-functions",
   "private": true,
   "main": "lib/index.js",
   "engines": {

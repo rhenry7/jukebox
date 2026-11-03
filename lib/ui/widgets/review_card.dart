@@ -1,3 +1,6 @@
+import 'dart:ui' show ImageFilter;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +22,7 @@ import '../../services/repost_service.dart';
 import '../screens/review_detail/review_detail_page.dart';
 import '../theme/tokens.dart';
 import 'auth_gate_modal.dart';
+import 'review_comments.dart';
 
 /// Returns genres for the review, splitting any "/" concatenated strings
 /// (e.g. from Discogs/MusicBrainz), deduped by lowercase.
@@ -303,7 +307,13 @@ class ReviewCardWidget extends ConsumerWidget {
                     const _StaticLikeCount(),
                   const SizedBox(width: AppSpacing.lg),
                   GestureDetector(
-                    onTap: () {}, // comment placeholder
+                    onTap: reviewId == null
+                        ? null
+                        : () => showReviewCommentsSheet(
+                              context,
+                              review: review,
+                              reviewId: reviewId!,
+                            ),
                     child: const Icon(
                       Ionicons.chatbubble_outline,
                       color: Colors.white70,
@@ -813,6 +823,7 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
     if (widget.review.isRepost &&
         widget.review.repostedByDisplayName != null) {
       return _ReviewCardSurface(
+        imageUrl: widget.review.albumImageUrl,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -823,7 +834,10 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
       );
     }
 
-    return _ReviewCardSurface(child: card);
+    return _ReviewCardSurface(
+      imageUrl: widget.review.albumImageUrl,
+      child: card,
+    );
   }
 }
 
@@ -832,10 +846,16 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
 /// their own Card — only position them (e.g. with [AppSpacing.cardListItem]).
 class _ReviewCardSurface extends StatelessWidget {
   final Widget child;
-  const _ReviewCardSurface({required this.child});
+
+  /// Album art used as the blurred card background (see [kAlbumArtCardBackground]).
+  final String? imageUrl;
+
+  const _ReviewCardSurface({required this.child, this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
+    final url = imageUrl;
+    final showArt = kAlbumArtCardBackground && url != null && url.isNotEmpty;
     return Material(
       color: AppColors.surfaceContainer,
       shape: const RoundedRectangleBorder(
@@ -843,7 +863,87 @@ class _ReviewCardSurface extends StatelessWidget {
         side: BorderSide(color: AppColors.ghostBorder),
       ),
       clipBehavior: Clip.antiAlias,
-      child: child,
+      child: showArt
+          ? Stack(
+              children: [
+                Positioned.fill(child: _AlbumArtBackdrop(imageUrl: url)),
+                child,
+              ],
+            )
+          : child,
+    );
+  }
+}
+
+/// Experiment: album art as the card background. Set to false to go back to
+/// the flat surface everywhere.
+const bool kAlbumArtCardBackground = true;
+
+/// Album art as a card background, in three layers:
+///  1. the art with a deep Gaussian blur — carries the album's colours;
+///  2. the same art unblurred at ~20% so some texture and style shows through;
+///  3. a dark scrim so white text stays readable.
+class _AlbumArtBackdrop extends StatelessWidget {
+  const _AlbumArtBackdrop({required this.imageUrl});
+
+  final String imageUrl;
+
+  static const double _blurSigma = 48.3;
+
+  /// Opacity of the whole art (blurred + sharp layers).
+  static const double _artOpacity = 0.85;
+  static const double _sharpOpacity = 0.20;
+  static const double _scrimTop = 0.63;
+  static const double _scrimMiddle = 0.78;
+  static const double _scrimBottom = 0.86;
+
+  Widget _art() => CachedNetworkImage(
+        imageUrl: imageUrl,
+        fit: BoxFit.cover,
+        // While loading or on error, the plain card surface shows through.
+        placeholder: (_, __) => const SizedBox.shrink(),
+        errorWidget: (_, __, ___) => const SizedBox.shrink(),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Opacity(
+            opacity: _artOpacity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ImageFiltered(
+                  imageFilter: ImageFilter.blur(
+                    sigmaX: _blurSigma,
+                    sigmaY: _blurSigma,
+                    tileMode: TileMode.clamp,
+                  ),
+                  // Slight overscale hides the soft edges the blur leaves.
+                  child: Transform.scale(scale: 1.25, child: _art()),
+                ),
+                Opacity(opacity: _sharpOpacity, child: _art()),
+              ],
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.surfaceContainerLowest.withValues(alpha: _scrimTop),
+                  AppColors.surfaceContainerLowest.withValues(alpha: _scrimMiddle),
+                  AppColors.surfaceContainerLowest.withValues(alpha: _scrimBottom),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

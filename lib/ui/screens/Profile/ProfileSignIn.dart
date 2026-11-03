@@ -64,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
       if (user != null) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => const MainNav(title: 'REVRB'),
+            builder: (context) => const MainNav(title: 'REVERB'),
           ),
           (Route<dynamic> route) => false,
         );
@@ -113,7 +113,7 @@ class _SignInScreenState extends State<SignInScreen> {
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => const MainNav(title: 'REVRB'),
+                builder: (context) => const MainNav(title: 'REVERB'),
               ),
               (Route<dynamic> route) => false, // Remove all previous routes
             );
@@ -170,7 +170,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (hasPrefs) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVRB')),
+          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVERB')),
           (Route<dynamic> route) => false,
         );
       } else {
@@ -313,7 +313,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (hasPrefs) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVRB')),
+          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVERB')),
           (Route<dynamic> route) => false,
         );
       } else {

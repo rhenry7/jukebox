@@ -1,4 +1,4 @@
-# REVRB recommendation functions
+# REVERB recommendation functions
 
 Server-side CF-RAG recommender for the For You tab and the post-review
 "Because you just reviewed X" sheet.

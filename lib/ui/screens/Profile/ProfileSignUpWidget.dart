@@ -60,7 +60,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
       if (hasPrefs) {
         // Returning user — go straight home
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVRB')),
+          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVERB')),
           (Route<dynamic> route) => false,
         );
         ScaffoldMessenger.of(context).showSnackBar(
@@ -300,7 +300,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                             // Existing preferences — go straight home
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(
-                                builder: (_) => const MainNav(title: 'REVRB'),
+                                builder: (_) => const MainNav(title: 'REVERB'),
                               ),
                               (route) => false,
                             );
