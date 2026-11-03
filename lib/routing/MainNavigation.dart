@@ -59,28 +59,32 @@ class _NeonTitle extends StatelessWidget {
       style: GoogleFonts.gasoekOne(textStyle: _dimStyle),
     );
 
-    return base
-        // Slow fade up to full brightness
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .custom(
-          duration: 2800.ms,
-          curve: Curves.easeInOut,
-          builder: (context, value, child) {
-            // value goes 0 → 1 → 0 on each cycle
-            final style = TextStyle.lerp(_dimStyle, _brightStyle, value)!;
-            return Text(
-              'REVERB',
-              style: GoogleFonts.gasoekOne(textStyle: style),
-            );
-          },
-        )
-        // Brief stutter flicker on top — like a dying neon tube
-        .then(delay: 1400.ms)
-        .shimmer(
-          duration: 120.ms,
-          color: const Color.fromARGB(61, 172, 49, 49),
-          angle: 0,
-        );
+    // Shrinks the logo to fit the space between the menu and search buttons
+    // on narrow screens; never grows it past the app bar's font size.
+    return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: base
+            // Slow fade up to full brightness
+            .animate(onPlay: (c) => c.repeat(reverse: true))
+            .custom(
+              duration: 2800.ms,
+              curve: Curves.easeInOut,
+              builder: (context, value, child) {
+                // value goes 0 → 1 → 0 on each cycle
+                final style = TextStyle.lerp(_dimStyle, _brightStyle, value)!;
+                return Text(
+                  'REVERB',
+                  style: GoogleFonts.gasoekOne(textStyle: style),
+                );
+              },
+            )
+            // Brief stutter flicker on top — like a dying neon tube
+            .then(delay: 1400.ms)
+            .shimmer(
+              duration: 120.ms,
+              color: const Color.fromARGB(61, 172, 49, 49),
+              angle: 0,
+            ));
   }
 }
 
