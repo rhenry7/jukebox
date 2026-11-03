@@ -8,8 +8,13 @@
 #   FIREBASE_TOKEN                         - From: firebase login:ci (for deploy)
 #   Spotify:     SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 #   News:        NEWS_API_KEY
-#   OpenAI:      OPENAI_API_KEY
 #   Unsplash:    UNSPLASH_ACCESS_KEY, UNSPLASH_SECRET
+#   Demo login:  DEMO_USER_EMAIL, DEMO_USER_PASSWORD  - shared test account that
+#                visitors are signed into automatically (see demo_auto_sign_in.dart)
+#
+# Never add OPENAI_API_KEY (or any paid AI key) here: every --dart-define is
+# compiled into the public web bundle. AI work runs in functions/ with keys in
+# Secret Manager.
 #
 # Note: All secret values are automatically sanitized (newlines removed, quotes escaped)
 #       to prevent build failures. For JSON values like FIREBASE_OPTIONS_KEY, consider
@@ -58,9 +63,10 @@ jobs:
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           UNSPLASH_SECRET: ${{ secrets.UNSPLASH_SECRET }}
+          DEMO_USER_EMAIL: ${{ secrets.DEMO_USER_EMAIL }}
+          DEMO_USER_PASSWORD: ${{ secrets.DEMO_USER_PASSWORD }}
         run: |
           # Sanitize function: removes newlines, escapes quotes, collapses spaces
           # Usage: sanitized_value=$(sanitize "$raw_value")
@@ -130,14 +136,6 @@ jobs:
             echo "⚠️  NEWS_API_KEY is not set (optional) - News features may not work"
           fi
           
-          if [ -n "$OPENAI_API_KEY" ] && [ "$OPENAI_API_KEY" != "" ]; then
-            SANITIZED_VALUE=$(sanitize "$OPENAI_API_KEY")
-            DART_DEFINES+=("--dart-define=OPENAI_API_KEY=${SANITIZED_VALUE}")
-            echo "✅ OPENAI_API_KEY will be included in build"
-          else
-            echo "⚠️  OPENAI_API_KEY is not set (optional) - OpenAI features may not work"
-          fi
-          
           if [ -n "$UNSPLASH_ACCESS_KEY" ] && [ "$UNSPLASH_ACCESS_KEY" != "" ]; then
             SANITIZED_VALUE=$(sanitize "$UNSPLASH_ACCESS_KEY")
             DART_DEFINES+=("--dart-define=UNSPLASH_ACCESS_KEY=${SANITIZED_VALUE}")
@@ -154,6 +152,14 @@ jobs:
             echo "⚠️  UNSPLASH_SECRET is not set (optional) - Unsplash features may not work"
           fi
           
+          if [ -n "$DEMO_USER_EMAIL" ] && [ -n "$DEMO_USER_PASSWORD" ]; then
+            DART_DEFINES+=("--dart-define=DEMO_USER_EMAIL=$(sanitize "$DEMO_USER_EMAIL")")
+            DART_DEFINES+=("--dart-define=DEMO_USER_PASSWORD=$(sanitize "$DEMO_USER_PASSWORD")")
+            echo "✅ Demo auto sign-in will be included in build"
+          else
+            echo "⚠️  DEMO_USER_EMAIL/DEMO_USER_PASSWORD not set - visitors will start signed out"
+          fi
+
           echo "✅ Building web app with ${#DART_DEFINES[@]} API key definitions..."
           flutter build web --release "${DART_DEFINES[@]}"
 

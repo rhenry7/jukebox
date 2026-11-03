@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ionicons/ionicons.dart';
@@ -27,18 +29,52 @@ Future<void> showReviewCommentsSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: AppColors.surfaceContainerLow,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-    ),
+    // The glass surface below paints the sheet's background.
+    backgroundColor: Colors.transparent,
     builder: (sheetContext) => Padding(
       // Lift the sheet above the keyboard while typing.
       padding: EdgeInsets.only(
         bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
       ),
-      child: _ReviewCommentsSheet(review: review, reviewId: reviewId),
+      child: _GlassSheetSurface(
+        child: _ReviewCommentsSheet(review: review, reviewId: reviewId),
+      ),
     ),
   );
+}
+
+/// Frosted-glass sheet background: the screen behind is heavily blurred and
+/// only faintly shows through a mostly opaque tint, so white text stays crisp.
+class _GlassSheetSurface extends StatelessWidget {
+  const _GlassSheetSurface({required this.child});
+
+  final Widget child;
+
+  static const double _blurSigma = 24;
+  static const double _tintOpacity = 0.53;
+
+  static const _radius =
+      BorderRadius.vertical(top: Radius.circular(AppRadius.xl));
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: _radius,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: _blurSigma, sigmaY: _blurSigma),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLow.withValues(alpha: _tintOpacity),
+            borderRadius: _radius,
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
 }
 
 class _ReviewCommentsSheet extends ConsumerWidget {
@@ -133,7 +169,12 @@ class _ReviewCommentsSheet extends ConsumerWidget {
                           ),
                         ),
             ),
-            CommentComposer(review: review, reviewId: reviewId),
+            CommentComposer(
+              review: review,
+              reviewId: reviewId,
+              // Let the glass show through instead of a solid strip.
+              backgroundColor: Colors.transparent,
+            ),
           ],
         );
       },
@@ -143,10 +184,16 @@ class _ReviewCommentsSheet extends ConsumerWidget {
 
 /// Text field + send button that posts a comment on a review.
 class CommentComposer extends ConsumerStatefulWidget {
-  const CommentComposer({super.key, required this.review, required this.reviewId});
+  const CommentComposer({
+    super.key,
+    required this.review,
+    required this.reviewId,
+    this.backgroundColor = AppColors.surfaceContainerLow,
+  });
 
   final Review review;
   final String? reviewId;
+  final Color backgroundColor;
 
   @override
   ConsumerState<CommentComposer> createState() => _CommentComposerState();
@@ -205,7 +252,7 @@ class _CommentComposerState extends ConsumerState<CommentComposer> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: widget.backgroundColor,
         border: Border(
           top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
         ),

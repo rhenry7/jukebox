@@ -116,15 +116,14 @@ class UserReviewsCollection extends ConsumerWidget {
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Navigate to discovery tab (index 1)
                     final mainNavState =
                         context.findAncestorStateOfType<MainNavState>();
                     if (mainNavState != null) {
-                      mainNavState.navigateToTab(1);
+                      mainNavState.navigateToTab(MainNavState.addTab);
                     }
                   },
-                  icon: const Icon(Icons.explore),
-                  label: const Text('Discover new music to review'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Write a review'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red[600],
                     foregroundColor: Colors.white,

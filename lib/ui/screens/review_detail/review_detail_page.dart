@@ -14,6 +14,7 @@ import '../../../services/review_likes_service.dart';
 import '../../../utils/cached_image.dart';
 import '../../../utils/helpers.dart';
 import '../../widgets/review_comments.dart';
+import '../../widgets/spotify_play_button.dart';
 
 // ─── Design system tokens ────────────────────────────────────────────────────
 const _bg = Color(0xFF0E0E0E);
@@ -198,6 +199,14 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
                             ),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ── Play on Spotify ──────────────────────────────────
+                      SpotifyPlayButton(
+                        title: review.title,
+                        artist: review.artist,
                       ),
 
                       const SizedBox(height: 24),

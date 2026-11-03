@@ -92,13 +92,12 @@ class _CommunityReviewsCollectionState
             title: 'No community reviews yet',
             message: 'Be the first to share your music reviews!',
             action: AppStateAction(
-              label: 'Discover new music to review',
-              icon: Icons.explore,
+              label: 'Write a review',
+              icon: Icons.add,
               onPressed: () {
-                // Navigate to discovery tab (index 1)
                 context
                     .findAncestorStateOfType<MainNavState>()
-                    ?.navigateToTab(1);
+                    ?.navigateToTab(MainNavState.addTab);
               },
             ),
           );

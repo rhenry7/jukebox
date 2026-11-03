@@ -2,10 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test_project/DiscoveryTab/discoveryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Home/categoryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/ui/screens/Trending/trending_tracks.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
@@ -95,9 +93,14 @@ class MainNavState extends ConsumerState<MainNav> {
   late Future<MusicPreferences?> _preferencesFuture;
   late final List<Widget> _pages;
 
+  /// Bottom nav destinations, in order.
+  static const int homeTab = 0;
+  static const int addTab = 1;
+  static const int profileTab = 2;
+
   void _onItemTapped(int index) {
-    if (index == 2) {
-      // Assume the third item triggers the bottom sheet
+    if (index == addTab) {
+      // The add button opens the review sheet instead of switching tabs
       showModalBottomSheet(
           context: context,
           isScrollControlled: true,
@@ -119,7 +122,7 @@ class MainNavState extends ConsumerState<MainNav> {
   }
 
   void _onChromeVisibilityChanged(bool visible) {
-    if (!mounted || (currentPageIndex != 0 && currentPageIndex != 1)) {
+    if (!mounted || currentPageIndex != homeTab) {
       return;
     }
     if (_isNavigationChromeVisible == visible) {
@@ -150,13 +153,11 @@ class MainNavState extends ConsumerState<MainNav> {
     super.initState();
     _pages = [
       CategoryTapBar(onChromeVisibilityChanged: _onChromeVisibilityChanged),
-      DiscoveryTapBar(onChromeVisibilityChanged: _onChromeVisibilityChanged),
       const MyReviewSheetContentForm(
         title: 'track-title',
         artist: 'artist',
         albumImageUrl: '',
       ),
-      const TrendingTracksWidget(),
       profileRouter(),
     ];
     // If navigateToPreferences is true, navigate after first frame
@@ -165,7 +166,7 @@ class MainNavState extends ConsumerState<MainNav> {
         if (mounted) {
           // Navigate to profile tab first
           setState(() {
-            currentPageIndex = 4;
+            currentPageIndex = profileTab;
           });
           // Then navigate to preferences
           Future.delayed(const Duration(milliseconds: 300), () {
@@ -289,24 +290,10 @@ class MainNavState extends ConsumerState<MainNav> {
                       label: '',
                     ),
                     NavigationDestination(
-                      selectedIcon:
-                          const Icon(Ionicons.planet, color: Colors.white),
-                      icon: Icon(Ionicons.planet_outline,
-                          color: Colors.grey[500]!),
-                      label: '',
-                    ),
-                    NavigationDestination(
                       selectedIcon: Icon(Ionicons.add_circle,
                           size: 30.0, color: Colors.greenAccent[700]),
                       icon: Icon(Ionicons.add_circle_outline,
                           size: 40, color: Colors.greenAccent[700]),
-                      label: '',
-                    ),
-                    NavigationDestination(
-                      selectedIcon:
-                          const Icon(Ionicons.flash, color: Colors.white),
-                      icon: Icon(Ionicons.flash_outline,
-                          color: Colors.grey[500]!),
                       label: '',
                     ),
                     NavigationDestination(

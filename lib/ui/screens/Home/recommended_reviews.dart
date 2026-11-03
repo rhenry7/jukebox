@@ -168,12 +168,12 @@ class _RecommendedReviewsCollectionState
             title: 'No recommendations yet',
             message: 'Write some reviews to get personalized recommendations',
             action: AppStateAction(
-              label: 'Discover music to review',
-              icon: Icons.explore,
+              label: 'Write a review',
+              icon: Icons.add,
               onPressed: () {
                 context
                     .findAncestorStateOfType<MainNavState>()
-                    ?.navigateToTab(1);
+                    ?.navigateToTab(MainNavState.addTab);
               },
             ),
           );
