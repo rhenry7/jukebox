@@ -15,6 +15,7 @@ import 'package:flutter_test_project/utils/spotify_retry.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:spotify/spotify.dart' as spotify;
 
+import 'review_matches_sheet.dart';
 import 'review_text_editor.dart';
 import '../../widgets/auth_gate_modal.dart';
 
@@ -422,7 +423,7 @@ class _MyReviewSheetContentFormState
     }
 
     try {
-      await submitReview(
+      final reviewPath = await submitReview(
         review,
         ratingScore,
         _selectedTrackArtist.isNotEmpty ? _selectedTrackArtist : widget.artist,
@@ -478,7 +479,17 @@ class _MyReviewSheetContentFormState
             backgroundColor: Colors.green,
           ),
         );
+        // The navigator outlives this form, so the sheet can open after the pop.
+        final navigatorContext =
+            Navigator.of(context, rootNavigator: true).context;
         Navigator.pop(context);
+        if (reviewPath != null && navigatorContext.mounted) {
+          unawaited(showReviewMatchesSheet(
+            navigatorContext,
+            reviewPath: reviewPath,
+            reviewedTitle: submittedTrack,
+          ));
+        }
       }
     } catch (e) {
       if (mounted) {

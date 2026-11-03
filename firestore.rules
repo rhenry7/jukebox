@@ -77,6 +77,12 @@ service cloud.firestore {
       match /signals/{signalId} {
         allow read, write: if isOwner(userId);
       }
+
+      // Cached For You list — written only by Cloud Functions (Admin SDK).
+      match /forYou/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
       
       // Recommendation outcomes subcollection (feedback loop for learning)
       match /recommendationOutcomes/{outcomeId} {
@@ -210,6 +216,18 @@ service cloud.firestore {
           allow update: if false;
         }
       }
+    }
+
+    // Recommendation vectors and taste profiles — server-only (Cloud Functions
+    // use the Admin SDK, which bypasses rules). Never readable by clients.
+    match /reviewVectors/{docId} {
+      allow read, write: if false;
+    }
+    match /reviewAspects/{docId} {
+      allow read, write: if false;
+    }
+    match /userVectors/{docId} {
+      allow read, write: if false;
     }
 
     // Review likes collection (top-level)

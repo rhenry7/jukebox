@@ -1,0 +1,23 @@
+{
+  "name": "revrb-functions",
+  "private": true,
+  "main": "lib/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test lib/__tests__/",
+    "backfill": "tsc && node lib/scripts/backfill.js",
+    "eval": "tsc && node lib/scripts/eval.js",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "typescript": "^5.6.3"
+  }
+}

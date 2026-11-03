@@ -18,6 +18,7 @@ import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCar
 import 'package:flutter_test_project/ui/screens/playlists/playlist_detail_screen.dart';
 import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -489,18 +490,12 @@ class _ReviewsListContent extends StatelessWidget {
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
           itemCount: sorted.length,
           itemBuilder: (context, i) {
             final item = sorted[i];
-            return Card(
-              elevation: 1,
-              margin: const EdgeInsets.all(5),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-                side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
-              ),
-              color: Colors.white10,
+            return Padding(
+              padding: AppSpacing.cardListItem,
               child: ReviewCardWithGenres(
                 review: item.review,
                 reviewId: item.fullReviewId,

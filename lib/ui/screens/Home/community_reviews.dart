@@ -1,17 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gap/gap.dart';
 
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/community_reviews_provider.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
-import '../../widgets/skeleton_loader.dart';
-import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
-import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/theme/tokens.dart';
+import 'package:flutter_test_project/ui/widgets/app_states.dart';
+import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 
 /// Community reviews widget - shows all users' reviews with lazy loading
 class CommunityReviewsCollection extends ConsumerStatefulWidget {
@@ -29,157 +27,58 @@ class CommunityReviewsCollection extends ConsumerStatefulWidget {
 
 class _CommunityReviewsCollectionState
     extends ConsumerState<CommunityReviewsCollection> {
-  final ScrollController _scrollController = ScrollController();
-  bool _isLoadingMore = false;
-  bool _hasMoreItems = true;
   Future<List<ReviewWithDocId>>? _genreFilteredFuture;
   String _genreRequestKey = '';
 
-  @override
-  void initState() {
-    super.initState();
-    // Listen to scroll events for lazy loading
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (widget.selectedGenres.isNotEmpty) return;
-    if (!_hasMoreItems) return;
-
-    // Load more only while actively scrolling down near the bottom.
-    if (!_isLoadingMore &&
-        _scrollController.hasClients &&
-        _scrollController.position.userScrollDirection ==
-            ScrollDirection.reverse &&
-        _scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent * 0.8) {
-      _loadMore();
-    }
-  }
-
   Future<void> _loadMore() async {
-    if (_isLoadingMore) return;
-
-    setState(() {
-      _isLoadingMore = true;
-    });
-
     // Increase the limit to load more reviews
     ref.read(loadMoreCommunityReviewsProvider)();
-
     // Wait a bit for the data to load
     await Future.delayed(const Duration(milliseconds: 300));
-
-    if (mounted) {
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final userId = ref.watch(currentUserIdProvider);
     final limit = ref.watch(communityReviewsLimitProvider);
     final reviewsAsync = ref.watch(communityReviewsProvider(limit));
 
     if (widget.selectedGenres.isNotEmpty) {
-      _hasMoreItems = false;
       _ensureGenreFilteredFuture();
 
       return FutureBuilder<List<ReviewWithDocId>>(
         future: _genreFilteredFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return ListView.builder(
-              itemCount: 3,
-              itemBuilder: (_, __) => const ReviewCardSkeleton(),
-            );
+            return const ReviewFeedSkeleton();
           }
 
           if (snapshot.hasError) {
             debugPrint(
                 '❌ Error loading full community genre query: ${snapshot.error}');
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Error loading community reviews',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    snapshot.error.toString(),
-                    style: const TextStyle(color: Colors.white70),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _refreshGenreFilteredFuture,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return AppErrorState(
+              title: 'Error loading community reviews',
+              error: snapshot.error,
+              onRetry: _refreshGenreFilteredFuture,
             );
           }
 
           final filteredReviews = snapshot.data ?? <ReviewWithDocId>[];
           if (filteredReviews.isEmpty) {
             final selectedLabels = widget.selectedGenres.join(', ');
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.tune, size: 64, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'No reviews for selected genres',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      selectedLabels.isEmpty
-                          ? 'Try choosing a different genre filter.'
-                          : 'Try adjusting: $selectedLabels',
-                      style: const TextStyle(color: Colors.white70),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
+            return AppEmptyState(
+              icon: Icons.tune,
+              title: 'No reviews for selected genres',
+              message: selectedLabels.isEmpty
+                  ? 'Try choosing a different genre filter.'
+                  : 'Try adjusting: $selectedLabels',
             );
           }
 
-          return RefreshIndicator(
+          return ReviewFeed(
+            storageKey: 'community_genre_reviews_list',
+            reviews: filteredReviews,
             onRefresh: _refreshGenreFilteredFuture,
-            color: Colors.red[600],
-            child: Column(
-              children: [
-                const Gap(10),
-                Expanded(
-                  child: CommunityReviewList(
-                    key: ValueKey(
-                        'community_genre_reviews_${filteredReviews.length}'),
-                    reviews: filteredReviews,
-                    scrollController: _scrollController,
-                    isLoadingMore: false,
-                    onLoadMore: () {},
-                  ),
-                ),
-              ],
-            ),
+            itemWrapper: _withReviewOptions,
           );
         },
       );
@@ -187,116 +86,78 @@ class _CommunityReviewsCollectionState
 
     return reviewsAsync.when(
       data: (reviews) {
-        _hasMoreItems = reviews.length >= limit;
-
         if (reviews.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.music_note, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                const Text(
-                  'No community reviews yet',
-                  style: TextStyle(color: Colors.white, fontSize: 20),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Be the first to share your music reviews!',
-                  style: TextStyle(color: Colors.white70),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Navigate to discovery tab (index 1)
-                    final mainNavState =
-                        context.findAncestorStateOfType<MainNavState>();
-                    if (mainNavState != null) {
-                      mainNavState.navigateToTab(1);
-                    }
-                  },
-                  icon: const Icon(Icons.explore),
-                  label: const Text('Discover new music to review'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[600],
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
+          return AppEmptyState(
+            icon: Icons.music_note,
+            title: 'No community reviews yet',
+            message: 'Be the first to share your music reviews!',
+            action: AppStateAction(
+              label: 'Discover new music to review',
+              icon: Icons.explore,
+              onPressed: () {
+                // Navigate to discovery tab (index 1)
+                context
+                    .findAncestorStateOfType<MainNavState>()
+                    ?.navigateToTab(1);
+              },
             ),
           );
         }
 
-        return RefreshIndicator(
+        return ReviewFeed(
+          storageKey: 'community_reviews_list',
+          reviews: reviews,
+          hasMore: reviews.length >= limit,
+          onLoadMore: _loadMore,
           onRefresh: () async {
             // Reset limit and refresh
             ref.read(communityReviewsLimitProvider.notifier).state = 20;
             ref.invalidate(communityReviewsProvider(limit));
             await Future.delayed(const Duration(milliseconds: 500));
           },
-          color: Colors.red[600],
-          child: Container(
-            decoration: const BoxDecoration(),
-            margin: const EdgeInsets.symmetric(),
-            padding: const EdgeInsets.symmetric(),
-            child: Column(
-              children: [
-                const Gap(10),
-                Expanded(
-                  child: CommunityReviewList(
-                    key: ValueKey(
-                        'community_reviews_${reviews.length}'), // Key to help maintain state
-                    reviews: reviews,
-                    scrollController: _scrollController,
-                    isLoadingMore: _isLoadingMore,
-                    onLoadMore: _loadMore,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          itemWrapper: _withReviewOptions,
         );
       },
-      loading: () {
-        _hasMoreItems = false;
-        return ListView.builder(
-          itemCount: 3,
-          itemBuilder: (context, index) {
-            return const ReviewCardSkeleton();
-          },
-        );
-      },
+      loading: () => const ReviewFeedSkeleton(),
       error: (error, stackTrace) {
-        _hasMoreItems = false;
         debugPrint('❌ Error loading community reviews: $error');
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text(
-                'Error loading community reviews',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: const TextStyle(color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  ref.invalidate(communityReviewsProvider(limit));
-                },
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+        return AppErrorState(
+          title: 'Error loading community reviews',
+          error: error,
+          onRetry: () => ref.invalidate(communityReviewsProvider(limit)),
         );
       },
+    );
+  }
+
+  /// Swipe left or long-press a card to open the review options dialog.
+  Widget _withReviewOptions(
+      BuildContext context, ReviewWithDocId review, Widget card) {
+    return Dismissible(
+      key: Key(review.docId.toString()),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        // Show dialog instead of dismissing
+        _showReviewOptionsDialog(context, review, ref);
+        return false; // Don't actually dismiss the card
+      },
+      background: Container(
+        decoration: const BoxDecoration(
+          color: Color.fromARGB(255, 220, 53, 69),
+          borderRadius: AppRadius.cardAll,
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: AppSpacing.xl),
+        child: const Icon(
+          Icons.more_vert,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+      child: GestureDetector(
+        onLongPress: () => _showReviewOptionsDialog(context, review, ref),
+        child: card,
+      ),
     );
   }
 
@@ -379,88 +240,6 @@ class _CommunityReviewsCollectionState
       }
       return false;
     }).toList();
-  }
-}
-
-/// List widget for community reviews - same UI as FriendsReviewList
-class CommunityReviewList extends ConsumerWidget {
-  final List<ReviewWithDocId> reviews;
-  final ScrollController scrollController;
-  final bool isLoadingMore;
-  final VoidCallback onLoadMore;
-
-  const CommunityReviewList({
-    super.key,
-    required this.reviews,
-    required this.scrollController,
-    required this.isLoadingMore,
-    required this.onLoadMore,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ListView.builder(
-      key: const PageStorageKey(
-          'community_reviews_list'), // Preserve scroll position
-      controller: scrollController,
-      itemCount: reviews.length + (isLoadingMore ? 1 : 0),
-      cacheExtent: 500, // Cache more items to prevent scroll jumps
-      itemBuilder: (context, index) {
-        // Show loading indicator at the bottom when loading more
-        if (index == reviews.length) {
-          return const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          );
-        }
-
-        final review = reviews[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: Dismissible(
-            key: Key(review.docId.toString()),
-            direction: DismissDirection.endToStart,
-            confirmDismiss: (direction) async {
-              // Show dialog instead of dismissing
-              _showReviewOptionsDialog(context, review, ref);
-              return false; // Don't actually dismiss the card
-            },
-            background: Container(
-              decoration: const BoxDecoration(
-                color: Color.fromARGB(255, 220, 53, 69),
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              child: const Icon(
-                Icons.more_vert,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-            child: GestureDetector(
-              onLongPress: () => _showReviewOptionsDialog(context, review, ref),
-              child: Card(
-                elevation: 1,
-                margin: const EdgeInsets.all(5),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                  side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
-                ),
-                color: Colors.white10,
-                child: ReviewCardWithGenres(
-                  review: review.review,
-                  reviewId: review.fullReviewId,
-                  showLikeButton: true, // Show like button in community tab
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _showReviewOptionsDialog(

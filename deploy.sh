@@ -60,7 +60,7 @@ if [ -f .env ]; then
             val="${BASH_REMATCH[2]}"
             val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
             case "$key" in
-                FIREBASE_OPTIONS_KEY|FIREBASE_APP_ID|SPOTIFY_CLIENT_ID|CLIENT_ID|SPOTIFY_CLIENT_SECRET|CLIENT_SECRET|NEWS_API_KEY|OPENAI_API_KEY|OPENAI_KEY|UNSPLASH_ACCESS_KEY|UNSPLASH_SECRET)
+                FIREBASE_OPTIONS_KEY|FIREBASE_APP_ID|SPOTIFY_CLIENT_ID|CLIENT_ID|SPOTIFY_CLIENT_SECRET|CLIENT_SECRET|NEWS_API_KEY|UNSPLASH_ACCESS_KEY|UNSPLASH_SECRET|DEMO_USER_EMAIL|DEMO_USER_PASSWORD)
                     DART_DEFINES_ARRAY+=(--dart-define="${key}=${val}")
                     ;;
             esac

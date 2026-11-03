@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/search_reviews_provider.dart';
 import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -188,19 +189,12 @@ class _SearchResults extends ConsumerWidget {
             ),
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                 itemCount: results.length,
                 itemBuilder: (context, index) {
                   final item = results[index];
-                  return Card(
-                    elevation: 1,
-                    margin: const EdgeInsets.all(5),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                      side: BorderSide(
-                          color: Color.fromARGB(56, 158, 158, 158)),
-                    ),
-                    color: Colors.white10,
+                  return Padding(
+                    padding: AppSpacing.cardListItem,
                     child: ReviewCardWithGenres(
                       review: item.review,
                       reviewId: item.fullReviewId,

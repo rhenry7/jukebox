@@ -237,7 +237,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainNav(title: 'CRATEBOXD')),
+      MaterialPageRoute(builder: (_) => const MainNav(title: 'REVRB')),
       (_) => false,
     );
   }
@@ -296,7 +296,7 @@ class _TopBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'CRATEBOXD',
+            'REVRB',
             style: GoogleFonts.gasoekOne(
               textStyle: const TextStyle(
                 color: Color(0xFFCC1111),

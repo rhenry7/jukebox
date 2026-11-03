@@ -57,7 +57,7 @@ class _NeonTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = Text(
-      'CRATEBOXD',
+      'REVRB',
       style: GoogleFonts.gasoekOne(textStyle: _dimStyle),
     );
 
@@ -71,7 +71,7 @@ class _NeonTitle extends StatelessWidget {
             // value goes 0 → 1 → 0 on each cycle
             final style = TextStyle.lerp(_dimStyle, _brightStyle, value)!;
             return Text(
-              'CRATEBOXD',
+              'REVRB',
               style: GoogleFonts.gasoekOne(textStyle: style),
             );
           },

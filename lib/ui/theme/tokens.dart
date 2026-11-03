@@ -1,0 +1,127 @@
+import 'package:flutter/material.dart';
+
+/// Design tokens for CrateBoxd — the code form of `design_system.md`.
+///
+/// Screens and widgets should use these instead of raw numbers / hex codes so
+/// spacing, corners and colors stay consistent across the app.
+///
+/// See docs/ui_audit/token_mapping.md for the raw-value → token migration
+/// mapping.
+
+/// Spacing scale (4pt base). Use for EdgeInsets, SizedBox, Gap, etc.
+///
+/// When a layout feels crowded, step up to the next tier rather than
+/// inventing an in-between value ("Breathing Room" rule).
+abstract final class AppSpacing {
+  static const double none = 0;
+  static const double xxs = 2;
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 24;
+  static const double xxl = 32;
+  static const double xxxl = 48;
+  static const double huge = 64;
+
+  /// Horizontal page gutter for scrollable screens.
+  static const double pageGutter = lg;
+
+  /// Inner padding of a Crate Card (review / playlist / album cards).
+  static const double cardPadding = xl;
+
+  /// Vertical gap between stacked cards in a list ("No-Line" rule gutters).
+  static const double cardGap = md;
+
+  /// Bottom padding for scrollable content under the floating nav dock
+  /// (NavigationBar 80 + dock inset 15, rounded up to clear it with a gutter).
+  static const double dockClearance = 112;
+
+  /// Padding around each card in a vertical card list. Adjacent items add up
+  /// to [cardGap] between cards.
+  static const EdgeInsets cardListItem =
+      EdgeInsets.symmetric(horizontal: pageGutter, vertical: cardGap / 2);
+}
+
+/// Corner radius scale.
+abstract final class AppRadius {
+  static const double none = 0;
+  static const double xs = 4;
+
+  /// Album art nested inside a card.
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+
+  /// Bottom sheets and large modals.
+  static const double xl = 24;
+
+  /// Crate Card edge (review / playlist / album cards).
+  static const double card = md;
+
+  /// Text inputs — always 25, never 12.
+  static const double input = 25;
+
+  /// Pills: primary buttons, chips, the floating dock.
+  static const double pill = 999;
+
+  static const BorderRadius smAll = BorderRadius.all(Radius.circular(sm));
+  static const BorderRadius mdAll = BorderRadius.all(Radius.circular(md));
+  static const BorderRadius cardAll = BorderRadius.all(Radius.circular(card));
+  static const BorderRadius inputAll = BorderRadius.all(Radius.circular(input));
+  static const BorderRadius pillAll = BorderRadius.all(Radius.circular(pill));
+}
+
+/// Color palette. Surfaces form a tonal stack — separate areas by stepping
+/// surface level, not with 1px borders.
+abstract final class AppColors {
+  // Brand
+  static const Color primary = Color(0xFFEE2309);
+  static const Color primaryLight = Color(0xFFFF8E80);
+  static const Color primaryDim = Color(0xFFE2241F);
+  static const Color secondary = Color(0xFF3FFF8B);
+
+  // Surfaces (lowest → highest)
+  static const Color surfaceContainerLowest = Color(0xFF000000);
+  static const Color background = Color(0xFF0E0E0E);
+  static const Color surfaceContainerLow = Color(0xFF131313);
+  static const Color surfaceContainer = Color(0xFF1A1919);
+  static const Color surfaceContainerHigh = Color(0xFF201F1F);
+  static const Color surfaceContainerHighest = Color(0xFF262626);
+
+  // Content
+  /// Titles and body text (including long-form review text).
+  static const Color onSurface = Color(0xFFFFFFFF);
+
+  /// Secondary text: metadata, timestamps, captions.
+  static const Color onSurfaceVariant = Color(0xFFADAAAA);
+  static const Color onPrimary = Color(0xFFFFFFFF);
+
+  static const Color outlineVariant = Color(0xFF494847);
+
+  /// Faint 1px card outline ("Ghost Border") — white at 15%.
+  static const Color ghostBorder = Color(0x26FFFFFF);
+
+  // Status
+  static const Color error = Color(0xFFFF3B30);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color success = secondary;
+
+  /// Star ratings.
+  static const Color rating = Color(0xFFFFC107);
+}
+
+/// Elevation — depth comes from the tonal stack; shadows only for floating
+/// elements (modals, primary buttons).
+abstract final class AppShadows {
+  static const List<BoxShadow> ambient = [
+    BoxShadow(
+      offset: Offset(0, 12),
+      blurRadius: 24,
+      color: Color(0x66000000),
+    ),
+  ];
+
+  /// Backdrop blur sigma for glass surfaces (dock, Now Playing).
+  static const double glassBlur = 24;
+}

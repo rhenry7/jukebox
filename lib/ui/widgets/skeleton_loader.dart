@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/tokens.dart';
+
 class SkeletonLoader extends StatelessWidget {
   final double width;
   final double height;
@@ -30,22 +32,30 @@ class ReviewCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mirrors the real review card's surface and geometry so content
+    // doesn't shift when it loads.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      padding: AppSpacing.cardListItem,
       child: Card(
-        color: Colors.black,
+        color: AppColors.surfaceContainer,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: const RoundedRectangleBorder(
+          borderRadius: AppRadius.cardAll,
+          side: BorderSide(color: AppColors.ghostBorder),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.cardPadding),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Album cover skeleton
-              SkeletonLoader(
-                width: 80,
-                height: 80,
-                borderRadius: BorderRadius.circular(4),
+              const SkeletonLoader(
+                width: 100,
+                height: 100,
+                borderRadius: AppRadius.smAll,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               // Text skeletons
               const Expanded(
                 child: Column(

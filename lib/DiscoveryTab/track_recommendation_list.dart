@@ -8,6 +8,7 @@ import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm
 import 'package:ionicons/ionicons.dart';
 
 import '../models/music_recommendation.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 class TrackRecommendationFromPreferences extends StatelessWidget {
   final List<MusicRecommendation> albums;
@@ -17,6 +18,7 @@ class TrackRecommendationFromPreferences extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: AppSpacing.dockClearance),
       itemCount: albums.length,
       itemBuilder: (_, index) {
         final album = albums[index];

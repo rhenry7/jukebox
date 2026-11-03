@@ -1,15 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gap/gap.dart';
 
 import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/friends_provider.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
-import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
-import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/widgets/app_states.dart';
+import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 
 /// Friends reviews feed – shows reviews from users the current user has added
 /// as friends. Mirrors the layout and UX of [CommunityReviewsCollection].
@@ -33,53 +32,22 @@ class _FriendsReviewsCollectionState
 
   @override
   Widget build(BuildContext context) {
-    final ref = this.ref;
     final userId = ref.watch(currentUserIdProvider);
 
     // Not signed in
     if (userId == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.person_off, size: 80, color: Colors.grey),
-              const SizedBox(height: 24),
-              const Text(
-                'Sign In Required',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Sign in to see reviews from your friends!',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (context) => const SignInScreen()),
-                  );
-                },
-                icon: const Icon(Icons.login),
-                label: const Text('Sign In!',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[600],
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                ),
-              ),
-            ],
-          ),
+      return AppEmptyState(
+        icon: Icons.person_off,
+        title: 'Sign In Required',
+        message: 'Sign in to see reviews from your friends!',
+        action: AppStateAction(
+          label: 'Sign In!',
+          icon: Icons.login,
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const SignInScreen()),
+            );
+          },
         ),
       );
     }
@@ -97,39 +65,16 @@ class _FriendsReviewsCollectionState
 
     // No friends added yet — prompt
     if (friendIds.isEmpty && !friendIdsAsync.isLoading) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.people_outline, size: 64, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text(
-                'No friends yet',
-                style: TextStyle(color: Colors.white, fontSize: 20),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Head to the Community tab and tap on a reviewer\'s name to add them as a friend!',
-                style: TextStyle(color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  // Switch to the Community tab (index 1 inside CategoryTapBar)
-                  DefaultTabController.of(context).animateTo(1);
-                },
-                icon: const Icon(Icons.public),
-                label: const Text('Go to Community'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[700],
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+      return AppEmptyState(
+        icon: Icons.people_outline,
+        title: 'No friends yet',
+        message:
+            'Head to the Community tab and tap on a reviewer\'s name to add them as a friend!',
+        action: AppStateAction(
+          label: 'Go to Community',
+          icon: Icons.public,
+          // Switch to the Community tab (index 1 inside CategoryTapBar)
+          onPressed: () => DefaultTabController.of(context).animateTo(1),
         ),
       );
     }
@@ -139,73 +84,32 @@ class _FriendsReviewsCollectionState
         future: _genreFilteredFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return ListView.builder(
-              itemCount: 3,
-              itemBuilder: (_, __) => const ReviewCardSkeleton(),
-            );
+            return const ReviewFeedSkeleton();
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Error loading friends\' reviews',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => _refreshGenreFilteredFuture(friendIds),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return AppErrorState(
+              title: 'Error loading friends\' reviews',
+              onRetry: () => _refreshGenreFilteredFuture(friendIds),
             );
           }
 
           final filteredReviews = snapshot.data ?? <ReviewWithDocId>[];
           if (filteredReviews.isEmpty) {
             final selectedLabels = widget.selectedGenres.join(', ');
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.tune, size: 64, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'No reviews for selected genres',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      selectedLabels.isEmpty
-                          ? 'Try choosing a different genre filter.'
-                          : 'Try adjusting: $selectedLabels',
-                      style: const TextStyle(color: Colors.white70),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
+            return AppEmptyState(
+              icon: Icons.tune,
+              title: 'No reviews for selected genres',
+              message: selectedLabels.isEmpty
+                  ? 'Try choosing a different genre filter.'
+                  : 'Try adjusting: $selectedLabels',
             );
           }
 
-          return RefreshIndicator(
+          return ReviewFeed(
+            storageKey: 'friends_genre_reviews_list',
+            reviews: filteredReviews,
             onRefresh: () => _refreshGenreFilteredFuture(friendIds),
-            color: Colors.red[600],
-            child: Column(
-              children: [
-                const Gap(10),
-                Expanded(
-                  child: _FriendsReviewList(reviews: filteredReviews),
-                ),
-              ],
-            ),
           );
         },
       );
@@ -214,59 +118,28 @@ class _FriendsReviewsCollectionState
     return friendsReviewsAsync.when(
       data: (reviews) {
         if (reviews.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.music_note, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text(
-                  'Your ${friendIds.length} friend${friendIds.length == 1 ? " hasn't" : "s haven't"} posted any reviews yet',
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+          return AppEmptyState(
+            icon: Icons.music_note,
+            title:
+                'Your ${friendIds.length} friend${friendIds.length == 1 ? " hasn't" : "s haven't"} posted any reviews yet',
           );
         }
 
-        return RefreshIndicator(
+        return ReviewFeed(
+          storageKey: 'friends_reviews_list',
+          reviews: reviews,
           onRefresh: () async {
             ref.invalidate(friendsReviewsProvider);
             await Future.delayed(const Duration(milliseconds: 500));
           },
-          color: Colors.red[600],
-          child: Column(
-            children: [
-              const Gap(10),
-              Expanded(
-                child: _FriendsReviewList(reviews: reviews),
-              ),
-            ],
-          ),
         );
       },
-      loading: () => ListView.builder(
-        itemCount: 3,
-        itemBuilder: (_, __) => const ReviewCardSkeleton(),
-      ),
+      loading: () => const ReviewFeedSkeleton(),
       error: (error, _) {
         debugPrint('Error loading friends reviews: $error');
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text('Error loading friends\' reviews',
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(friendsReviewsProvider),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+        return AppErrorState(
+          title: 'Error loading friends\' reviews',
+          onRetry: () => ref.invalidate(friendsReviewsProvider),
         );
       },
     );
@@ -369,39 +242,5 @@ class _FriendsReviewsCollectionState
       }
       return false;
     }).toList();
-  }
-}
-
-/// Simple list of friend reviews reusing the existing review card widgets.
-class _FriendsReviewList extends StatelessWidget {
-  final List<ReviewWithDocId> reviews;
-  const _FriendsReviewList({required this.reviews});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      key: const PageStorageKey('friends_reviews_list'),
-      itemCount: reviews.length,
-      itemBuilder: (context, index) {
-        final review = reviews[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: Card(
-            elevation: 1,
-            margin: EdgeInsets.zero,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(8)),
-              side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
-            ),
-            color: Colors.white10,
-            child: ReviewCardWithGenres(
-              review: review.review,
-              reviewId: review.fullReviewId,
-              showLikeButton: true,
-            ),
-          ),
-        );
-      },
-    );
   }
 }

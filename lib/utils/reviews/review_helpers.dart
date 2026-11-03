@@ -19,7 +19,9 @@ Future<List<Review>> fetchUserReviews() async {
   return snapshot.docs.map((doc) => Review.fromFirestore(doc.data())).toList();
 }
 
-Future<void> submitReview(String review, double score, String artist,
+/// Saves the review and returns its Firestore path, or null if it couldn't
+/// be saved.
+Future<String?> submitReview(String review, double score, String artist,
     String title, bool liked, String albumImageUrl,
     [List<String>? genres]) async {
   // album display image url
@@ -76,6 +78,7 @@ Future<void> submitReview(String review, double score, String artist,
           debugPrint('Error updating preferences/cache: $e');
         }
       }));
+      return docRef.path;
     } catch (e) {
       debugPrint('❌ Could not post review');
       debugPrint('Error: ${e.toString()}');
@@ -85,6 +88,7 @@ Future<void> submitReview(String review, double score, String artist,
   } else {
     debugPrint('could not place review, user not signed in');
   }
+  return null;
 }
 
 void addUserReview() async {

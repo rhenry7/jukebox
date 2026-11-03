@@ -11,6 +11,7 @@ import '../../widgets/review_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../Profile/ProfileSignIn.dart';
 import '../../../routing/MainNavigation.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 // ReviewWithDocId moved to providers/reviews_provider.dart
 
@@ -231,6 +232,7 @@ class _FriendsReviewListState extends ConsumerState<FriendsReviewList> {
     final hasMore = widget.reviews.length > _displayLimit;
 
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: AppSpacing.dockClearance),
       itemCount: visible.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == visible.length) {
@@ -252,7 +254,7 @@ class _FriendsReviewListState extends ConsumerState<FriendsReviewList> {
 
         final review = visible[index];
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          padding: AppSpacing.cardListItem,
           child: Dismissible(
             key: Key(review.docId.toString()),
             direction: DismissDirection.endToStart,
@@ -263,7 +265,7 @@ class _FriendsReviewListState extends ConsumerState<FriendsReviewList> {
             background: Container(
               decoration: const BoxDecoration(
                 color: Color.fromARGB(255, 220, 53, 69),
-                borderRadius: BorderRadius.all(Radius.circular(8)),
+                borderRadius: AppRadius.cardAll,
               ),
               alignment: Alignment.centerRight,
               padding: const EdgeInsets.only(right: 20),
@@ -275,16 +277,7 @@ class _FriendsReviewListState extends ConsumerState<FriendsReviewList> {
             ),
             child: GestureDetector(
               onLongPress: () => _showReviewOptionsDialog(context, review),
-              child: Card(
-                elevation: 1,
-                margin: const EdgeInsets.all(0),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                  side: BorderSide(color: Color.fromARGB(56, 158, 158, 158)),
-                ),
-                color: Colors.white10,
-                child: ReviewCardWithGenres(review: review.review),
-              ),
+              child: ReviewCardWithGenres(review: review.review),
             ),
           ),
         );

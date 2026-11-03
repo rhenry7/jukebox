@@ -8,6 +8,7 @@ import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 /// Full-screen detail page for a recommended album.
 ///
@@ -59,22 +60,11 @@ class AlbumDetailPage extends ConsumerWidget {
                     (context, index) {
                       final review = reviews[index];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0, vertical: 4.0),
-                        child: Card(
-                          elevation: 1,
-                          margin: EdgeInsets.zero,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                            side: BorderSide(
-                                color: Color.fromARGB(56, 158, 158, 158)),
-                          ),
-                          color: Colors.white10,
-                          child: ReviewCardWithGenres(
-                            review: review.review,
-                            reviewId: review.fullReviewId,
-                            showLikeButton: true,
-                          ),
+                        padding: AppSpacing.cardListItem,
+                        child: ReviewCardWithGenres(
+                          review: review.review,
+                          reviewId: review.fullReviewId,
+                          showLikeButton: true,
                         ),
                       );
                     },

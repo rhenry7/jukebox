@@ -17,6 +17,7 @@ import '../../providers/auth_provider.dart'
 import '../../providers/repost_provider.dart';
 import '../../services/repost_service.dart';
 import '../screens/review_detail/review_detail_page.dart';
+import '../theme/tokens.dart';
 import 'auth_gate_modal.dart';
 
 /// Returns genres for the review, splitting any "/" concatenated strings
@@ -58,7 +59,7 @@ class ReviewCardWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -86,10 +87,10 @@ class ReviewCardWidget extends ConsumerWidget {
                       imageUrl: review.albumImageUrl!,
                       width: 100,
                       height: 100,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     )
                   : ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                       child: Container(
                         width: 100,
                         height: 100,
@@ -98,7 +99,7 @@ class ReviewCardWidget extends ConsumerWidget {
                             size: 48, color: Colors.white38),
                       ),
                     ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               // Artist, Title, Rating + Timestamp
               Expanded(
                 child: Column(
@@ -107,11 +108,11 @@ class ReviewCardWidget extends ConsumerWidget {
                     Text(
                       review.artist,
                       style: const TextStyle(
-                        color: Colors.white60,
+                        color: AppColors.onSurfaceVariant,
                         fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xxs),
                     Text(
                       review.title,
                       style: const TextStyle(
@@ -121,7 +122,7 @@ class ReviewCardWidget extends ConsumerWidget {
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -134,21 +135,22 @@ class ReviewCardWidget extends ConsumerWidget {
                             itemSize: 20,
                             itemPadding: const EdgeInsets.only(right: 2.0),
                             ratingWidget: RatingWidget(
-                              full: const Icon(Icons.star, color: Colors.amber),
+                              full: const Icon(Icons.star, color: AppColors.rating),
                               empty: const Icon(Icons.star, color: Colors.grey),
                               half: const Icon(Icons.star_half,
-                                  color: Colors.amber),
+                                  color: AppColors.rating),
                             ),
                             ignoreGestures: true,
                             onRatingUpdate: (rating) {},
                           ),
                         ),
-                        if (review.date != null) const SizedBox(width: 8),
+                        if (review.date != null)
+                          const SizedBox(width: AppSpacing.sm),
                         if (review.date != null)
                           Text(
                             formatRelativeTime(review.date),
                             style: const TextStyle(
-                              color: Colors.white54,
+                              color: AppColors.onSurfaceVariant,
                               fontSize: 13,
                               letterSpacing: 0.3,
                             ),
@@ -162,7 +164,7 @@ class ReviewCardWidget extends ConsumerWidget {
           ),
           // Review text
           if (review.review.isNotEmpty) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             Text(
               review.review,
               style: const TextStyle(
@@ -179,10 +181,10 @@ class ReviewCardWidget extends ConsumerWidget {
             final allTags = _allTagsForReview(review);
             if (allTags.isEmpty) return <Widget>[];
             return [
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Wrap(
-                spacing: 8.0,
-                runSpacing: 8.0,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
                 children: allTags.take(10).map((tag) {
                   return Chip(
                     label: Text(
@@ -198,12 +200,12 @@ class ReviewCardWidget extends ConsumerWidget {
                       color: Colors.white.withOpacity(0.2),
                       width: 1,
                     ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.pillAll,
                     ),
                   );
                 }).toList(),
@@ -214,7 +216,7 @@ class ReviewCardWidget extends ConsumerWidget {
             ),
           ),
           // Bottom row: user info + action buttons (independently tappable)
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xl),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -277,7 +279,7 @@ class ReviewCardWidget extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: AppSpacing.md),
                         Text(
                           review.displayName,
                           style: const TextStyle(
@@ -299,7 +301,7 @@ class ReviewCardWidget extends ConsumerWidget {
                     _LikeButton(reviewId: reviewId!)
                   else
                     const _StaticLikeCount(),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppSpacing.lg),
                   GestureDetector(
                     onTap: () {}, // comment placeholder
                     child: const Icon(
@@ -308,7 +310,7 @@ class ReviewCardWidget extends ConsumerWidget {
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppSpacing.lg),
                   if (reviewId != null)
                     _RepostButton(
                       reviewId: reviewId!,
@@ -346,7 +348,7 @@ class ReviewCardWidget extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       builder: (sheetContext) {
         return _UserProfileSheet(
@@ -612,11 +614,12 @@ class _RepostHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.cardPadding, AppSpacing.md, AppSpacing.cardPadding, 0),
       child: Row(
         children: [
           const Icon(Ionicons.repeat, size: 14, color: Colors.white38),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             '$displayName reposted',
             style: const TextStyle(
@@ -809,16 +812,39 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
     // Show "X reposted" header when this card is a repost
     if (widget.review.isRepost &&
         widget.review.repostedByDisplayName != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _RepostHeader(displayName: widget.review.repostedByDisplayName!),
-          card,
-        ],
+      return _ReviewCardSurface(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _RepostHeader(displayName: widget.review.repostedByDisplayName!),
+            card,
+          ],
+        ),
       );
     }
 
-    return card;
+    return _ReviewCardSurface(child: card);
+  }
+}
+
+/// The Crate Card surface shared by every review card: tonal fill, 12px
+/// corners and a faint ghost border. Screens must not wrap review cards in
+/// their own Card — only position them (e.g. with [AppSpacing.cardListItem]).
+class _ReviewCardSurface extends StatelessWidget {
+  final Widget child;
+  const _ReviewCardSurface({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.cardAll,
+        side: BorderSide(color: AppColors.ghostBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
   }
 }
 

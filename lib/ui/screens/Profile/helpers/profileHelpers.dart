@@ -10,6 +10,7 @@ import 'package:flutter_test_project/ui/screens/Profile/legal_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/notifications_page.dart';
 import 'package:flutter_test_project/ui/screens/Profile/profilePage.dart';
 import 'package:flutter_test_project/ui/screens/Profile/user_profile_summary.dart';
+import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 
 Future<Map<String, dynamic>> getCurrentUser() async {
@@ -73,6 +74,7 @@ Widget profileRoute(String route) {
 
 void signOut() async {
   try {
+    await DemoAutoSignIn.optOut();
     FirebaseAuth.instance.signOut();
     debugPrint('user signed out');
   } catch (e) {

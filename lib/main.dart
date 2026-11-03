@@ -6,6 +6,7 @@ import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
+import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
 import 'package:flutter_test_project/utils/env_config.dart';
 import 'package:flutter_test_project/utils/firebase_options.dart';
 
@@ -20,7 +21,7 @@ void main() async {
   if (kIsWeb && firebaseWebOptionsKey.isEmpty) {
     runApp(
       MaterialApp(
-        title: 'CRATEBOXD',
+        title: 'REVRB',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -78,7 +79,7 @@ void main() async {
             'is configured correctly.\n\nError: $e';
     runApp(
       MaterialApp(
-        title: 'CRATEBOXD',
+        title: 'REVRB',
         theme: ThemeData.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
@@ -110,6 +111,9 @@ void main() async {
     );
     return;
   }
+
+  // Sign visitors into the shared demo account when configured.
+  await DemoAutoSignIn.signInIfNeeded();
 
   // Firebase Auth automatically uses localStorage on web to persist auth state
   // No need to explicitly set persistence - it's handled automatically
@@ -165,7 +169,7 @@ class MyApp extends ConsumerWidget {
     // Show loading screen while checking auth state
     if (authState.isLoading) {
       return MaterialApp(
-        title: 'CRATEBOXD',
+        title: 'REVRB',
         themeMode: ThemeMode.dark,
         darkTheme: ThemeData(
           brightness: Brightness.dark,
@@ -187,7 +191,7 @@ class MyApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'CRATEBOXD',
+      title: 'REVRB',
       themeMode: ThemeMode.dark,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -215,7 +219,7 @@ class MyApp extends ConsumerWidget {
           },
         ),
       ),
-      home: const MainNav(title: 'CRATEBOXD'),
+      home: const MainNav(title: 'REVRB'),
     );
   }
 }

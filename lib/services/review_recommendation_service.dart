@@ -1,13 +1,10 @@
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
-import 'package:http/http.dart' as http;
 
 // ─── Scoring weights ──────────────────────────────────────────────────────────
 //
@@ -18,11 +15,11 @@ import 'package:http/http.dart' as http;
 //    rating 15% — community review quality (review.score / 5)
 //    recency 10% — exponential decay over 90 days
 //
-//  Stage 2: discard disliked-genre reviews; sort by local score; take top 80.
+//  Stage 2: discard disliked-genre reviews; sort by local score; take top 30.
 //
-//  Stage 3 (AI NLP reranking): send the top 80 to OpenAI with the user's
-//    actual review texts, taste profile, and an instruction to do semantic
-//    similarity matching — not just tag matching.
+//  This is the on-device FALLBACK. The primary For You list is built
+//  server-side (functions/, CF-RAG over the whole corpus) and read from
+//  users/{uid}/forYou/current. No AI runs on the client.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _wGenre = 0.40;
@@ -30,6 +27,11 @@ const _wArtist = 0.25;
 const _wAlbum = 0.10;
 const _wRating = 0.15;
 const _wRecency = 0.10;
+
+/// Longer reviews rank higher; under [_minReviewLength] chars is penalised.
+const _wDepth = 0.15;
+const _minReviewLength = 100;
+const _fullDepthLength = 500;
 
 /// A review paired with its recommendation scores (kept for UI compatibility).
 class ScoredReview {
@@ -41,6 +43,9 @@ class ScoredReview {
   final double artistScore;
   final double recencyBonus;
 
+  /// Why this was recommended (server-built lists only).
+  final String? reason;
+
   const ScoredReview({
     required this.reviewWithDocId,
     this.finalScore = 0.0,
@@ -49,32 +54,26 @@ class ScoredReview {
     this.sentimentScore = 0.0,
     this.artistScore = 0.0,
     this.recencyBonus = 0.0,
+    this.reason,
   });
 }
 
-/// Recommendation engine — 3-stage pipeline:
+/// On-device fallback recommender, used until the server-built For You list
+/// exists (see `ForYouService`):
 ///  1. Deterministic local scoring (genre/artist/album/rating/recency)
-///  2. Discard disliked genres; sort; take top 80
-///  3. OpenAI NLP reranking of that quality pool
+///  2. Discard disliked genres and reposts; sort; take top 30
 class ReviewRecommendationService {
-  static const _openAiEndpoint = 'https://api.openai.com/v1/chat/completions';
-  static const _model = 'gpt-4o-mini';
-  static const _timeoutDuration = Duration(seconds: 45);
-
   /// Max community reviews fetched from Firestore.
-  static const _fetchLimit = 150;
+  static const _fetchLimit = 300;
 
   /// Reviews passed to stage-1 scoring (after low-quality filter).
   static const _minReviewScore = 3.0;
 
-  /// Reviews forwarded to OpenAI after local pre-ranking.
-  static const _aiPoolSize = 30;
+  /// Results returned after local ranking.
+  static const _resultSize = 50;
 
-  /// Max results returned from OpenAI stage.
-  static const _maxTopN = 50;
-
-  /// Snippet length for OpenAI prompt (chars).
-  static const _snippetLen = 150;
+  /// Own reviews at or above this many stars count as liking the artist/album.
+  static const _likedOwnReviewScore = 3.5;
 
   /// Cache TTL.
   static const _cacheTtl = Duration(minutes: 15);
@@ -162,7 +161,8 @@ class ReviewRecommendationService {
           as_ * _wArtist +
           albs * _wAlbum +
           rs * _wRating +
-          rec * _wRecency;
+          rec * _wRecency +
+          _computeDepth(r.review) * _wDepth;
 
       scored.add(_LocallyScoredReview(
         rw: rw,
@@ -173,7 +173,7 @@ class ReviewRecommendationService {
       ));
     }
 
-    // ── Stage 2: sort by local score, take top pool for AI ───────────────────
+    // ── Stage 2: sort by local score, take the top results ──────────────────
     scored.sort((a, b) => b.localScore.compareTo(a.localScore));
 
     if (scored.isEmpty) {
@@ -186,35 +186,8 @@ class ReviewRecommendationService {
       return fallback;
     }
 
-    final aiPool = scored.take(_aiPoolSize).toList();
-
-    debugPrint('[REC] Stage 1: ${scored.length} scored → top ${aiPool.length} to AI');
-
-    // ── Stage 3: AI NLP reranking ─────────────────────────────────────────────
-    List<ScoredReview> finalResults;
-
-    if (openAIKey.isNotEmpty) {
-      try {
-        final aiResults = await _getOpenAIRecommendations(
-          aiPool: aiPool,
-          userPrefs: userPrefs,
-          userOwnReviews: userOwnReviews,
-        );
-        if (aiResults.isNotEmpty) {
-          debugPrint('[REC] OpenAI reranked → ${aiResults.length} results');
-          finalResults = aiResults;
-          _cache[userId] = _CachedResult(finalResults);
-          return finalResults;
-        }
-      } catch (e) {
-        debugPrint('[REC] OpenAI failed, using local ranking: $e');
-      }
-    } else {
-      debugPrint('[REC] No OpenAI key — using local ranking only');
-    }
-
-    // Fallback: return local-scored order as ScoredReview list.
-    finalResults = aiPool
+    final finalResults = scored
+        .take(_resultSize)
         .map((ls) => ScoredReview(
               reviewWithDocId: ls.rw,
               finalScore: ls.localScore,
@@ -224,6 +197,7 @@ class ReviewRecommendationService {
             ))
         .toList();
 
+    debugPrint('[REC] Local ranking: ${scored.length} scored → ${finalResults.length}');
     _cache[userId] = _CachedResult(finalResults);
     return finalResults;
   }
@@ -238,159 +212,6 @@ class ReviewRecommendationService {
 
   static Future<void> clearRecommendationsCache(String userId) async {
     clearCache(userId);
-  }
-
-  // ─── Stage 3: OpenAI NLP reranking ──────────────────────────────────────────
-
-  static Future<List<ScoredReview>> _getOpenAIRecommendations({
-    required List<_LocallyScoredReview> aiPool,
-    required EnhancedUserPreferences? userPrefs,
-    required List<Review> userOwnReviews,
-  }) async {
-    final prompt = _buildPrompt(
-      aiPool: aiPool,
-      userPrefs: userPrefs,
-      userOwnReviews: userOwnReviews,
-    );
-
-    final response = await http
-        .post(
-          Uri.parse(_openAiEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $openAIKey',
-          },
-          body: jsonEncode({
-            'model': _model,
-            'temperature': 0.2,
-            'max_tokens': 1000,
-            'messages': [
-              {
-                'role': 'system',
-                'content':
-                    'You are a music taste matching engine. You receive a user\'s '
-                    'review history and preferences alongside a pre-ranked pool of '
-                    'community reviews. Your job is to rerank those reviews using '
-                    'NLP semantic analysis: compare the vocabulary, emotional tone, '
-                    'musical themes, and critical perspective of the user\'s own '
-                    'writing with each community review. Prioritize reviews that '
-                    'share the user\'s aesthetic sensibility and taste vocabulary, '
-                    'not just matching genre tags. '
-                    'Respond ONLY with a valid JSON array of 0-based integers '
-                    'ordered from most to least relevant. '
-                    'Example: [3, 12, 0, 45]. No other text.',
-              },
-              {'role': 'user', 'content': prompt},
-            ],
-          }),
-        )
-        .timeout(_timeoutDuration);
-
-    if (response.statusCode != 200) {
-      throw Exception('OpenAI error ${response.statusCode}: ${response.body}');
-    }
-
-    final data = jsonDecode(response.body);
-    final content = (data['choices'] as List?)
-        ?.firstOrNull?['message']?['content']
-        ?.toString()
-        .trim();
-    if (content == null || content.isEmpty) {
-      throw Exception('Empty OpenAI response');
-    }
-
-    final indices = _parseIndices(content);
-    if (indices.isEmpty) return [];
-
-    final out = <ScoredReview>[];
-    final seen = <int>{};
-    for (final idx in indices) {
-      if (idx >= 0 && idx < aiPool.length && seen.add(idx)) {
-        final ls = aiPool[idx];
-        out.add(ScoredReview(
-          reviewWithDocId: ls.rw,
-          finalScore: ls.localScore,
-          genreScore: ls.genreScore,
-          artistScore: ls.artistScore,
-          recencyBonus: ls.recencyScore,
-        ));
-        if (out.length >= _maxTopN) break;
-      }
-    }
-
-    // Append any pool items that OpenAI didn't rank (keeps the list full).
-    if (out.length < _maxTopN) {
-      for (int i = 0; i < aiPool.length && out.length < _maxTopN; i++) {
-        if (seen.add(i)) {
-          final ls = aiPool[i];
-          out.add(ScoredReview(
-            reviewWithDocId: ls.rw,
-            finalScore: ls.localScore,
-            genreScore: ls.genreScore,
-            artistScore: ls.artistScore,
-            recencyBonus: ls.recencyScore,
-          ));
-        }
-      }
-    }
-
-    return out;
-  }
-
-  static String _buildPrompt({
-    required List<_LocallyScoredReview> aiPool,
-    required EnhancedUserPreferences? userPrefs,
-    required List<Review> userOwnReviews,
-  }) {
-    // User taste section — include actual review TEXT for NLP analysis.
-    final userReviewsSection = userOwnReviews.isNotEmpty
-        ? '''
-USER'S OWN REVIEWS (use these to understand their critical vocabulary, taste, and perspective):
-${userOwnReviews.take(15).map((r) => '  • "${r.title}" by ${r.artist} [${r.score}/5 — ${r.genres?.join(', ') ?? 'no genre'}]\n    Review: "${_trunc(r.review, 200)}"').join('\n')}
-'''
-        : "USER'S OWN REVIEWS: None yet.";
-
-    final prefsSection = userPrefs != null
-        ? '''
-USER PREFERENCES:
-  Favorite genres (with weights): ${_formatGenreWeights(userPrefs)}
-  Favorite artists: ${userPrefs.favoriteArtists.take(20).join(', ')}
-  Favorite albums: ${userPrefs.favoriteAlbums.take(10).join(', ')}
-  Disliked genres: ${userPrefs.dislikedGenres.join(', ')}
-'''
-        : 'USER PREFERENCES: None set.';
-
-    // Community review pool — already pre-ranked by local score.
-    final poolList = aiPool.asMap().entries.map((e) {
-      final r = e.value.rw.review;
-      final localPct = (e.value.localScore * 100).toStringAsFixed(0);
-      return '${e.key}: [local_score=$localPct%] "${r.title}" by ${r.artist} | '
-          '${r.score}/5 | genres: ${r.genres?.join(', ') ?? 'unknown'} | '
-          '"${_trunc(r.review, _snippetLen)}"';
-    }).join('\n');
-
-    return '''
-$prefsSection
-
-$userReviewsSection
-
-COMMUNITY REVIEW POOL (pre-ranked by tag/artist matching; your job is NLP reranking):
-$poolList
-
-TASK:
-Using semantic NLP analysis — compare the musical vocabulary, emotional themes, and critical
-perspective of the user's own reviews with each community review above. Rerank the pool from
-most to least relevant for this specific user.
-
-Consider:
-1. Language and vocabulary overlap between the user's reviews and community reviews
-2. Shared musical themes (e.g. both discuss atmosphere, production, lyrics similarly)
-3. Sentiment and emotional tone alignment
-4. Artist/genre adjacency beyond exact matches (e.g. user likes jazz → jazz-influenced hip-hop)
-5. Rating patterns (user tends to rate what score range highly?)
-
-Return a JSON array of 0-based indices ordered from most to least relevant. Max $_maxTopN indices.
-''';
   }
 
   // ─── Stage 1: Local scoring helpers ──────────────────────────────────────────
@@ -434,8 +255,11 @@ Return a JSON array of 0-based indices ordered from most to least relevant. Max 
     return out;
   }
 
+  /// Artists from the user's own reviews they actually liked — a 1-star
+  /// review must not boost that artist.
   static Set<String> _buildReviewedArtistSet(List<Review> ownReviews) {
     return ownReviews
+        .where((r) => r.score >= _likedOwnReviewScore)
         .map((r) => r.artist.toLowerCase().trim())
         .where((a) => a.isNotEmpty)
         .toSet();
@@ -455,6 +279,7 @@ Return a JSON array of 0-based indices ordered from most to least relevant. Max 
 
   static Set<String> _buildReviewedAlbumSet(List<Review> ownReviews) {
     return ownReviews
+        .where((r) => r.score >= _likedOwnReviewScore)
         .map((r) => r.title.toLowerCase().trim())
         .where((t) => t.isNotEmpty)
         .toSet();
@@ -545,6 +370,14 @@ Return a JSON array of 0-based indices ordered from most to least relevant. Max 
     return 0.0;
   }
 
+  /// Depth: -1 under [_minReviewLength] chars, 0 at it, 1 at [_fullDepthLength].
+  static double _computeDepth(String text) {
+    final length = text.trim().length;
+    if (length < _minReviewLength) return -1.0;
+    return ((length - _minReviewLength) / (_fullDepthLength - _minReviewLength))
+        .clamp(0.0, 1.0);
+  }
+
   /// Recency: 1.0 today → 0.0 at 90 days (exponential decay).
   static double _computeRecency(DateTime? date) {
     if (date == null) return 0.1;
@@ -567,7 +400,8 @@ Return a JSON array of 0-based indices ordered from most to least relevant. Max 
           .map((doc) {
             try {
               final review = Review.fromFirestore(doc.data());
-              if (review.userId == userId) return null;
+              // Skip own reviews and repost copies (duplicates of originals).
+              if (review.userId == userId || review.isRepost) return null;
               return ReviewWithDocId(
                 review: review,
                 docId: doc.id,
@@ -620,49 +454,6 @@ Return a JSON array of 0-based indices ordered from most to least relevant. Max 
     } catch (e) {
       debugPrint('[REC] Error fetching preferences: $e');
       return null;
-    }
-  }
-
-  // ─── Utilities ────────────────────────────────────────────────────────────────
-
-  static String _trunc(String s, int max) =>
-      s.length <= max ? s : '${s.substring(0, max)}…';
-
-  static String _formatGenreWeights(EnhancedUserPreferences prefs) {
-    final parts = <String>[];
-    // Merge favoriteGenres + genreWeights into one display.
-    final all = <String, double>{};
-    for (final g in prefs.favoriteGenres) {
-      all[g] = prefs.genreWeights[g] ?? 1.0;
-    }
-    all.addAll(prefs.genreWeights);
-    for (final entry
-        in (all.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).take(10)) {
-      parts.add('${entry.key}(${entry.value.toStringAsFixed(1)})');
-    }
-    return parts.join(', ');
-  }
-
-  static List<int> _parseIndices(String content) {
-    try {
-      var clean = content
-          .replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
-      final start = clean.indexOf('[');
-      final end = clean.lastIndexOf(']');
-      if (start >= 0 && end > start) {
-        clean = clean.substring(start, end + 1);
-      }
-      final decoded = jsonDecode(clean);
-      if (decoded is! List) return [];
-      return decoded
-          .map((e) => e is int ? e : (e is num ? e.toInt() : null))
-          .whereType<int>()
-          .toList();
-    } catch (e) {
-      debugPrint('[REC] Failed to parse indices: $e');
-      return [];
     }
   }
 }

@@ -21,7 +21,7 @@ The core of this system is the interplay between the void (`background: #0e0e0e`
 ### The "No-Line" Rule
 **Strict Mandate:** Designers are prohibited from using 1px solid borders to section off major areas of the UI. Separation must be achieved through:
 1.  **Background Shifts:** Placing a `surface-container-low` (`#131313`) card on the main `background` (`#0e0e0e`).
-2.  **Vertical Rhythm:** Using the Spacing Scale (specifically `8` and `10` tokens) to create clear, unlined gutters.
+2.  **Vertical Rhythm:** Using the Spacing Scale in `lib/ui/theme/tokens.dart` (`AppSpacing.cardGap` = 12 between cards, `AppSpacing.pageGutter` = 16 at page edges) to create clear, unlined gutters.
 
 ### Glassmorphism & Signature Textures
 To escape the "flat" look, floating elements (like the navigation bar or "Now Playing" widgets) must utilize **Backdrop Blur**. 
@@ -36,10 +36,11 @@ inputs always use borderRadius 25, never 12
 
 ## 3. Typography: Editorial Authority
 
-We use a dual-font strategy to balance character with readability.
+We use three fonts, each with a narrow job.
 
-*   **Display & Headline (Space Grotesk):** This is our "loud" voice. Bold, wide, and futuristic. Use `display-lg` for the signature logo style with a custom outer glow (`drop-shadow: 0 0 12px var(--primary-dim)`).
-*   **Body & Title (Manrope):** Our "functional" voice. Manrope provides a clean, geometric stability that ensures long-form music reviews remain legible even on a pitch-black background.
+*   **Wordmark (Gasoek One):** The CRATEBOXD logo only, via `GoogleFonts.gasoekOne`, with the custom red outer glow (`drop-shadow: 0 0 12px var(--primary-dim)`).
+*   **Display & Headline (Space Grotesk):** Our "loud" voice, via `GoogleFonts.spaceGrotesk`. Bold, wide, and futuristic. Currently used for onboarding headlines.
+*   **Body & Title (Roboto — Flutter's default):** Our "functional" voice. Used everywhere else with no `fontFamily` set, so it ensures long-form music reviews remain legible on a pitch-black background.
 
 **The Identity Gap:** We create hierarchy not just through size, but through dramatic shifts in tracking and weight. Labels (`label-sm`) should be tracked out by 5-10% to provide an "archival" look, while headlines remain tightly packed for a bold, punchy impact.
 
@@ -69,7 +70,7 @@ Depth is not a drop shadow; depth is a **Tonal Stack.**
 ### The Crate Card
 Music reviews and playlist cards should never use dividers. 
 *   **Structure:** Use `surface-container` for the card body. 
-*   **Edge Treatment:** `Rounded: 1.5rem (md)`.
+*   **Edge Treatment:** `Rounded: 12px` (`AppRadius.card`), with a faint 1px ghost border (white at 15%, `AppColors.ghostBorder`).
 *   **Visual Content:** Album art should have a `0.5rem (sm)` corner radius to sit nested within the card's larger radius.
 
 ### Navigation: The Floating Dock
@@ -89,7 +90,7 @@ The bottom navigation is a pill-shaped "Dock" rather than a screen-wide bar.
 *   **DO** use the discoball loading gif for loading screens instead of the default spinner, unless it is a small area under 24px 
 
 ### Don't
-*   **DON'T** use pure white (#ffffff) for long-form body text. Use `on-surface-variant` (#adaaaa) to reduce eye strain on dark backgrounds.
+*   **DON'T** use pure white (#ffffff) for secondary text (metadata, timestamps, captions). Use `on-surface-variant` (#adaaaa). Titles and long-form review text stay white.
 *   **DON'T** use 100% opaque borders. They break the "Neon Archive" immersion.
 *   **DON'T** use standard "Material" ripple effects. Prefer subtle scale-downs (98%) or opacity shifts for active states to maintain a premium feel.
 *.  **DON't** use standard loading spinner, loading gifs, loading cards, UNLESS, the area is small - use the discoball.loading.gif for most - if the area is too small, then use the loading circle spinner

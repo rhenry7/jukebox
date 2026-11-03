@@ -59,3 +59,11 @@ String get firebaseWebAppId {
 
 String get unsplashAccessKey => _unsplashAccessKey;
 String get unsplashSecret => _unsplashSecret;
+
+// Shared demo/QA account used for automatic sign-in (see DemoAutoSignIn).
+const String _demoUserEmail =
+    String.fromEnvironment('DEMO_USER_EMAIL', defaultValue: '');
+const String _demoUserPassword =
+    String.fromEnvironment('DEMO_USER_PASSWORD', defaultValue: '');
+String get demoUserEmail => _demoUserEmail;
+String get demoUserPassword => _demoUserPassword;
