@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +13,9 @@ import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 
-/// Community reviews widget - shows all users' reviews with lazy loading
+/// Popular tab: community reviews with real text and album art, in a fresh
+/// random order each time the tab is shown (or pulled to refresh), revealed
+/// a page at a time.
 class CommunityReviewsCollection extends ConsumerStatefulWidget {
   const CommunityReviewsCollection({
     super.key,
@@ -27,20 +31,30 @@ class CommunityReviewsCollection extends ConsumerStatefulWidget {
 
 class _CommunityReviewsCollectionState
     extends ConsumerState<CommunityReviewsCollection> {
+  static const int _pageSize = 20;
+
   Future<List<ReviewWithDocId>>? _genreFilteredFuture;
   String _genreRequestKey = '';
 
+  /// Picks the random order. A new one each time this tab is built (the
+  /// TabBarView rebuilds it whenever the tab is selected) and on refresh.
+  int _shuffleSeed = math.Random().nextInt(1 << 31);
+  int _visibleCount = _pageSize;
+
   Future<void> _loadMore() async {
-    // Increase the limit to load more reviews
-    ref.read(loadMoreCommunityReviewsProvider)();
-    // Wait a bit for the data to load
-    await Future.delayed(const Duration(milliseconds: 300));
+    setState(() => _visibleCount += _pageSize);
+  }
+
+  Future<void> _reshuffle() async {
+    setState(() {
+      _shuffleSeed = math.Random().nextInt(1 << 31);
+      _visibleCount = _pageSize;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final limit = ref.watch(communityReviewsLimitProvider);
-    final reviewsAsync = ref.watch(communityReviewsProvider(limit));
+    final reviewsAsync = ref.watch(communityReviewsProvider);
 
     if (widget.selectedGenres.isNotEmpty) {
       _ensureGenreFilteredFuture();
@@ -103,17 +117,14 @@ class _CommunityReviewsCollectionState
           );
         }
 
+        final shuffled = shuffleReviews(reviews, _shuffleSeed);
         return ReviewFeed(
           storageKey: 'community_reviews_list',
-          reviews: reviews,
-          hasMore: reviews.length >= limit,
+          reviews: shuffled.take(_visibleCount).toList(),
+          hasMore: shuffled.length > _visibleCount,
           onLoadMore: _loadMore,
-          onRefresh: () async {
-            // Reset limit and refresh
-            ref.read(communityReviewsLimitProvider.notifier).state = 20;
-            ref.invalidate(communityReviewsProvider(limit));
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
+          // The pool is a live stream, so refreshing only needs a new order.
+          onRefresh: _reshuffle,
           itemWrapper: _withReviewOptions,
         );
       },
@@ -123,7 +134,7 @@ class _CommunityReviewsCollectionState
         return AppErrorState(
           title: 'Error loading community reviews',
           error: error,
-          onRetry: () => ref.invalidate(communityReviewsProvider(limit)),
+          onRetry: () => ref.invalidate(communityReviewsProvider),
         );
       },
     );
@@ -210,7 +221,13 @@ class _CommunityReviewsCollectionState
       }
     }
 
-    return _filterReviewsByGenres(reviews, selectedGenres);
+    return shuffleReviews(
+      _filterReviewsByGenres(
+        reviews.where((r) => isPopularEligible(r.review)).toList(),
+        selectedGenres,
+      ),
+      _shuffleSeed,
+    );
   }
 
   List<ReviewWithDocId> _filterReviewsByGenres(
@@ -369,8 +386,7 @@ class _CommunityReviewsCollectionState
                     .delete();
 
                 // Invalidate providers to refresh UI
-                final currentLimit = ref.read(communityReviewsLimitProvider);
-                ref.invalidate(communityReviewsProvider(currentLimit));
+                ref.invalidate(communityReviewsProvider);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Review deleted successfully')),

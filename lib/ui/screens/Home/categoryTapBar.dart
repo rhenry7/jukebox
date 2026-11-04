@@ -24,77 +24,42 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
   static const double _topLockThreshold = 8.0;
   bool _isTabBarVisible = true;
   double _accumulatedScrollDelta = 0.0;
-  double? _lastScrollPixels;
 
-  Widget _buildPillTab(String label) {
-    return Tab(
-      child: SizedBox(
-        height: 42,
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildTab(String label) => Tab(height: 36, text: label);
 
+  /// Flat text tabs spread evenly across the width, with an underline under
+  /// the selected one and a hairline divider across the page.
   Widget _buildTabBarHeader() {
-    return Container(
-      // Equal *visible* space above and below the pill (~16px each). The feed
-      // already starts its first card AppSpacing.lg below, so no bottom
-      // padding here. The top is 6px less than that because the logo's
-      // letters end ~6px above the app bar's edge (at fontSize 64).
-      padding: const EdgeInsets.only(
-        left: AppSpacing.pageGutter,
-        right: AppSpacing.pageGutter,
-        top: AppSpacing.lg - 6,
-      ),
-      alignment: Alignment.centerLeft,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white10,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.12),
-            width: 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.28),
-              blurRadius: 18,
-              spreadRadius: 1,
-              offset: const Offset(0, 8),
-            ),
-          ],
+    return Padding(
+      // The feed already starts its first card AppSpacing.lg below the
+      // divider. The top is 6px less than that because the logo's letters end
+      // ~6px above the app bar's edge (at fontSize 64).
+      padding: const EdgeInsets.only(top: AppSpacing.lg - 6),
+      child: TabBar(
+        isScrollable: false,
+        tabAlignment: TabAlignment.fill,
+        // Same side margins as the cards.
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageGutter),
+        labelPadding: EdgeInsets.zero,
+        labelColor: Colors.white,
+        unselectedLabelColor: AppColors.onSurfaceVariant,
+        labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        unselectedLabelStyle:
+            const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        indicatorSize: TabBarIndicatorSize.label,
+        indicator: const UnderlineTabIndicator(
+          borderSide: BorderSide(color: Colors.white, width: 3),
+          borderRadius: BorderRadius.all(Radius.circular(2)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(6.0),
-          child: TabBar(
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white.withOpacity(0.92),
-            isScrollable: false,
-            tabAlignment: TabAlignment.fill,
-            splashFactory: NoSplash.splashFactory,
-            overlayColor: WidgetStateProperty.all(Colors.transparent),
-            indicator: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              color: const Color(0xFF5A5A5A),
-            ),
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: Colors.transparent,
-            labelPadding: EdgeInsets.zero,
-            tabs: [
-              _buildPillTab('Popular'),
-              _buildPillTab('Friends'),
-              _buildPillTab('For You'),
-            ],
-          ),
-        ),
+        dividerColor: Colors.white.withValues(alpha: 0.12),
+        dividerHeight: 1,
+        tabs: [
+          _buildTab('Popular'),
+          _buildTab('Friends'),
+          _buildTab('For You'),
+        ],
       ),
     );
   }
@@ -120,27 +85,16 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
     }
 
     if (_isNearTop(notification.metrics)) {
-      _lastScrollPixels = notification.metrics.pixels;
       _accumulatedScrollDelta = 0.0;
       _setBarsVisible(true);
       return false;
     }
 
-    if (notification is ScrollStartNotification) {
-      _lastScrollPixels = notification.metrics.pixels;
-      _accumulatedScrollDelta = 0.0;
-      return false;
-    }
-
     if (notification is ScrollUpdateNotification) {
-      final currentPixels = notification.metrics.pixels;
-      final lastPixels = _lastScrollPixels;
-      _lastScrollPixels = currentPixels;
-      if (lastPixels == null) {
-        return false;
-      }
-
-      final delta = currentPixels - lastPixels;
+      // Use the update's own delta: mouse-wheel / trackpad scrolling on web
+      // arrives as separate start/update/end bursts per step, so comparing
+      // positions between notifications always read zero there.
+      final delta = notification.scrollDelta ?? 0.0;
       if (delta.abs() < 0.1) {
         return false;
       }
@@ -169,11 +123,6 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
       _accumulatedScrollDelta = 0.0;
       _setBarsVisible(true);
       return false;
-    }
-
-    if (notification is ScrollEndNotification) {
-      _accumulatedScrollDelta = 0.0;
-      _lastScrollPixels = null;
     }
 
     return false;

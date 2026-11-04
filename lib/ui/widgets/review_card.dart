@@ -24,6 +24,19 @@ import 'genre_pills.dart';
 import 'review_comments.dart';
 import 'spotify_play_button.dart';
 
+/// Cards show only the start of the review; the full text is on the detail
+/// page. Cuts at a word boundary near [maxChars] and adds an ellipsis.
+@visibleForTesting
+String reviewPreview(String text, {int maxChars = 200}) {
+  final flat = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (flat.length <= maxChars) return flat;
+  var cut = flat.substring(0, maxChars);
+  final lastSpace = cut.lastIndexOf(' ');
+  // Avoid splitting a word, unless that would drop most of the preview.
+  if (lastSpace > maxChars * 0.7) cut = cut.substring(0, lastSpace);
+  return '${cut.replaceAll(RegExp(r'[\s.,;:!?\-–—]+$'), '')}…';
+}
+
 /// Core review card UI. Used across Popular, Friends, For You, Profile, Search,
 /// and Album Detail screens. Always edit here — never duplicate this widget.
 class ReviewCardWidget extends ConsumerWidget {
@@ -60,112 +73,113 @@ class ReviewCardWidget extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-          // Top Row: Album art + Artist / Title / Rating
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Album Cover
-              review.albumImageUrl != null
-                  ? AppCachedImage(
-                      imageUrl: review.albumImageUrl!,
-                      width: 100,
-                      height: 100,
-                      borderRadius: AppRadius.smAll,
-                    )
-                  : ClipRRect(
-                      borderRadius: AppRadius.smAll,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        color: Colors.white10,
-                        child: const Icon(Icons.music_note,
-                            size: 48, color: Colors.white38),
-                      ),
-                    ),
-              const SizedBox(width: AppSpacing.lg),
-              // Artist, Title, Rating + Timestamp
-              Expanded(
-                child: Column(
+                // Top Row: Album art + Artist / Title / Rating
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      review.artist,
-                      style: const TextStyle(
-                        color: AppColors.onSurfaceVariant,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      review.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: RatingBar(
-                            minRating: 0,
-                            maxRating: 5,
-                            allowHalfRating: true,
-                            initialRating: review.score,
-                            itemSize: 20,
-                            itemPadding: const EdgeInsets.only(right: 2.0),
-                            ratingWidget: RatingWidget(
-                              full: const Icon(Icons.star, color: AppColors.rating),
-                              empty: const Icon(Icons.star, color: Colors.grey),
-                              half: const Icon(Icons.star_half,
-                                  color: AppColors.rating),
+                    // Album Cover
+                    review.albumImageUrl != null
+                        ? AppCachedImage(
+                            imageUrl: review.albumImageUrl!,
+                            width: 100,
+                            height: 100,
+                            borderRadius: AppRadius.smAll,
+                          )
+                        : ClipRRect(
+                            borderRadius: AppRadius.smAll,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              color: Colors.white10,
+                              child: const Icon(Icons.music_note,
+                                  size: 48, color: Colors.white38),
                             ),
-                            ignoreGestures: true,
-                            onRatingUpdate: (rating) {},
                           ),
-                        ),
-                        if (review.date != null)
-                          const SizedBox(width: AppSpacing.sm),
-                        if (review.date != null)
+                    const SizedBox(width: AppSpacing.lg),
+                    // Artist, Title, Rating + Timestamp
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            formatRelativeTime(review.date),
+                            review.artist,
                             style: const TextStyle(
                               color: AppColors.onSurfaceVariant,
-                              fontSize: 13,
-                              letterSpacing: 0.3,
+                              fontSize: 14,
                             ),
                           ),
-                      ],
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(
+                            review.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: RatingBar(
+                                  minRating: 0,
+                                  maxRating: 5,
+                                  allowHalfRating: true,
+                                  initialRating: review.score,
+                                  itemSize: 20,
+                                  itemPadding:
+                                      const EdgeInsets.only(right: 2.0),
+                                  ratingWidget: RatingWidget(
+                                    full: const Icon(Icons.star,
+                                        color: AppColors.rating),
+                                    empty: const Icon(Icons.star,
+                                        color: Colors.grey),
+                                    half: const Icon(Icons.star_half,
+                                        color: AppColors.rating),
+                                  ),
+                                  ignoreGestures: true,
+                                  onRatingUpdate: (rating) {},
+                                ),
+                              ),
+                              if (review.date != null)
+                                const SizedBox(width: AppSpacing.sm),
+                              if (review.date != null)
+                                Text(
+                                  formatRelativeTime(review.date),
+                                  style: const TextStyle(
+                                    color: AppColors.onSurfaceVariant,
+                                    fontSize: 13,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    SpotifyPlayButton(
+                      title: review.title,
+                      artist: review.artist,
+                      compact: true,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              SpotifyPlayButton(
-                title: review.title,
-                artist: review.artist,
-                compact: true,
-              ),
-            ],
-          ),
-          // Review text
-          if (review.review.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              review.review,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15.0,
-                height: 1.5,
-              ),
-              maxLines: null,
-              overflow: TextOverflow.visible,
-            ),
-          ],
-          GenrePills(tags: splitGenreTags(review.genres)),
+                // Review text
+                if (review.review.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    reviewPreview(review.review),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15.0,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+                GenrePills(tags: splitGenreTags(review.genres)),
               ],
             ),
           ),
@@ -665,9 +679,7 @@ class _RepostButton extends ConsumerWidget {
             Text(
               '$repostCount',
               style: TextStyle(
-                color: isReposted
-                    ? const Color(0xFF3FFF8B)
-                    : Colors.white70,
+                color: isReposted ? const Color(0xFF3FFF8B) : Colors.white70,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -760,8 +772,7 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
     );
 
     // Show "X reposted" header when this card is a repost
-    if (widget.review.isRepost &&
-        widget.review.repostedByDisplayName != null) {
+    if (widget.review.isRepost && widget.review.repostedByDisplayName != null) {
       return CardSurface(
         imageUrl: widget.review.albumImageUrl,
         child: Column(

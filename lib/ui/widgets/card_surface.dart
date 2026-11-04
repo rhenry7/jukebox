@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 
 /// The card surface shared by every content card (review cards, Explore
-/// track cards): tonal fill, 12px corners, a faint ghost border and,
+/// track cards): tonal fill, square corners, a faint ghost border and,
 /// optionally, the blurred album art behind the content. Screens must not
 /// wrap cards in their own Card — only position them (e.g. with
 /// [AppSpacing.cardListItem]) and pad the content with
@@ -63,9 +63,9 @@ class _AlbumArtBackdrop extends StatelessWidget {
   /// Opacity of the whole art (blurred + sharp layers).
   static const double _artOpacity = 0.85;
   static const double _sharpOpacity = 0.20;
-  static const double _scrimTop = 0.63;
-  static const double _scrimMiddle = 0.78;
-  static const double _scrimBottom = 0.86;
+  static const double _scrimTop = 0.74;
+  static const double _scrimMiddle = 0.85;
+  static const double _scrimBottom = 0.90;
 
   Widget _blurredArt() => Image(
         image: ResizeImage(

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -90,6 +91,13 @@ class _NeonTitle extends StatelessWidget {
 
 class MainNavState extends ConsumerState<MainNav> {
   static const Duration _bottomNavTweenDuration = Duration(milliseconds: 260);
+
+  /// Bottom dock size: a centred pill about two thirds of the screen wide,
+  /// floating just above the bottom edge.
+  static const double _dockHeight = 75;
+  static const double _dockWidthFactor = 0.63;
+  static const double _dockMaxWidth = 280;
+  static const double _dockIconSize = 36;
   int currentPageIndex = 0;
   bool _isNavigationChromeVisible = true;
   final TextEditingController _controller = TextEditingController();
@@ -189,62 +197,96 @@ class MainNavState extends ConsumerState<MainNav> {
     }
   }
 
+  Widget _buildTopBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: const Color.fromARGB(4, 131, 131, 131),
+      elevation: 0,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(50),
+          onTap: () => _scaffoldKey.currentState?.openDrawer(),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[850],
+            ),
+            child: const Icon(Icons.menu, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
+      title: _NeonTitle(),
+      titleTextStyle: const TextStyle(color: Colors.white, fontSize: 64),
+      toolbarHeight: 70.0,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(50),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SearchScreen()),
+            ),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey[850],
+              ),
+              child: const Icon(Icons.search, color: Colors.white, size: 22),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       extendBody: true,
       drawer: _AppDrawer(),
-      appBar: _isNavigationChromeVisible
-          ? AppBar(
-              backgroundColor: const Color.fromARGB(4, 131, 131, 131),
-              elevation: 0,
-              leading: Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(50),
-                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey[850],
-                    ),
-                    child:
-                        const Icon(Icons.menu, color: Colors.white, size: 22),
+      // The top bar sits in the body (not Scaffold.appBar) so it can fade and
+      // collapse with the bottom dock when the feed scrolls down, instead of
+      // popping out and making the page jump.
+      body: Column(
+        children: [
+          TweenAnimationBuilder<double>(
+            duration: _bottomNavTweenDuration,
+            curve: _isNavigationChromeVisible
+                ? Curves.easeOutCubic
+                : Curves.easeInCubic,
+            tween: Tween<double>(end: _isNavigationChromeVisible ? 1.0 : 0.0),
+            child: _buildTopBar(context),
+            builder: (context, value, child) {
+              final visibility = value.clamp(0.0, 1.0);
+              return ClipRect(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  heightFactor: visibility == 0 ? 0.0001 : visibility,
+                  child: IgnorePointer(
+                    ignoring: visibility < 0.05,
+                    child: Opacity(opacity: visibility, child: child),
                   ),
                 ),
-              ),
-              title: _NeonTitle(),
-              titleTextStyle:
-                  const TextStyle(color: Colors.white, fontSize: 64),
-              toolbarHeight: 70.0,
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(50),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SearchScreen()),
-                    ),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[850],
-                      ),
-                      child: const Icon(Icons.search,
-                          color: Colors.white, size: 22),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : null,
-      body: DataPreloader(child: _pages[currentPageIndex]),
+              );
+            },
+          ),
+          Expanded(
+            // The top bar already pads for the status bar / notch; don't let
+            // the pages pad for it again.
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: DataPreloader(child: _pages[currentPageIndex]),
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: TweenAnimationBuilder<double>(
         duration: _bottomNavTweenDuration,
         curve: _isNavigationChromeVisible
@@ -255,59 +297,71 @@ class MainNavState extends ConsumerState<MainNav> {
           top: false,
           left: false,
           right: false,
-          minimum: const EdgeInsets.all(15),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.all(Radius.circular(100)),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.white.withOpacity(0.18),
-                      width: 0.8,
+          minimum: const EdgeInsets.fromLTRB(15, 0, 15, 12),
+          // Compact centred dock, capped so it stays small on wide screens.
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            heightFactor: 1,
+            child: SizedBox(
+              width: math.min(
+                  (MediaQuery.sizeOf(context).width - 30) * _dockWidthFactor,
+                  _dockMaxWidth),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(100)),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withOpacity(0.18),
+                          width: 0.8,
+                        ),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.03),
+                          blurRadius: 18,
+                          spreadRadius: 0.5,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: NavigationBar(
+                      height: _dockHeight,
+                      onDestinationSelected: _onItemTapped,
+                      selectedIndex: currentPageIndex,
+                      indicatorColor: Colors.white.withOpacity(0),
+                      indicatorShape: const CircleBorder(),
+                      backgroundColor: Colors.transparent,
+                      labelBehavior:
+                          NavigationDestinationLabelBehavior.alwaysHide,
+                      destinations: <Widget>[
+                        NavigationDestination(
+                          selectedIcon: const Icon(Ionicons.home,
+                              size: _dockIconSize, color: Colors.white),
+                          icon: Icon(Ionicons.home_outline,
+                              size: _dockIconSize, color: Colors.grey[500]!),
+                          label: '',
+                        ),
+                        NavigationDestination(
+                          selectedIcon: Icon(Ionicons.add_circle,
+                              size: 39, color: Colors.greenAccent[700]),
+                          icon: Icon(Ionicons.add_circle_outline,
+                              size: 47, color: Colors.greenAccent[700]),
+                          label: '',
+                        ),
+                        NavigationDestination(
+                          selectedIcon: const Icon(Ionicons.person_circle,
+                              size: _dockIconSize, color: Colors.white),
+                          icon: Icon(Ionicons.person_circle_outline,
+                              size: _dockIconSize, color: Colors.grey[500]!),
+                          label: '',
+                        ),
+                      ],
                     ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.03),
-                      blurRadius: 18,
-                      spreadRadius: 0.5,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: NavigationBar(
-                  onDestinationSelected: _onItemTapped,
-                  selectedIndex: currentPageIndex,
-                  indicatorColor: Colors.white.withOpacity(0),
-                  indicatorShape: const CircleBorder(),
-                  backgroundColor: Colors.transparent,
-                  labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-                  destinations: <Widget>[
-                    NavigationDestination(
-                      selectedIcon:
-                          const Icon(Ionicons.home, color: Colors.white),
-                      icon:
-                          Icon(Ionicons.home_outline, color: Colors.grey[500]!),
-                      label: '',
-                    ),
-                    NavigationDestination(
-                      selectedIcon: Icon(Ionicons.add_circle,
-                          size: 30.0, color: Colors.greenAccent[700]),
-                      icon: Icon(Ionicons.add_circle_outline,
-                          size: 40, color: Colors.greenAccent[700]),
-                      label: '',
-                    ),
-                    NavigationDestination(
-                      selectedIcon: const Icon(Ionicons.person_circle,
-                          color: Colors.white),
-                      icon: Icon(Ionicons.person_circle_outline,
-                          color: Colors.grey[500]!),
-                      label: '',
-                    ),
-                  ],
                 ),
               ),
             ),

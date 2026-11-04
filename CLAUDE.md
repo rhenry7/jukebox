@@ -28,7 +28,7 @@ Screens currently using this widget:
 - `lib/ui/screens/Trending/album_detail_page.dart` (Album detail)
 - `lib/ui/screens/search/search_screen.dart` (Search results)
 
-The card frame (tonal fill, 12px corners, ghost border, blurred album-art background) is `CardSurface` in `lib/ui/widgets/card_surface.dart`. Review cards and Explore track cards both use it; any new content card should too, with `AppSpacing.cardPadding` inside and `AppSpacing.cardListItem` around it.
+The card frame (full-width, square corners, no gap between cards, ghost border, blurred album-art background) is `CardSurface` in `lib/ui/widgets/card_surface.dart`. Review cards and Explore track cards both use it; any new content card should too, with `AppSpacing.cardPadding` inside and `AppSpacing.cardListItem` around it.
 
 Genre / tag pills come from `lib/ui/widgets/genre_pills.dart`: `GenrePills(tags)` when the genres are known, or `TrackGenrePills(title, artist)` to look them up first (used by Explore track cards). Never build tag chips inline.
 

@@ -30,17 +30,18 @@ abstract final class AppSpacing {
   /// Inner padding of a Crate Card (review / playlist / album cards).
   static const double cardPadding = xl;
 
-  /// Vertical gap between stacked cards in a list ("No-Line" rule gutters).
-  static const double cardGap = md;
+  /// Vertical gap between stacked cards in a list. Cards sit flush against
+  /// each other; the ghost border is the only separator.
+  static const double cardGap = 0;
 
   /// Bottom padding for scrollable content under the floating nav dock
   /// (NavigationBar 80 + dock inset 15, rounded up to clear it with a gutter).
   static const double dockClearance = 112;
 
-  /// Padding around each card in a vertical card list. Adjacent items add up
-  /// to [cardGap] between cards.
+  /// Padding around each card in a vertical card list. Cards run edge to edge
+  /// (no side margin) and stack with [cardGap] between them.
   static const EdgeInsets cardListItem =
-      EdgeInsets.symmetric(horizontal: pageGutter, vertical: cardGap / 2);
+      EdgeInsets.symmetric(vertical: cardGap / 2);
 }
 
 /// Corner radius scale.
@@ -56,8 +57,9 @@ abstract final class AppRadius {
   /// Bottom sheets and large modals.
   static const double xl = 24;
 
-  /// Crate Card edge (review / playlist / album cards).
-  static const double card = md;
+  /// Crate Card edge (review / playlist / album cards): square, since cards
+  /// run the full width of the screen.
+  static const double card = 0;
 
   /// Text inputs — always 25, never 12.
   static const double input = 25;
