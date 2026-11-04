@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/genre_cache_service.dart';
+import '../screens/tag/tag_reviews_page.dart';
 import '../theme/tokens.dart';
 
 /// Splits "/"-joined genre strings (e.g. "jazz/funk/rap" from Discogs or
@@ -43,6 +44,7 @@ List<String> rankTags(Iterable<List<String>?> tagLists) {
 /// empty, otherwise the gap above plus up to [maxTags] pills, so every card
 /// that shows genres looks and spaces them the same way. With
 /// [showOverflowCount], a last "N+" pill says how many were left out.
+/// Tapping a tag opens its page ([TagReviewsPage]) unless [tappable] is off.
 class GenrePills extends StatelessWidget {
   const GenrePills({
     super.key,
@@ -50,12 +52,14 @@ class GenrePills extends StatelessWidget {
     this.maxTags = 10,
     this.showOverflowCount = false,
     this.topPadding = AppSpacing.lg,
+    this.tappable = true,
   });
 
   final List<String> tags;
   final int maxTags;
   final bool showOverflowCount;
   final double topPadding;
+  final bool tappable;
 
   @override
   Widget build(BuildContext context) {
@@ -67,35 +71,53 @@ class GenrePills extends StatelessWidget {
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
         children: [
-          for (final tag in tags.take(maxTags)) _pill(tag),
+          for (final tag in tags.take(maxTags))
+            _pill(tag,
+                onTap: tappable ? () => openTagPage(context, tag) : null),
           if (showOverflowCount && hidden > 0) _pill('$hidden+'),
         ],
       ),
     );
   }
 
-  static Widget _pill(String tag) {
-    return Chip(
-      label: Text(
-        tag,
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-        ),
+  static Widget _pill(String tag, {VoidCallback? onTap}) {
+    final label = Text(
+      tag,
+      style: const TextStyle(
+        color: Colors.white70,
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
       ),
-      backgroundColor: Colors.white.withValues(alpha: 0.07),
-      side: BorderSide(
-        color: Colors.white.withValues(alpha: 0.2),
-        width: 1,
-      ),
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
+    );
+    final background = Colors.white.withValues(alpha: 0.07);
+    final side = BorderSide(color: Colors.white.withValues(alpha: 0.2));
+    const padding = EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm, vertical: AppSpacing.xxs);
+    const shape = RoundedRectangleBorder(borderRadius: AppRadius.pillAll);
+
+    if (onTap == null) {
+      return Chip(
+        label: label,
+        backgroundColor: background,
+        side: side,
+        padding: padding,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        shape: shape,
+      );
+    }
+    // Its own tap target, so tapping a tag on a card opens the tag rather
+    // than the review.
+    return ActionChip(
+      label: label,
+      onPressed: onTap,
+      backgroundColor: background,
+      side: side,
+      padding: padding,
+      pressElevation: 0,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
-      shape: const RoundedRectangleBorder(
-        borderRadius: AppRadius.pillAll,
-      ),
+      shape: shape,
     );
   }
 }

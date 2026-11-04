@@ -41,8 +41,17 @@ class WithReason extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ReasonLabel(reason),
-        const SizedBox(height: AppSpacing.xs),
+        // Cards run edge to edge, so the label is inset to line up with the
+        // card's content.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.cardPadding,
+            AppSpacing.md,
+            AppSpacing.cardPadding,
+            AppSpacing.sm,
+          ),
+          child: ReasonLabel(reason),
+        ),
         child,
       ],
     );

@@ -2,191 +2,44 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/utils/scoring_utils.dart';
-import 'package:http/http.dart' as http;
 
-/// Service for generating OpenAI embeddings and user taste vectors.
+/// User taste vectors built from review embeddings.
+///
+/// Embedding generation is disabled in the app (see below), so taste vectors
+/// come only from embeddings already cached in Firestore; otherwise callers
+/// get their neutral fallback.
 ///
 /// Concepts from Grainger Ch. 8-10:
 ///   - Keywords miss meaning. "incredible energy, makes me want to dance" and
 ///     "great workout vibe, perfect beats" express the same taste but share zero
 ///     keywords. Embeddings capture this semantic similarity.
-///   - We use OpenAI's `text-embedding-3-large` (up to 3072 dims) for higher
-///     semantic precision in music taste matching.
-///     A typical review is ~50 tokens, so embedding 100 reviews costs fractions
-///     of a cent.
 ///   - The user's taste vector is the weighted average of their review embeddings
 ///     (weighted by rating). It is cached in Firestore and refreshed incrementally.
 class EmbeddingService {
-  static const _embeddingEndpoint = 'https://api.openai.com/v1/embeddings';
+  /// Model name stored with cached taste vectors written by earlier versions.
   static const _embeddingModel = 'text-embedding-3-large';
-  static const _embeddingModelFallback = 'text-embedding-3-small';
-  static const int _embeddingDimensions = 3072;
-  static const _timeout = Duration(seconds: 20);
 
-  // ─── Generate a single embedding ─────────────────────────────
+  // ─── Embedding generation (disabled in the app) ───────────────
 
-  /// Generate an embedding vector for [text] using OpenAI.
-  ///
-  /// Returns a list of [_embeddingDimensions] doubles, or `null` on failure.
-  /// Falls back to `text-embedding-3-small` if `text-embedding-3-large`
-  /// is not available.
-  static Future<List<double>?> generateEmbedding(String text) async {
-    if (text.trim().isEmpty) return null;
-    if (openAIKey.isEmpty) {
-      debugPrint('[EMBED] OpenAI key not configured — skipping embedding');
-      return null;
-    }
-    return _generateEmbeddingWithModel(text, _embeddingModel);
-  }
+  // The app must never call a paid AI API: anything in a --dart-define ships
+  // in the public web bundle (see CLAUDE.md). Embeddings are computed
+  // server-side in functions/. These keep their signatures so callers fall
+  // back the same way they did when no key was configured.
 
-  static Future<List<double>?> _generateEmbeddingWithModel(
-      String text, String model) async {
-    try {
-      final requestBody = <String, dynamic>{
-        'model': model,
-        'input': text.length > 8000 ? text.substring(0, 8000) : text,
-      };
-      final dimensions = _dimensionsForModel(model);
-      if (dimensions != null) {
-        requestBody['dimensions'] = dimensions;
-      }
+  /// Always `null`: embeddings are not generated in the app.
+  static Future<List<double>?> generateEmbedding(String text) async => null;
 
-      final response = await http
-          .post(
-            Uri.parse(_embeddingEndpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $openAIKey',
-            },
-            body: jsonEncode(requestBody),
-          )
-          .timeout(_timeout);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final embedding = (data['data'][0]['embedding'] as List<dynamic>)
-            .map((e) => (e as num).toDouble())
-            .toList();
-        return embedding;
-      } else if (response.statusCode == 403 || response.statusCode == 404) {
-        final body = response.body;
-        if (body.contains('model_not_found')) {
-          if (model == _embeddingModel) {
-            return _generateEmbeddingWithModel(text, _embeddingModelFallback);
-          }
-          return null; // Fallback also failed, no spam
-        }
-      }
-      debugPrint('[EMBED] API error ${response.statusCode}: ${response.body}');
-      return null;
-    } catch (e) {
-      debugPrint('[EMBED] Error generating embedding: $e');
-      return null;
-    }
-  }
-
-  // ─── Generate batch embeddings ───────────────────────────────
-
-  static bool _loggedNoEmbeddingAccess = false;
-
-  /// Generate embeddings for multiple texts in a single API call.
-  /// Falls back to `text-embedding-3-small` if `text-embedding-3-large`
-  /// is not available.
+  /// One `null` per text: embeddings are not generated in the app.
   static Future<List<List<double>?>> generateBatchEmbeddings(
-      List<String> texts) async {
-    if (texts.isEmpty) return [];
-    if (openAIKey.isEmpty) return List.filled(texts.length, null);
+          List<String> texts) async =>
+      List<List<double>?>.filled(texts.length, null);
 
-    final result = await _generateBatchEmbeddingsResolved(texts);
-    if (result != null) return result.embeddings;
-
-    if (!_loggedNoEmbeddingAccess) {
-      _loggedNoEmbeddingAccess = true;
-      debugPrint(
-          '[EMBED] No embedding model available. Enable at platform.openai.com '
-          '→ Settings → Model access: text-embedding-3-large or text-embedding-3-small');
-    }
-    return List<List<double>?>.filled(texts.length, null);
-  }
-
+  /// Always `null`: callers treat this as "no embeddings available".
   static Future<_BatchEmbeddingResult?> _generateBatchEmbeddingsResolved(
-    List<String> texts,
-  ) async {
-    final primary =
-        await _generateBatchEmbeddingsWithModel(texts, _embeddingModel);
-    if (primary != null) {
-      return _BatchEmbeddingResult(model: _embeddingModel, embeddings: primary);
-    }
-
-    debugPrint(
-      '[EMBED] $_embeddingModel unavailable, trying $_embeddingModelFallback',
-    );
-    final fallback =
-        await _generateBatchEmbeddingsWithModel(texts, _embeddingModelFallback);
-    if (fallback != null) {
-      return _BatchEmbeddingResult(
-        model: _embeddingModelFallback,
-        embeddings: fallback,
-      );
-    }
-    return null;
-  }
-
-  static Future<List<List<double>?>?> _generateBatchEmbeddingsWithModel(
-      List<String> texts, String model) async {
-    try {
-      final cleanTexts =
-          texts.map((t) => t.length > 8000 ? t.substring(0, 8000) : t).toList();
-      final requestBody = <String, dynamic>{
-        'model': model,
-        'input': cleanTexts,
-      };
-      final dimensions = _dimensionsForModel(model);
-      if (dimensions != null) {
-        requestBody['dimensions'] = dimensions;
-      }
-
-      final response = await http
-          .post(
-            Uri.parse(_embeddingEndpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $openAIKey',
-            },
-            body: jsonEncode(requestBody),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final embeddings = (data['data'] as List<dynamic>).map((item) {
-          return (item['embedding'] as List<dynamic>)
-              .map((e) => (e as num).toDouble())
-              .toList();
-        }).toList();
-        return embeddings;
-      } else if (response.statusCode == 403 || response.statusCode == 404) {
-        if (response.body.contains('model_not_found')) {
-          return null; // Caller will retry with fallback or log once
-        }
-      }
-      debugPrint(
-          '[EMBED] Batch API error ${response.statusCode}: ${response.body}');
-      return List.filled(texts.length, null);
-    } catch (e) {
-      debugPrint('[EMBED] Error generating batch embeddings: $e');
-      return List.filled(texts.length, null);
-    }
-  }
-
-  static int? _dimensionsForModel(String model) {
-    if (model == _embeddingModel) return _embeddingDimensions;
-    if (model == _embeddingModelFallback) return 1536;
-    return null;
-  }
+          List<String> texts) async =>
+      null;
 
   // ─── Taste Vector Generation ─────────────────────────────────
 

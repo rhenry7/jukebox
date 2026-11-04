@@ -150,9 +150,6 @@ class MainNavState extends ConsumerState<MainNav> {
     _onItemTapped(index);
   }
 
-  /// Opens the app menu (settings, notifications, legal) from child pages.
-  void openDrawer() => _scaffoldKey.currentState?.openDrawer();
-
   String _getProfileLabel() {
     return 'Profile';
   }

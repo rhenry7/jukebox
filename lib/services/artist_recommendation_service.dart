@@ -2,11 +2,10 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:http/http.dart' as http;
 
-/// A recommended artist returned by the AI with an image resolved via MusicBrainz.
+/// A recommended artist with an image resolved via MusicBrainz.
 class RecommendedArtist {
   final String name;
   final String reason;
@@ -21,12 +20,12 @@ class RecommendedArtist {
   });
 }
 
-/// Uses OpenAI to recommend artists based on the user's review history,
-/// then resolves artist images via MusicBrainz + Cover Art Archive.
+/// Recommends artists from the user's own highly rated reviews, then resolves
+/// artist images via MusicBrainz + Cover Art Archive.
+///
+/// No AI here: the app must never call a paid AI API (see CLAUDE.md). AI
+/// recommendations belong in functions/.
 class ArtistRecommendationService {
-  static const _openAiEndpoint = 'https://api.openai.com/v1/chat/completions';
-  static const _model = 'gpt-4o-mini';
-  static const _timeout = Duration(seconds: 30);
   static const _mbBaseUrl = 'https://musicbrainz.org/ws/2';
   static const _coverArtBaseUrl = 'https://coverartarchive.org';
   static const _httpTimeout = Duration(seconds: 15);
@@ -35,10 +34,10 @@ class ArtistRecommendationService {
   static final Map<String, _CachedResult> _cache = {};
   static const _cacheTtl = Duration(minutes: 15);
 
-  /// Get AI-powered artist recommendations for a user.
+  /// Artist recommendations for a user.
   ///
   /// 1. Reads the user's own reviews from Firestore.
-  /// 2. Sends them to OpenAI to get recommended artist names + genres.
+  /// 2. Picks artists from their highly rated reviews.
   /// 3. Resolves artist images via MusicBrainz artist search + Cover Art Archive.
   /// 4. Caches the result in memory for [_cacheTtl].
   static Future<List<RecommendedArtist>> getRecommendedArtists(
@@ -58,20 +57,8 @@ class ArtistRecommendationService {
       return [];
     }
 
-    // 2. Ask OpenAI for artist recommendations
-    List<RecommendedArtist> artists;
-    if (openAIKey.isNotEmpty) {
-      try {
-        artists = await _getAIRecommendations(userReviews);
-        debugPrint('[ARTIST_REC] AI returned ${artists.length} artists');
-      } catch (e) {
-        debugPrint('[ARTIST_REC] AI failed, using fallback: $e');
-        artists = _fallbackFromReviews(userReviews);
-      }
-    } else {
-      debugPrint('[ARTIST_REC] No OpenAI key, using fallback');
-      artists = _fallbackFromReviews(userReviews);
-    }
+    // 2. Pick artists from the user's highly rated reviews
+    final artists = _fromReviews(userReviews);
 
     if (artists.isEmpty) return [];
 
@@ -88,96 +75,6 @@ class ArtistRecommendationService {
       _cache.remove(userId);
     } else {
       _cache.clear();
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // OpenAI
-  // ---------------------------------------------------------------------------
-
-  static Future<List<RecommendedArtist>> _getAIRecommendations(
-    List<Review> userReviews,
-  ) async {
-    final reviewsSummary = userReviews.take(20).map((r) {
-      final genres = (r.genres ?? []).join(', ');
-      return '- "${r.title}" by ${r.artist} (${r.score}/5) [${genres.isNotEmpty ? genres : "unknown genre"}]';
-    }).join('\n');
-
-    final prompt = '''
-Based on the following user's music review history, recommend 15 artists they would enjoy but have NOT already reviewed. Focus on similar genres, styles, and vibes.
-
-USER'S REVIEWS:
-$reviewsSummary
-
-TASK: Return a JSON array of objects with keys "name" (artist name), "reason" (1 short sentence why), and "genres" (array of 1-3 genre strings). Return ONLY valid JSON, no markdown or explanation.
-Example: [{"name":"Artist Name","reason":"Similar vibe to X","genres":["rock","indie"]}]
-''';
-
-    final response = await http
-        .post(
-          Uri.parse(_openAiEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $openAIKey',
-          },
-          body: jsonEncode({
-            'model': _model,
-            'temperature': 0.8,
-            'max_tokens': 1500,
-            'messages': [
-              {
-                'role': 'system',
-                'content':
-                    'You are a music recommendation engine. Given a user\'s review history, return a JSON array of artist recommendations. Return ONLY valid JSON, no other text.',
-              },
-              {'role': 'user', 'content': prompt},
-            ],
-          }),
-        )
-        .timeout(_timeout);
-
-    if (response.statusCode != 200) {
-      throw Exception('OpenAI error: ${response.statusCode}');
-    }
-
-    final data = jsonDecode(response.body);
-    final content = (data['choices'] as List?)
-        ?.firstOrNull?['message']?['content']
-        ?.toString()
-        .trim();
-    if (content == null || content.isEmpty) return [];
-
-    return _parseArtistsResponse(content);
-  }
-
-  static List<RecommendedArtist> _parseArtistsResponse(String content) {
-    try {
-      var clean = content
-          .replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
-      final start = clean.indexOf('[');
-      final end = clean.lastIndexOf(']');
-      if (start >= 0 && end > start) {
-        clean = clean.substring(start, end + 1);
-      }
-
-      final decoded = jsonDecode(clean) as List;
-      return decoded.map((item) {
-        final map = item as Map<String, dynamic>;
-        return RecommendedArtist(
-          name: (map['name'] as String? ?? '').trim(),
-          reason: (map['reason'] as String? ?? '').trim(),
-          genres: (map['genres'] as List?)
-                  ?.map((g) => g.toString().trim())
-                  .where((g) => g.isNotEmpty)
-                  .toList() ??
-              [],
-        );
-      }).where((a) => a.name.isNotEmpty).take(15).toList();
-    } catch (e) {
-      debugPrint('[ARTIST_REC] Failed to parse AI response: $e');
-      return [];
     }
   }
 
@@ -298,12 +195,11 @@ Example: [{"name":"Artist Name","reason":"Similar vibe to X","genres":["rock","i
   }
 
   // ---------------------------------------------------------------------------
-  // Fallback (no OpenAI key)
+  // From reviews
   // ---------------------------------------------------------------------------
 
-  /// Simple fallback: extract unique artists the user has reviewed with high
-  /// scores and return them. Not ideal but keeps the section functional.
-  static List<RecommendedArtist> _fallbackFromReviews(List<Review> reviews) {
+  /// Unique artists the user has reviewed with high scores.
+  static List<RecommendedArtist> _fromReviews(List<Review> reviews) {
     final seen = <String>{};
     final result = <RecommendedArtist>[];
 

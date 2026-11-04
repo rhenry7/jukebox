@@ -2,6 +2,10 @@
 //
 // Keys are resolved only from compile-time environment values supplied with
 // --dart-define. This avoids ever bundling a local .env file into the app.
+//
+// No AI keys (OpenAI, Anthropic, ...) belong here: every --dart-define ships
+// in the public web bundle. AI work runs in functions/ with keys in Secret
+// Manager (see CLAUDE.md).
 
 // Compile-time only (String.fromEnvironment cannot be used at runtime).
 const String apikey = String.fromEnvironment(
@@ -17,10 +21,6 @@ const String _spotifyClientSecret =
     String.fromEnvironment('SPOTIFY_CLIENT_SECRET', defaultValue: '');
 const String _newsAPIKey =
     String.fromEnvironment('NEWS_API_KEY', defaultValue: '');
-const String _openAIKey =
-    String.fromEnvironment('OPENAI_API_KEY', defaultValue: '');
-const String _openAIKeyAlias =
-    String.fromEnvironment('OPENAI_KEY', defaultValue: '');
 const String _firebaseWebOptionsKey =
     String.fromEnvironment('FIREBASE_WEB_OPTIONS_KEY', defaultValue: '');
 const String _firebaseWebAppId =
@@ -42,7 +42,6 @@ String get clientId => _clientId.isNotEmpty ? _clientId : _spotifyClientId;
 String get clientSecret =>
     _clientSecret.isNotEmpty ? _clientSecret : _spotifyClientSecret;
 String get newsAPIKey => _newsAPIKey;
-String get openAIKey => _openAIKey.isNotEmpty ? _openAIKey : _openAIKeyAlias;
 String get firebaseOptionsKey => _firebaseOptionsKey;
 String get firebaseAppId => _firebaseAppId;
 String get firebaseWebOptionsKey {

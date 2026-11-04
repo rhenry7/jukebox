@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/activity_provider.dart';
-import 'package:flutter_test_project/providers/friends_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/providers/spotify_artist_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
@@ -61,7 +60,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             ?.where((r) => !r.review.isRepost)
             .length ??
         0;
-    final friendCount = ref.watch(friendIdsProvider).valueOrNull?.length ?? 0;
     final topCategories = rankTags([
       for (final r in ref.watch(userReviewsProvider).valueOrNull ?? const [])
         if (!r.review.isRepost) r.review.genres,
@@ -76,7 +74,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             child: _ProfileHeader(
               displayName: user?.displayName ?? 'User',
               reviewCount: ownReviewCount,
-              friendCount: friendCount,
+              joinDate: user?.metadata.creationTime,
               topCategories: topCategories,
               topArtists: topArtists,
             ),
@@ -100,26 +98,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-/// Editorial header: name and handle on the left with the avatar opposite,
-/// the user's counts, then their top categories and top artists, then the
-/// profile actions. One spacing rhythm throughout: [_gapS] inside a group,
+/// Profile header: avatar beside the @handle, with the review count and join
+/// date under it, then top categories and top artists, then the profile
+/// actions. One spacing rhythm throughout: [_gapS] inside a group,
 /// [_gapL] between groups.
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.displayName,
     required this.reviewCount,
-    required this.friendCount,
+    required this.joinDate,
     required this.topCategories,
     required this.topArtists,
   });
 
   final String displayName;
   final int reviewCount;
-  final int friendCount;
+  final DateTime? joinDate;
   final List<String> topCategories;
   final AsyncValue<List<TopArtistData>> topArtists;
 
-  static const double _avatarSize = 88;
+  static const double _avatarSize = 56;
   static const double _buttonHeight = 44;
   static const double _gapS = AppSpacing.md;
   static const double _gapL = AppSpacing.xl;
@@ -132,62 +130,49 @@ class _ProfileHeader extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pageGutter, AppSpacing.xs, AppSpacing.pageGutter, _gapL),
+          AppSpacing.pageGutter, AppSpacing.lg, AppSpacing.pageGutter, _gapL),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              tooltip: 'Settings',
-              icon: const Icon(Ionicons.settings_outline,
-                  color: AppColors.onSurface, size: 26),
-              onPressed: () =>
-                  context.findAncestorStateOfType<MainNavState>()?.openDrawer(),
-            ),
-          ),
-
-          // Name block opposite the avatar.
+          // Avatar, then the handle with the user's stats under it.
           Row(
             children: [
+              _Avatar(initial: initial, size: _avatarSize),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      displayName,
-                      maxLines: 2,
+                      '@$handle',
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.spaceGrotesk(
                         color: AppColors.onSurface,
-                        fontSize: 32,
+                        fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        height: 1.05,
-                        letterSpacing: -0.8,
+                        height: 1.1,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '@$handle',
-                      style: const TextStyle(
-                          color: AppColors.onSurfaceVariant, fontSize: 15),
-                    ),
-                    const SizedBox(height: _gapS),
                     Text.rich(
                       TextSpan(children: [
                         _countSpan(reviewCount),
-                        const TextSpan(text: ' reviews  ·  '),
-                        _countSpan(friendCount),
-                        const TextSpan(text: ' friends'),
+                        const TextSpan(text: ' reviews'),
+                        if (joinDate != null)
+                          TextSpan(
+                              text:
+                                  '  ·  Member since ${_formatJoinDate(joinDate!)}'),
                       ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           color: AppColors.onSurfaceVariant, fontSize: 14),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.lg),
-              _Avatar(initial: initial, size: _avatarSize),
             ],
           ),
 
@@ -257,6 +242,14 @@ class _ProfileHeader extends StatelessWidget {
   /// Show the artists row while loading, or once there are any.
   bool get _hasArtists =>
       topArtists.isLoading || (topArtists.valueOrNull?.isNotEmpty ?? false);
+
+  static String _formatJoinDate(DateTime date) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
 
   static TextSpan _countSpan(int value) => TextSpan(
         text: '$value',

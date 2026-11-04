@@ -488,6 +488,8 @@ class _MyReviewSheetContentFormState
             navigatorContext,
             reviewPath: reviewPath,
             reviewedTitle: submittedTrack,
+            reviewedArtist: submittedArtist,
+            tags: tags,
           ));
         }
       }

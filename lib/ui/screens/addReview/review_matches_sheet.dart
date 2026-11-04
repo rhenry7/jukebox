@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../GIFs/gifs.dart';
-import '../../../services/for_you_service.dart';
+import '../../../services/for_you_service.dart' show ReviewMatch;
+import '../../../services/tag_match_service.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/app_states.dart';
 import '../../widgets/reason_label.dart';
 import '../../widgets/review_card.dart';
 
-/// Shown right after posting a review: other people's reviews of tracks the
-/// user will probably like, based on what they just wrote.
+/// Shown right after posting a review: other people's reviews whose tags
+/// overlap the tags on the review the user just wrote.
 Future<void> showReviewMatchesSheet(
   BuildContext context, {
   required String reviewPath,
   required String reviewedTitle,
+  required String reviewedArtist,
+  required List<String> tags,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -22,14 +25,20 @@ Future<void> showReviewMatchesSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
     ),
     builder: (_) => _ReviewMatchesSheet(
-      matches: ForYouService.matchesForReview(reviewPath),
+      matches: TagMatchService.matchesFor(
+        reviewPath: reviewPath,
+        tags: tags,
+        title: reviewedTitle,
+        artist: reviewedArtist,
+      ),
       reviewedTitle: reviewedTitle,
     ),
   );
 }
 
 class _ReviewMatchesSheet extends StatelessWidget {
-  const _ReviewMatchesSheet({required this.matches, required this.reviewedTitle});
+  const _ReviewMatchesSheet(
+      {required this.matches, required this.reviewedTitle});
 
   final Future<List<ReviewMatch>> matches;
   final String reviewedTitle;
@@ -63,7 +72,8 @@ class _ReviewMatchesSheet extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.onSurfaceVariant),
+                    icon: const Icon(Icons.close,
+                        color: AppColors.onSurfaceVariant),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -80,8 +90,9 @@ class _ReviewMatchesSheet extends StatelessWidget {
                   if (list.isEmpty) {
                     return const AppEmptyState(
                       icon: Icons.auto_awesome,
-                      title: 'Nothing close enough yet',
-                      message: 'Your review will still tune your For You list.',
+                      title: 'No matching reviews yet',
+                      message:
+                          'Nobody else has tagged recent reviews the same way yet.',
                     );
                   }
                   return ListView.builder(

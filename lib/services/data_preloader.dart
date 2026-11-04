@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/providers/preferences_provider.dart';
 import 'package:flutter_test_project/providers/recommended_albums_provider.dart';
-import 'package:flutter_test_project/providers/recommended_artists_provider.dart';
 import 'package:flutter_test_project/providers/popular_tracks_provider.dart';
 import 'package:flutter_test_project/providers/recommended_reviews_provider.dart';
 import 'package:flutter_test_project/ui/screens/Trending/trending_tracks.dart';
@@ -58,16 +57,7 @@ class _DataPreloaderState extends ConsumerState<DataPreloader> {
       debugPrint('[PRELOADER] recommendedAlbumsProvider trigger failed: $e');
     }
 
-    // 3. Kick off AI-powered artist recommendations (independent call)
-    try {
-      // ignore: unused_local_variable
-      final _ = ref.read(recommendedArtistsProvider.future);
-      debugPrint('[PRELOADER] Triggered recommendedArtistsProvider');
-    } catch (e) {
-      debugPrint('[PRELOADER] recommendedArtistsProvider trigger failed: $e');
-    }
-
-    // 4. Kick off globally popular tracks (no user dependency)
+    // 3. Kick off globally popular tracks (no user dependency)
     try {
       // ignore: unused_local_variable
       final _ = ref.read(popularTracksProvider.future);
@@ -76,7 +66,7 @@ class _DataPreloaderState extends ConsumerState<DataPreloader> {
       debugPrint('[PRELOADER] popularTracksProvider trigger failed: $e');
     }
 
-    // 5. Kick off user preferences, then use the result to trigger trending tracks
+    // 4. Kick off user preferences, then use the result to trigger trending tracks
     try {
       final preferences = await ref.read(userPreferencesProvider.future);
       debugPrint('[PRELOADER] Preferences loaded, triggering trendingTracksProvider');

@@ -35,7 +35,13 @@ final userReviewsProvider = StreamProvider<List<ReviewWithDocId>>((ref) {
           .map((doc) {
             try {
               final review = Review.fromFirestore(doc.data());
-              return ReviewWithDocId(review: review, docId: doc.id);
+              // Full path (users/{uid}/reviews/{docId}) is what likes,
+              // comments, reposts and the detail page key on.
+              return ReviewWithDocId(
+                review: review,
+                docId: doc.id,
+                fullReviewId: doc.reference.path,
+              );
             } catch (e) {
               debugPrint('Error parsing review ${doc.id}: $e');
               return null;

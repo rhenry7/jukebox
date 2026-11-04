@@ -136,14 +136,11 @@ void _debugLogApiConfiguration() {
   if (clientId.isEmpty || clientSecret.isEmpty) {
     missingServices.add('Spotify');
   }
-  if (openAIKey.isEmpty) {
-    missingServices.add('OpenAI');
-  }
 
   if (missingServices.isEmpty) {
     debugPrint(
       '✅ Local API config loaded for ${kIsWeb ? 'web' : 'mobile'}: '
-      'Spotify/OpenAI keys are available.',
+      'Spotify keys are available.',
     );
     return;
   }
