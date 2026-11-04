@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/spotify_link_service.dart';
+import '../../services/spotify_open/spotify_open.dart';
 import '../theme/tokens.dart';
 
 /// "Play on Spotify" button for a reviewed song or album: a full-width pill
@@ -43,7 +43,7 @@ class _SpotifyPlayButtonState extends State<SpotifyPlayButton> {
   Future<void> _open() async {
     final url =
         _link ?? SpotifyLinkService.searchUrl(widget.title, widget.artist);
-    final opened = await launchUrl(url, mode: LaunchMode.externalApplication);
+    final opened = await openOnSpotify(url);
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Couldn't open Spotify")),

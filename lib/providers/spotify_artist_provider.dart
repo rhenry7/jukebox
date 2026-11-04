@@ -12,12 +12,17 @@ class TopArtistData {
   final int popularity;
   final int reviewCount;
 
+  /// The artist's Spotify page, or a Spotify search for the name when no
+  /// confident match was found.
+  final Uri spotifyUrl;
+
   const TopArtistData({
     required this.name,
     required this.imageUrl,
     required this.genres,
     required this.popularity,
     required this.reviewCount,
+    required this.spotifyUrl,
   });
 }
 
@@ -31,7 +36,16 @@ typedef ArtistTally = ({String name, int count});
 /// Watches [userReviewsProvider] so it refreshes when reviews change.
 final spotifyTopArtistsProvider =
     FutureProvider<List<TopArtistData>>((ref) async {
-  final reviews = ref.watch(userReviewsProvider).value;
+  return _topArtists(ref.watch(userReviewsProvider).value);
+});
+
+/// The same for any user (another reviewer's profile page).
+final topArtistsForUserProvider = FutureProvider.autoDispose
+    .family<List<TopArtistData>, String>((ref, userId) async {
+  return _topArtists(ref.watch(reviewsByUserProvider(userId)).value);
+});
+
+Future<List<TopArtistData>> _topArtists(List<ReviewWithDocId>? reviews) async {
   if (reviews == null || reviews.isEmpty) return [];
 
   final top = rankArtists([
@@ -59,6 +73,9 @@ final spotifyTopArtistsProvider =
           genres: match.genres?.toList() ?? [],
           popularity: match.popularity ?? 0,
           reviewCount: tally.count,
+          spotifyUrl: match.id != null
+              ? Uri.parse('https://open.spotify.com/artist/${match.id}')
+              : _artistSearchUrl(tally.name),
         );
       }
     } catch (e) {
@@ -71,9 +88,13 @@ final spotifyTopArtistsProvider =
       genres: const [],
       popularity: 0,
       reviewCount: tally.count,
+      spotifyUrl: _artistSearchUrl(tally.name),
     );
   }));
-});
+}
+
+Uri _artistSearchUrl(String name) => Uri.parse(
+    'https://open.spotify.com/search/${Uri.encodeComponent(name)}/artists');
 
 /// Counts reviews per artist, crediting every artist on a review, and ranks
 /// them by count. Names are compared ignoring case and accents; the most

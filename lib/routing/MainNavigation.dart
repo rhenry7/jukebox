@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 import 'package:flutter_test_project/ui/screens/Home/categoryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/models/music_preferences.dart';
@@ -125,6 +126,10 @@ class MainNavState extends ConsumerState<MainNav> {
               albumImageUrl: '',
             );
           });
+    } else if (index == homeTab && currentPageIndex == homeTab) {
+      // Already home: back to the top of the feed, refreshed.
+      setState(() => _isNavigationChromeVisible = true);
+      ReviewFeed.scrollToTopAndRefresh();
     } else {
       setState(() {
         currentPageIndex = index;

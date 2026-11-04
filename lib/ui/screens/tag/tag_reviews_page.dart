@@ -39,26 +39,37 @@ class TagReviewsPage extends ConsumerWidget {
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.onSurface,
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        centerTitle: true,
+        // Tag and count on one line, centred in the bar, sharing a baseline.
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(
-              tag,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.spaceGrotesk(
-                color: AppColors.onSurface,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                tag,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.spaceGrotesk(
+                  color: AppColors.onSurface,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            if (data != null)
+            if (data != null) ...[
+              const SizedBox(width: AppSpacing.md),
               Text(
                 _countLabel(data),
+                maxLines: 1,
                 style: const TextStyle(
-                    color: AppColors.onSurfaceVariant, fontSize: 12),
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 14,
+                  letterSpacing: 0.2,
+                ),
               ),
+            ],
           ],
         ),
       ),

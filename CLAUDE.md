@@ -43,6 +43,7 @@ lib/ui/widgets/review_feed.dart
 
 - `ReviewFeed` — owns page gutter, card gap, top/bottom spacing (incl. floating-dock clearance), pull-to-refresh, infinite scroll and the loading footer. Screens pass only `reviews`, `onRefresh`, optional `onLoadMore`/`hasMore`, a `storageKey`, a `layout` (`tab` or `pushed`) and an optional `itemWrapper` (e.g. Dismissible — must not add padding).
 - `ReviewFeedSkeleton` — the loading state, same spacing as the feed.
+- Tapping Home while already on Home calls `ReviewFeed.scrollToTopAndRefresh()`: the `tab`-layout feed on screen scrolls to the top and runs its `onRefresh`.
 
 Empty / error / loading-more states come from `lib/ui/widgets/app_states.dart` (`AppEmptyState`, `AppErrorState`, `AppLoadingFooter`).
 
@@ -58,6 +59,9 @@ The For You list and the post-review "Because you just reviewed X" sheet are bui
 - App side: `lib/services/for_you_service.dart` and `lib/providers/recommended_reviews_provider.dart`. `ReviewRecommendationService` is only the on-device fallback while no cached list exists.
 
 **Rule:** Never call OpenAI (or any paid AI API) from the Flutter app, and never add AI keys to `deploy.sh` — anything in a `--dart-define` ships in the public web bundle. AI work goes in `functions/` with keys in Secret Manager.
+
+### Other users' profiles
+`ProfilePage(userId:, displayName:)` shows any user's profile with the same header, filled from their reviews (`reviewsByUserProvider`, `topArtistsForUserProvider`) and `users/{uid}` (`userProfileInfoProvider`). It opens from "View profile" in the reviewer sheet on review cards. Another user's profile has Add Friend in place of Edit Profile, and only their reviews: their bookmarks and activity stay private. Add/remove friend goes through `toggleFriend` in `lib/ui/widgets/friend_toggle.dart`.
 
 ### Profile → Bookmarks
 The bookmark button on every review card (`_BookmarkButton` in `review_card.dart`) saves the review's path to `users/{uid}/bookmarks` via `lib/services/bookmark_service.dart`. Profile → Bookmarks (`bookmarkedReviewsProvider` in `lib/providers/bookmarks_provider.dart`) loads those reviews live, so edits show and deleted reviews drop out.

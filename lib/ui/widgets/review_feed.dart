@@ -48,8 +48,13 @@ class ReviewFeed extends StatefulWidget {
   final ReviewFeedLayout layout;
 
   /// Wraps each card (e.g. in a Dismissible). Must not add padding.
-  final Widget Function(BuildContext context, ReviewWithDocId review, Widget card)?
-      itemWrapper;
+  final Widget Function(
+      BuildContext context, ReviewWithDocId review, Widget card)? itemWrapper;
+
+  /// Tells the [ReviewFeedLayout.tab] feed on screen to scroll to the top
+  /// and refresh (the Home button tapped while already on Home).
+  static void scrollToTopAndRefresh() => _homeReselected.value++;
+  static final ValueNotifier<int> _homeReselected = ValueNotifier(0);
 
   @override
   State<ReviewFeed> createState() => _ReviewFeedState();
@@ -57,16 +62,21 @@ class ReviewFeed extends StatefulWidget {
 
 class _ReviewFeedState extends State<ReviewFeed> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<RefreshIndicatorState> _refreshKey = GlobalKey();
   bool _isLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    if (widget.layout == ReviewFeedLayout.tab) {
+      ReviewFeed._homeReselected.addListener(_onHomeReselected);
+    }
   }
 
   @override
   void dispose() {
+    ReviewFeed._homeReselected.removeListener(_onHomeReselected);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
@@ -82,6 +92,32 @@ class _ReviewFeedState extends State<ReviewFeed> {
     }
   }
 
+  Future<void> _onHomeReselected() async {
+    if (!_isOnScreen() || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels > 0) {
+      // Long way down: jump most of it so the trip back stays short.
+      if (position.pixels > position.viewportDimension * 3) {
+        _scrollController.jumpTo(position.viewportDimension);
+      }
+      await _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic);
+    }
+    if (mounted) await _refreshKey.currentState?.show();
+  }
+
+  /// Whether this is the Home tab being looked at: the current route, and
+  /// not a neighbouring tab kept alive off to the side.
+  bool _isOnScreen() {
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return false;
+    final box = context.findRenderObject() as RenderBox?;
+    final overlay = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (box == null || !box.attached || overlay == null) return false;
+    final dx = box.localToGlobal(Offset.zero, ancestor: overlay).dx;
+    return dx.abs() < box.size.width / 2;
+  }
+
   Future<void> _loadMore() async {
     setState(() => _isLoadingMore = true);
     await widget.onLoadMore!();
@@ -93,6 +129,7 @@ class _ReviewFeedState extends State<ReviewFeed> {
     final reviews = widget.reviews;
 
     return RefreshIndicator(
+      key: _refreshKey,
       onRefresh: widget.onRefresh,
       color: AppColors.primary,
       child: ListView.builder(

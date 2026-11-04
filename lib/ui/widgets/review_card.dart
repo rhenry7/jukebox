@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +9,6 @@ import '../../models/review.dart';
 import '../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../providers/review_likes_provider.dart';
 import '../../providers/friends_provider.dart';
-import '../../services/friends_service.dart';
 import '../../services/genre_cache_service.dart';
 import '../../services/review_likes_service.dart';
 import '../../utils/helpers.dart';
@@ -18,10 +19,12 @@ import '../../providers/bookmarks_provider.dart';
 import '../../providers/repost_provider.dart';
 import '../../services/bookmark_service.dart';
 import '../../services/repost_service.dart';
+import '../screens/Profile/profilePage.dart';
 import '../screens/review_detail/review_detail_page.dart';
 import '../theme/tokens.dart';
 import 'auth_gate_modal.dart';
 import 'card_surface.dart';
+import 'friend_toggle.dart';
 import 'genre_pills.dart';
 import 'review_comments.dart';
 import 'spotify_play_button.dart';
@@ -325,15 +328,39 @@ class ReviewCardWidget extends ConsumerWidget {
       return;
     }
 
+    const radius = BorderRadius.vertical(top: Radius.circular(AppRadius.xl));
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
+      // Frosted glass: the sheet is see-through and blurs the feed behind
+      // it, so the dimming behind it is lighter than usual.
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      barrierColor: Colors.black26,
+      shape: const RoundedRectangleBorder(borderRadius: radius),
       builder: (sheetContext) {
-        return _UserProfileSheet(
-          reviewUserId: review.userId,
-          reviewDisplayName: review.displayName,
+        return ClipRRect(
+          borderRadius: radius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.12),
+                    Colors.white.withValues(alpha: 0.04),
+                  ],
+                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+              ),
+              child: _UserProfileSheet(
+                reviewUserId: review.userId,
+                reviewDisplayName: review.displayName,
+              ),
+            ),
+          ),
         );
       },
     );
@@ -358,52 +385,22 @@ class _UserProfileSheetState extends ConsumerState<_UserProfileSheet> {
   bool _isLoading = false;
 
   Future<void> _toggleFriend() async {
-    final currentUserId = ref.read(currentUserIdProvider);
-    if (currentUserId == null) return;
-
     setState(() => _isLoading = true);
+    await toggleFriend(context, ref,
+        friendId: widget.reviewUserId, friendName: widget.reviewDisplayName);
+    if (mounted) setState(() => _isLoading = false);
+  }
 
-    try {
-      final service = FriendsService();
-      final alreadyFriend = ref.read(isFriendProvider(widget.reviewUserId));
-
-      if (alreadyFriend) {
-        await service.removeFriend(
-          currentUserId: currentUserId,
-          friendId: widget.reviewUserId,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Removed ${widget.reviewDisplayName} from friends'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        await service.addFriend(
-          currentUserId: currentUserId,
-          friendId: widget.reviewUserId,
-          friendDisplayName: widget.reviewDisplayName,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Added ${widget.reviewDisplayName} as a friend!'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  /// Closes the sheet and opens the reviewer's full profile.
+  void _viewProfile() {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(MaterialPageRoute(
+      builder: (_) => ProfilePage(
+        userId: widget.reviewUserId,
+        displayName: widget.reviewDisplayName,
+      ),
+    ));
   }
 
   @override
@@ -462,6 +459,23 @@ class _UserProfileSheetState extends ConsumerState<_UserProfileSheet> {
               ],
             ),
           const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _viewProfile,
+              icon: const Icon(Icons.person_outline),
+              label: const Text('View profile',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           // Add / Remove friend button
           SizedBox(
             width: double.infinity,

@@ -6,15 +6,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/activity_provider.dart';
+import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/providers/bookmarks_provider.dart';
+import 'package:flutter_test_project/providers/friends_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/providers/spotify_artist_provider.dart';
+import 'package:flutter_test_project/providers/user_profile_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/services/activity_service.dart';
+import 'package:flutter_test_project/services/spotify_open/spotify_open.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/ui/screens/review_detail/review_detail_page.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
+import 'package:flutter_test_project/ui/widgets/friend_toggle.dart';
 import 'package:flutter_test_project/ui/widgets/genre_pills.dart';
 import 'package:flutter_test_project/ui/widgets/review_card.dart'
     show ReviewCardWithGenres;
@@ -22,10 +27,20 @@ import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:flutter_test_project/utils/helpers.dart';
 
-/// The signed-in user's profile: header, then two tabs — their own reviews
-/// and their activity (likes, reposts, comments, friend adds).
+/// A user's profile: header, then their reviews.
+///
+/// With no [userId] (or the signed-in user's own) it is the Profile tab:
+/// Edit Profile, and tabs for reviews, bookmarks and activity. Another
+/// user's profile is pushed as its own page, with an Add Friend button and
+/// only their reviews — bookmarks and activity are private.
 class ProfilePage extends ConsumerStatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, this.userId, this.displayName});
+
+  /// Whose profile; null for the signed-in user.
+  final String? userId;
+
+  /// Name to show for [userId] until their profile loads.
+  final String? displayName;
 
   @override
   ConsumerState<ProfilePage> createState() => _ProfilePageState();
@@ -55,41 +70,80 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final ownReviewCount = ref
-            .watch(userReviewsProvider)
-            .valueOrNull
-            ?.where((r) => !r.review.isRepost)
-            .length ??
-        0;
-    final topCategories = rankTags([
-      for (final r in ref.watch(userReviewsProvider).valueOrNull ?? const [])
-        if (!r.review.isRepost) r.review.genres,
-    ]);
-    final topArtists = ref.watch(spotifyTopArtistsProvider);
+    final otherId = widget.userId;
+    final isOwn =
+        otherId == null || otherId == ref.watch(currentUserIdProvider);
+
+    final reviews = isOwn
+        ? ref.watch(userReviewsProvider)
+        : ref.watch(reviewsByUserProvider(otherId));
+    final ownReviews = [
+      for (final r in reviews.valueOrNull ?? const <ReviewWithDocId>[])
+        if (!r.review.isRepost) r,
+    ];
+    final topCategories =
+        rankTags([for (final r in ownReviews) r.review.genres]);
+    final topArtists = isOwn
+        ? ref.watch(spotifyTopArtistsProvider)
+        : ref.watch(topArtistsForUserProvider(otherId));
+
+    final String displayName;
+    final DateTime? joinDate;
+    if (isOwn) {
+      final user = FirebaseAuth.instance.currentUser;
+      displayName = user?.displayName ?? 'User';
+      joinDate = user?.metadata.creationTime;
+    } else {
+      final info = ref.watch(userProfileInfoProvider(otherId)).valueOrNull;
+      displayName = info?.displayName ?? widget.displayName ?? 'User';
+      joinDate = info?.joinDate;
+    }
+
+    final reviewsList = _ReviewsList(
+      reviews: reviews,
+      isOwn: isOwn,
+      onRetry: () => isOwn
+          ? ref.invalidate(userReviewsProvider)
+          : ref.invalidate(reviewsByUserProvider(otherId)),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.surfaceContainerLowest,
+      appBar: isOwn
+          ? null
+          : AppBar(
+              backgroundColor: AppColors.surfaceContainerLowest,
+              surfaceTintColor: Colors.transparent,
+              foregroundColor: AppColors.onSurface,
+              elevation: 0,
+            ),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: _ProfileHeader(
-              displayName: user?.displayName ?? 'User',
-              reviewCount: ownReviewCount,
-              joinDate: user?.metadata.creationTime,
+              displayName: displayName,
+              reviewCount: ownReviews.length,
+              joinDate: joinDate,
               topCategories: topCategories,
               topArtists: topArtists,
+              primaryAction: isOwn
+                  ? const _EditProfileButton()
+                  : _FriendButton(userId: otherId, name: displayName),
+              topPadding: isOwn ? AppSpacing.lg : AppSpacing.xs,
             ),
           ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(_tabController),
-          ),
-          switch (_tabController.index) {
-            _reviewsTab => const _YourReviews(),
-            _bookmarksTab => const _Bookmarks(),
-            _ => const _Activity(),
-          },
+          if (isOwn) ...[
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _TabBarDelegate(_tabController),
+            ),
+            switch (_tabController.index) {
+              _reviewsTab => reviewsList,
+              _bookmarksTab => const _Bookmarks(),
+              _ => const _Activity(),
+            },
+          ] else
+            reviewsList,
           const SliverToBoxAdapter(
             child: SizedBox(height: AppSpacing.dockClearance),
           ),
@@ -112,6 +166,8 @@ class _ProfileHeader extends StatelessWidget {
     required this.joinDate,
     required this.topCategories,
     required this.topArtists,
+    required this.primaryAction,
+    required this.topPadding,
   });
 
   final String displayName;
@@ -119,6 +175,10 @@ class _ProfileHeader extends StatelessWidget {
   final DateTime? joinDate;
   final List<String> topCategories;
   final AsyncValue<List<TopArtistData>> topArtists;
+
+  /// The wide button beside Share: Edit Profile, or Add Friend.
+  final Widget primaryAction;
+  final double topPadding;
 
   static const double _avatarSize = 56;
   static const double _buttonHeight = 44;
@@ -132,8 +192,8 @@ class _ProfileHeader extends StatelessWidget {
     final handle = displayName.toLowerCase().replaceAll(' ', '');
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pageGutter, AppSpacing.lg, AppSpacing.pageGutter, _gapL),
+      padding: EdgeInsets.fromLTRB(
+          AppSpacing.pageGutter, topPadding, AppSpacing.pageGutter, _gapL),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -200,24 +260,7 @@ class _ProfileHeader extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: SizedBox(
-                  height: _buttonHeight,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            Scaffold(body: profileRoute('Preferences')),
-                      ),
-                    ),
-                    style: _outlinedStyle,
-                    child: const Text(
-                      'Edit Profile',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
+                child: SizedBox(height: _buttonHeight, child: primaryAction),
               ),
               const SizedBox(width: AppSpacing.sm),
               SizedBox.square(
@@ -265,6 +308,84 @@ class _ProfileHeader extends StatelessWidget {
     side: const BorderSide(color: AppColors.ghostBorder),
     shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillAll),
   );
+}
+
+class _EditProfileButton extends StatelessWidget {
+  const _EditProfileButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Scaffold(body: profileRoute('Preferences')),
+        ),
+      ),
+      style: _ProfileHeader._outlinedStyle,
+      child: const Text(
+        'Edit Profile',
+        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// Add Friend on someone else's profile; once added, it reads "Friends" and
+/// tapping it removes them.
+class _FriendButton extends ConsumerStatefulWidget {
+  const _FriendButton({required this.userId, required this.name});
+
+  final String userId;
+  final String name;
+
+  @override
+  ConsumerState<_FriendButton> createState() => _FriendButtonState();
+}
+
+class _FriendButtonState extends ConsumerState<_FriendButton> {
+  bool _busy = false;
+
+  Future<void> _toggle() async {
+    setState(() => _busy = true);
+    await toggleFriend(context, ref,
+        friendId: widget.userId, friendName: widget.name);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isFriend = ref.watch(isFriendProvider(widget.userId));
+    final label = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(isFriend ? Icons.check : Icons.person_add_alt_1, size: 18),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          isFriend ? 'Friends' : 'Add Friend',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+    final onPressed = _busy ? null : _toggle;
+    // Filled until they're a friend, then the same outline as Edit Profile.
+    return isFriend
+        ? OutlinedButton(
+            onPressed: onPressed,
+            style: _ProfileHeader._outlinedStyle,
+            child: label,
+          )
+        : FilledButton(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.onSurface,
+              foregroundColor: AppColors.surfaceContainerLowest,
+              shape:
+                  const RoundedRectangleBorder(borderRadius: AppRadius.pillAll),
+            ),
+            child: label,
+          );
+  }
 }
 
 class _Avatar extends StatelessWidget {
@@ -392,8 +513,29 @@ class _ArtistPhoto extends StatelessWidget {
           );
     return Tooltip(
       message: artist.name,
-      child: Semantics(label: artist.name, child: photo),
+      child: Semantics(
+        button: true,
+        label: '${artist.name} on Spotify',
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: AppRadius.smAll,
+            onTap: () => _openOnSpotify(context),
+            child: photo,
+          ),
+        ),
+      ),
     );
+  }
+
+  Future<void> _openOnSpotify(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final opened = await openOnSpotify(artist.spotifyUrl);
+    if (!opened) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't open Spotify")),
+      );
+    }
   }
 }
 
@@ -464,60 +606,70 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
       oldDelegate.tabController != tabController;
 }
 
-// ── Your reviews ──────────────────────────────────────────────────────────────
+// ── Reviews ───────────────────────────────────────────────────────────────────
 
-/// The user's own reviews as full cards, newest first. Reposts are left out —
-/// they show under Activity.
-class _YourReviews extends ConsumerWidget {
-  const _YourReviews();
+/// The profile owner's reviews as full cards, newest first. Reposts are left
+/// out — they show under Activity.
+class _ReviewsList extends StatelessWidget {
+  const _ReviewsList({
+    required this.reviews,
+    required this.isOwn,
+    required this.onRetry,
+  });
+
+  final AsyncValue<List<ReviewWithDocId>> reviews;
+  final bool isOwn;
+  final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ref.watch(userReviewsProvider).when(
-          data: (all) {
-            final reviews = all.where((r) => !r.review.isRepost).toList()
-              ..sort(_newestFirst);
-            if (reviews.isEmpty) {
-              return SliverFillRemaining(
-                hasScrollBody: false,
-                child: AppEmptyState(
-                  icon: Icons.rate_review_outlined,
-                  title: 'No reviews yet',
-                  action: AppStateAction(
-                    label: 'Add your first review',
-                    icon: Icons.add,
-                    onPressed: () => context
-                        .findAncestorStateOfType<MainNavState>()
-                        ?.navigateToTab(MainNavState.addTab),
-                  ),
-                ),
-              );
-            }
-            return SliverPadding(
-              padding: const EdgeInsets.only(top: AppSpacing.sm),
-              sliver: SliverList.builder(
-                itemCount: reviews.length,
-                itemBuilder: (context, i) => Padding(
-                  padding: AppSpacing.cardListItem,
-                  child: ReviewCardWithGenres(
-                    review: reviews[i].review,
-                    reviewId: reviews[i].fullReviewId,
-                    showLikeButton: true,
-                  ),
-                ),
-              ),
-            );
-          },
-          loading: () => const _SliverLoading(),
-          error: (error, _) => SliverFillRemaining(
+  Widget build(BuildContext context) {
+    return reviews.when(
+      data: (all) {
+        final reviews = all.where((r) => !r.review.isRepost).toList()
+          ..sort(_newestFirst);
+        if (reviews.isEmpty) {
+          return SliverFillRemaining(
             hasScrollBody: false,
-            child: AppErrorState(
-              title: 'Error loading your reviews',
-              error: error,
-              onRetry: () => ref.invalidate(userReviewsProvider),
+            child: AppEmptyState(
+              icon: Icons.rate_review_outlined,
+              title: 'No reviews yet',
+              action: isOwn
+                  ? AppStateAction(
+                      label: 'Add your first review',
+                      icon: Icons.add,
+                      onPressed: () => context
+                          .findAncestorStateOfType<MainNavState>()
+                          ?.navigateToTab(MainNavState.addTab),
+                    )
+                  : null,
+            ),
+          );
+        }
+        return SliverPadding(
+          padding: const EdgeInsets.only(top: AppSpacing.sm),
+          sliver: SliverList.builder(
+            itemCount: reviews.length,
+            itemBuilder: (context, i) => Padding(
+              padding: AppSpacing.cardListItem,
+              child: ReviewCardWithGenres(
+                review: reviews[i].review,
+                reviewId: reviews[i].fullReviewId,
+                showLikeButton: true,
+              ),
             ),
           ),
         );
+      },
+      loading: () => const _SliverLoading(),
+      error: (error, _) => SliverFillRemaining(
+        hasScrollBody: false,
+        child: AppErrorState(
+          title: 'Error loading reviews',
+          error: error,
+          onRetry: onRetry,
+        ),
+      ),
+    );
   }
 
   static int _newestFirst(ReviewWithDocId a, ReviewWithDocId b) {
@@ -549,8 +701,7 @@ class _Bookmarks extends ConsumerWidget {
                 child: AppEmptyState(
                   icon: Icons.bookmark_border,
                   title: 'No bookmarks yet',
-                  message:
-                      'Tap the bookmark on any review to save it here.',
+                  message: 'Tap the bookmark on any review to save it here.',
                 ),
               );
             }

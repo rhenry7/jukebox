@@ -8,10 +8,11 @@ import 'package:flutter_test_project/providers/auth_provider.dart';
 class ReviewWithDocId {
   final Review review;
   final String docId;
-  final String? fullReviewId; // Full path: users/{userId}/reviews/{docId} - for likes
-  
+  final String?
+      fullReviewId; // Full path: users/{userId}/reviews/{docId} - for likes
+
   ReviewWithDocId({
-    required this.review, 
+    required this.review,
     required this.docId,
     this.fullReviewId,
   });
@@ -20,11 +21,18 @@ class ReviewWithDocId {
 /// User's reviews stream with document IDs - automatically updates when reviews are added/updated/deleted
 final userReviewsProvider = StreamProvider<List<ReviewWithDocId>>((ref) {
   final userId = ref.watch(currentUserIdProvider);
-  
-  if (userId == null) {
-    return Stream.value([]);
-  }
-  
+  if (userId == null) return Stream.value([]);
+  return _reviewsStream(userId);
+});
+
+/// Any user's reviews with document IDs, newest first (another reviewer's
+/// profile page).
+final reviewsByUserProvider = StreamProvider.autoDispose
+    .family<List<ReviewWithDocId>, String>((ref, userId) {
+  return _reviewsStream(userId);
+});
+
+Stream<List<ReviewWithDocId>> _reviewsStream(String userId) {
   return FirebaseFirestore.instance
       .collection('users')
       .doc(userId)
@@ -50,7 +58,7 @@ final userReviewsProvider = StreamProvider<List<ReviewWithDocId>>((ref) {
           .where((review) => review != null)
           .cast<ReviewWithDocId>()
           .toList());
-});
+}
 
 /// Review count for current user
 final reviewCountProvider = Provider<int>((ref) {
@@ -59,7 +67,8 @@ final reviewCountProvider = Provider<int>((ref) {
 });
 
 /// Get reviews for a specific user (by userId)
-final userReviewsByIdProvider = StreamProvider.autoDispose.family<List<Review>, String>((ref, userId) {
+final userReviewsByIdProvider =
+    StreamProvider.autoDispose.family<List<Review>, String>((ref, userId) {
   return FirebaseFirestore.instance
       .collection('users')
       .doc(userId)
@@ -86,12 +95,13 @@ final firestoreProvider = Provider<FirebaseFirestore>((ref) {
 });
 
 /// Provider for submitting reviews - automatically invalidates reviews provider on success
-final submitReviewProvider = FutureProvider.family<void, Map<String, dynamic>>((ref, reviewData) async {
+final submitReviewProvider =
+    FutureProvider.family<void, Map<String, dynamic>>((ref, reviewData) async {
   final userId = ref.read(currentUserIdProvider);
   if (userId == null) {
     throw Exception('User must be signed in to submit reviews');
   }
-  
+
   // Import review_helpers function
   // Note: This will be called from the UI, and the provider will auto-invalidate
   // The actual submission logic stays in review_helpers.dart
