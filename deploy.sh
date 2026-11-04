@@ -71,10 +71,15 @@ fi
 if [ ${#DART_DEFINES_ARRAY[@]} -eq 0 ]; then
     echo "   ⚠️  No .env found or no keys in .env — deployed app may show 'Firebase API key missing'"
 fi
-if ! flutter build web --release "${DART_DEFINES_ARRAY[@]}"; then
+# Build id lets installed copies (e.g. an iPhone home-screen app) notice the
+# update. No service worker: it kept serving old versions on iOS.
+BUILD_ID=$(bash ./scripts/build_id.sh)
+if ! flutter build web --release --pwa-strategy=none --dart-define=BUILD_ID="$BUILD_ID" "${DART_DEFINES_ARRAY[@]}"; then
     echo "❌ Build failed! Please check the errors above."
     exit 1
 fi
+printf '{"buildId":"%s"}\n' "$BUILD_ID" > build/web/app_version.json
+echo "   Build id: $BUILD_ID"
 
 echo ""
 echo "✅ Build successful!"

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/activity_provider.dart';
+import 'package:flutter_test_project/providers/bookmarks_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/providers/spotify_artist_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
@@ -33,13 +34,14 @@ class ProfilePage extends ConsumerStatefulWidget {
 class _ProfilePageState extends ConsumerState<ProfilePage>
     with SingleTickerProviderStateMixin {
   static const int _reviewsTab = 0;
+  static const int _bookmarksTab = 1;
 
   late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this)
+    _tabController = TabController(length: 3, vsync: this)
       ..addListener(() {
         if (!_tabController.indexIsChanging) setState(() {});
       });
@@ -83,10 +85,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             pinned: true,
             delegate: _TabBarDelegate(_tabController),
           ),
-          if (_tabController.index == _reviewsTab)
-            const _YourReviews()
-          else
-            const _Activity(),
+          switch (_tabController.index) {
+            _reviewsTab => const _YourReviews(),
+            _bookmarksTab => const _Bookmarks(),
+            _ => const _Activity(),
+          },
           const SliverToBoxAdapter(
             child: SizedBox(height: AppSpacing.dockClearance),
           ),
@@ -440,6 +443,12 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
               ),
               Tab(
                 icon: Tooltip(
+                  message: 'Bookmarks',
+                  child: Icon(Icons.bookmark_border, size: 26),
+                ),
+              ),
+              Tab(
+                icon: Tooltip(
                   message: 'Activity',
                   child: Icon(Icons.access_time, size: 26),
                 ),
@@ -519,6 +528,59 @@ class _YourReviews extends ConsumerWidget {
     if (aDate == null) return 1;
     if (bDate == null) return -1;
     return bDate.compareTo(aDate);
+  }
+}
+
+// ── Bookmarks ─────────────────────────────────────────────────────────────────
+
+/// Reviews the user saved with the bookmark button, most recently saved first.
+class _Bookmarks extends ConsumerWidget {
+  const _Bookmarks();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref.watch(bookmarkedReviewsProvider).when(
+          // Keep showing the list while it refreshes after a bookmark change.
+          skipLoadingOnRefresh: true,
+          skipLoadingOnReload: true,
+          data: (reviews) {
+            if (reviews.isEmpty) {
+              return const SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: Icons.bookmark_border,
+                  title: 'No bookmarks yet',
+                  message:
+                      'Tap the bookmark on any review to save it here.',
+                ),
+              );
+            }
+            return SliverPadding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              sliver: SliverList.builder(
+                itemCount: reviews.length,
+                itemBuilder: (context, i) => Padding(
+                  padding: AppSpacing.cardListItem,
+                  child: ReviewCardWithGenres(
+                    key: ValueKey(reviews[i].fullReviewId),
+                    review: reviews[i].review,
+                    reviewId: reviews[i].fullReviewId,
+                    showLikeButton: true,
+                  ),
+                ),
+              ),
+            );
+          },
+          loading: () => const _SliverLoading(),
+          error: (error, _) => SliverFillRemaining(
+            hasScrollBody: false,
+            child: AppErrorState(
+              title: 'Error loading your bookmarks',
+              error: error,
+              onRetry: () => ref.invalidate(bookmarkedReviewsProvider),
+            ),
+          ),
+        );
   }
 }
 

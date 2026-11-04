@@ -161,7 +161,12 @@ jobs:
           fi
 
           echo "✅ Building web app with ${#DART_DEFINES[@]} API key definitions..."
-          flutter build web --release "${DART_DEFINES[@]}"
+          # Build id lets installed copies (e.g. an iPhone home-screen app)
+          # notice the update. No service worker: it kept serving old versions.
+          BUILD_ID=$(bash ./scripts/build_id.sh)
+          flutter build web --release --pwa-strategy=none --dart-define=BUILD_ID="$BUILD_ID" "${DART_DEFINES[@]}"
+          printf '{"buildId":"%s"}\n' "$BUILD_ID" > build/web/app_version.json
+          echo "Build id: $BUILD_ID"
 
       - name: Deploy to Firebase Hosting
         env:

@@ -59,6 +59,9 @@ The For You list and the post-review "Because you just reviewed X" sheet are bui
 
 **Rule:** Never call OpenAI (or any paid AI API) from the Flutter app, and never add AI keys to `deploy.sh` — anything in a `--dart-define` ships in the public web bundle. AI work goes in `functions/` with keys in Secret Manager.
 
+### Profile → Bookmarks
+The bookmark button on every review card (`_BookmarkButton` in `review_card.dart`) saves the review's path to `users/{uid}/bookmarks` via `lib/services/bookmark_service.dart`. Profile → Bookmarks (`bookmarkedReviewsProvider` in `lib/providers/bookmarks_provider.dart`) loads those reviews live, so edits show and deleted reviews drop out.
+
 ### Profile → Activity
 The Activity tab merges four sources in `buildActivity` (`lib/providers/activity_provider.dart`): the user's own reviews and reposts, their likes and comments from the private log at `users/{uid}/activity` (`lib/services/activity_service.dart`, written next to each action and removed when it is undone), and likes / comments / reposts / friend adds on their reviews from notifications. Any new user action that should appear there must call `ActivityService` from its service.
 
@@ -79,3 +82,5 @@ if a user is not signed in, or anonymous user, display a modal that says sign up
 - prevent anonymous users from submitting or completing any action other than viewing content from specific pre-approved fields.
 - limit anonymous user visibility to popular reviews; popular tracks and suggested tracks; popular crates - else keep suggestion that they sign in / sign up 
 - default "anonymous user" as not signed in, anonymous user is for previewing functionality that should lead to CTA for sign up/ sign in
+### Web updates (installed PWA)
+Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Any new web deploy path must stamp the build id the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.

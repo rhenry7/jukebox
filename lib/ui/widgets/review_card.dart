@@ -14,7 +14,9 @@ import '../../utils/helpers.dart';
 import '../../utils/cached_image.dart';
 import '../../providers/auth_provider.dart'
     show currentUserProvider, isAnonymousUserProvider;
+import '../../providers/bookmarks_provider.dart';
 import '../../providers/repost_provider.dart';
+import '../../services/bookmark_service.dart';
 import '../../services/repost_service.dart';
 import '../screens/review_detail/review_detail_page.dart';
 import '../theme/tokens.dart';
@@ -261,7 +263,7 @@ class ReviewCardWidget extends ConsumerWidget {
                   }),
                 ),
               const Spacer(),
-              // Action buttons: like, comment, repost
+              // Action buttons: like, comment, repost, bookmark
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -293,6 +295,10 @@ class ReviewCardWidget extends ConsumerWidget {
                   else
                     const Icon(Ionicons.repeat,
                         color: Colors.white70, size: 22),
+                  if (reviewId != null) ...[
+                    const SizedBox(width: AppSpacing.lg),
+                    _BookmarkButton(reviewId: reviewId!),
+                  ],
                 ],
               ),
             ],
@@ -686,6 +692,51 @@ class _RepostButton extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ── Bookmark toggle button ────────────────────────────────────────────────────
+/// Saves the review to Profile → Bookmarks, or removes it.
+class _BookmarkButton extends ConsumerWidget {
+  final String reviewId;
+  const _BookmarkButton({required this.reviewId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSaved = ref.watch(bookmarkedPathsProvider).contains(reviewId);
+
+    return GestureDetector(
+      onTap: () async {
+        if (ref.read(isAnonymousUserProvider)) {
+          showAuthGateModal(context);
+          return;
+        }
+        final userId = ref.read(currentUserIdProvider);
+        if (userId == null) return;
+        try {
+          await BookmarkService().toggle(
+            userId: userId,
+            reviewPath: reviewId,
+            isBookmarked: isSaved,
+          );
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not update bookmark: $e')),
+            );
+          }
+        }
+      },
+      child: Semantics(
+        button: true,
+        label: isSaved ? 'Remove bookmark' : 'Bookmark',
+        child: Icon(
+          isSaved ? Ionicons.bookmark : Ionicons.bookmark_outline,
+          size: 22,
+          color: isSaved ? AppColors.secondary : Colors.white70,
+        ),
       ),
     );
   }

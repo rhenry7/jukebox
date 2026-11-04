@@ -9,6 +9,8 @@ import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
 import 'package:flutter_test_project/utils/env_config.dart';
 import 'package:flutter_test_project/utils/firebase_options.dart';
+import 'package:flutter_test_project/ui/widgets/app_update_watcher.dart';
+import 'package:flutter_test_project/ui/widgets/mobile_frame.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -172,6 +174,7 @@ class MyApp extends ConsumerWidget {
           brightness: Brightness.dark,
           scaffoldBackgroundColor: Colors.black,
         ),
+        builder: (context, child) => MobileFrame(child: child!),
         home: const Scaffold(
           backgroundColor: Colors.black,
           body: DiscoBallLoading(),
@@ -216,6 +219,10 @@ class MyApp extends ConsumerWidget {
           },
         ),
       ),
+      // Phone-width on desktop (the app is mobile-first), and installed
+      // copies pick up new deploys.
+      builder: (context, child) =>
+          MobileFrame(child: AppUpdateWatcher(child: child!)),
       home: const MainNav(title: 'REVERB'),
     );
   }

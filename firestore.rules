@@ -79,6 +79,11 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
+      // Bookmarked reviews: { reviewPath, createdAt }. Private to the owner.
+      match /bookmarks/{bookmarkId} {
+        allow read, write: if isOwner(userId);
+      }
+
       // Signals subcollection (AI-powered search: rec clicks, search queries, etc.)
       match /signals/{signalId} {
         allow read, write: if isOwner(userId);
