@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+import 'activity_service.dart';
 import 'notifications_service.dart';
 
 /// Service for managing review likes
@@ -49,6 +50,8 @@ class ReviewLikesService {
         'likeCount': FieldValue.increment(1),
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      await ActivityService().recordLike(userId, reviewId);
 
       final targetUserId =
           ReviewLikesService.parseUserIdFromReviewId(reviewId);
@@ -115,6 +118,8 @@ class ReviewLikesService {
         'likeCount': FieldValue.increment(-1),
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      await ActivityService().removeLike(userId, reviewId);
 
       return true;
     } catch (e) {

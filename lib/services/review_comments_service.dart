@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/review_comment.dart';
+import 'activity_service.dart';
 import 'notifications_service.dart';
 
 class ReviewCommentsService {
@@ -68,6 +69,8 @@ class ReviewCommentsService {
       'likes': 0,
     });
     debugPrint('[COMMENTS] Added comment ${ref.id} on review $reviewId');
+    await ActivityService()
+        .recordComment(userId, reviewId, commentId: ref.id, text: trimmed);
 
     // Notify the review owner (skip if they're commenting on their own review)
     if (reviewOwnerUserId != null && reviewOwnerUserId != userId) {
@@ -102,6 +105,7 @@ class ReviewCommentsService {
       throw Exception('Not authorised to edit this comment');
     }
     await _commentsRef(reviewId).doc(commentId).update({'text': trimmed});
+    await ActivityService().updateCommentText(userId, commentId, trimmed);
   }
 
   Future<void> deleteComment({
@@ -114,6 +118,7 @@ class ReviewCommentsService {
       throw Exception('Not authorised to delete this comment');
     }
     await _commentsRef(reviewId).doc(commentId).delete();
+    await ActivityService().removeComment(userId, commentId);
   }
 
   Future<void> toggleCommentLike({

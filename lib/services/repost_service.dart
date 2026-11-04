@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/review.dart';
+import 'activity_service.dart';
 import 'notifications_service.dart';
 
 class RepostService {
@@ -114,6 +115,7 @@ class RepostService {
     await batch.commit();
 
     debugPrint('[REPOST] ${reposterUserId} reposted $originalReviewId');
+    await ActivityService().recordRepost(reposterUserId, originalReviewId);
 
     // 3. Notify original author (non-fatal)
     if (originalUserId != reposterUserId) {
@@ -162,5 +164,6 @@ class RepostService {
 
     await batch.commit();
     debugPrint('[REPOST] ${reposterUserId} un-reposted $originalReviewId');
+    await ActivityService().removeRepost(reposterUserId, originalReviewId);
   }
 }

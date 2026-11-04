@@ -59,6 +59,9 @@ The For You list and the post-review "Because you just reviewed X" sheet are bui
 
 **Rule:** Never call OpenAI (or any paid AI API) from the Flutter app, and never add AI keys to `deploy.sh` — anything in a `--dart-define` ships in the public web bundle. AI work goes in `functions/` with keys in Secret Manager.
 
+### Profile → Activity
+The Activity tab merges four sources in `buildActivity` (`lib/providers/activity_provider.dart`): the user's own reviews and reposts, their likes and comments from the private log at `users/{uid}/activity` (`lib/services/activity_service.dart`, written next to each action and removed when it is undone), and likes / comments / reposts / friend adds on their reviews from notifications. Any new user action that should appear there must call `ActivityService` from its service.
+
 ### Review Detail Page
 Tapping anywhere on a review card (outside the bottom action row) navigates to:
 

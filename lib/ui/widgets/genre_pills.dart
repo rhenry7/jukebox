@@ -18,48 +18,83 @@ List<String> splitGenreTags(List<String>? raw) {
   return result;
 }
 
+/// [tags] from many reviews, most used first (ties keep first-seen order).
+/// Tags are compared ignoring case; the first spelling seen is kept.
+List<String> rankTags(Iterable<List<String>?> tagLists) {
+  final counts = <String, int>{};
+  final spelling = <String, String>{};
+  for (final tags in tagLists) {
+    for (final tag in splitGenreTags(tags)) {
+      final key = tag.toLowerCase();
+      spelling.putIfAbsent(key, () => tag);
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+  }
+  final keys = counts.keys.toList();
+  final order = {for (var i = 0; i < keys.length; i++) keys[i]: i};
+  keys.sort((a, b) {
+    final byCount = counts[b]!.compareTo(counts[a]!);
+    return byCount != 0 ? byCount : order[a]!.compareTo(order[b]!);
+  });
+  return [for (final k in keys) spelling[k]!];
+}
+
 /// The genre / tag pills shown on cards. Renders nothing when [tags] is
-/// empty, otherwise the gap above plus up to 10 pills, so every card that
-/// shows genres looks and spaces them the same way.
+/// empty, otherwise the gap above plus up to [maxTags] pills, so every card
+/// that shows genres looks and spaces them the same way. With
+/// [showOverflowCount], a last "N+" pill says how many were left out.
 class GenrePills extends StatelessWidget {
-  const GenrePills({super.key, required this.tags});
+  const GenrePills({
+    super.key,
+    required this.tags,
+    this.maxTags = 10,
+    this.showOverflowCount = false,
+    this.topPadding = AppSpacing.lg,
+  });
 
   final List<String> tags;
-
-  static const int _maxTags = 10;
+  final int maxTags;
+  final bool showOverflowCount;
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) {
     if (tags.isEmpty) return const SizedBox.shrink();
+    final hidden = tags.length - maxTags;
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.lg),
+      padding: EdgeInsets.only(top: topPadding),
       child: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
-        children: tags.take(_maxTags).map((tag) {
-          return Chip(
-            label: Text(
-              tag,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            backgroundColor: Colors.white.withValues(alpha: 0.07),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.2),
-              width: 1,
-            ),
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            shape: const RoundedRectangleBorder(
-              borderRadius: AppRadius.pillAll,
-            ),
-          );
-        }).toList(),
+        children: [
+          for (final tag in tags.take(maxTags)) _pill(tag),
+          if (showOverflowCount && hidden > 0) _pill('$hidden+'),
+        ],
+      ),
+    );
+  }
+
+  static Widget _pill(String tag) {
+    return Chip(
+      label: Text(
+        tag,
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+      backgroundColor: Colors.white.withValues(alpha: 0.07),
+      side: BorderSide(
+        color: Colors.white.withValues(alpha: 0.2),
+        width: 1,
+      ),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.pillAll,
       ),
     );
   }
@@ -110,7 +145,8 @@ class _TrackGenrePillsState extends State<TrackGenrePills> {
   Widget build(BuildContext context) {
     return FutureBuilder<List<String>>(
       future: _genres,
-      builder: (context, snapshot) => GenrePills(tags: snapshot.data ?? const []),
+      builder: (context, snapshot) =>
+          GenrePills(tags: snapshot.data ?? const []),
     );
   }
 }

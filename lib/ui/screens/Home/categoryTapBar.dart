@@ -28,11 +28,11 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
   Widget _buildTab(String label) => Tab(height: 36, text: label);
 
   /// Flat text tabs spread evenly across the width, with an underline under
-  /// the selected one and a hairline divider across the page.
+  /// the selected one and no divider line across the page.
   Widget _buildTabBarHeader() {
     return Padding(
       // The feed already starts its first card AppSpacing.lg below the
-      // divider. The top is 6px less than that because the logo's letters end
+      // tabs. The top is 6px less than that because the logo's letters end
       // ~6px above the app bar's edge (at fontSize 64).
       padding: const EdgeInsets.only(top: AppSpacing.lg - 6),
       child: TabBar(
@@ -53,8 +53,8 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
           borderSide: BorderSide(color: Colors.white, width: 3),
           borderRadius: BorderRadius.all(Radius.circular(2)),
         ),
-        dividerColor: Colors.white.withValues(alpha: 0.12),
-        dividerHeight: 1,
+        dividerColor: Colors.transparent,
+        dividerHeight: 0,
         tabs: [
           _buildTab('Popular'),
           _buildTab('Friends'),

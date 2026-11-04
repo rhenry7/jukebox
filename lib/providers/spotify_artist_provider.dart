@@ -36,6 +36,7 @@ final spotifyTopArtistsProvider =
   // Count reviews per artist
   final artistCounts = <String, int>{};
   for (final r in reviewsWithDocIds) {
+    if (r.review.isRepost) continue; // someone else's review
     final name = r.review.artist.trim();
     if (name.isEmpty) continue;
     artistCounts[name] = (artistCounts[name] ?? 0) + 1;

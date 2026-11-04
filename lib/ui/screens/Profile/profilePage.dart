@@ -1,25 +1,29 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/providers/activity_provider.dart';
 import 'package:flutter_test_project/providers/friends_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
-import 'package:flutter_test_project/providers/music_profile_insights_provider.dart';
 import 'package:flutter_test_project/providers/spotify_artist_provider.dart';
-import 'package:flutter_test_project/providers/user_playlist_provider.dart';
-import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
-import 'package:flutter_test_project/ui/screens/Profile/genre_distribution_chart.dart';
-import 'package:flutter_test_project/ui/screens/Profile/profile_analytics_dashboard.dart';
-import 'package:flutter_test_project/ui/screens/Profile/review_heatmap.dart';
-import 'package:flutter_test_project/ui/screens/Profile/review_stats_cards.dart';
-import 'package:flutter_test_project/ui/screens/Profile/top_artists_card.dart';
+import 'package:flutter_test_project/routing/MainNavigation.dart';
+import 'package:flutter_test_project/services/activity_service.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
-import 'package:flutter_test_project/ui/screens/playlists/playlist_detail_screen.dart';
-import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
-import 'package:ionicons/ionicons.dart';
+import 'package:flutter_test_project/ui/screens/review_detail/review_detail_page.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
+import 'package:flutter_test_project/ui/widgets/app_states.dart';
+import 'package:flutter_test_project/ui/widgets/genre_pills.dart';
+import 'package:flutter_test_project/ui/widgets/review_card.dart'
+    show ReviewCardWithGenres;
+import 'package:flutter_test_project/utils/cached_image.dart';
+import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
+import 'package:flutter_test_project/utils/helpers.dart';
 
+/// The signed-in user's profile: header, then two tabs — their own reviews
+/// and their activity (likes, reposts, comments, friend adds).
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
@@ -29,18 +33,17 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _selectedTab = 0;
+  static const int _reviewsTab = 0;
+
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() => _selectedTab = _tabController.index);
-      }
-    });
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(() {
+        if (!_tabController.indexIsChanging) setState(() {});
+      });
   }
 
   @override
@@ -51,56 +54,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
-    final reviewsAsync = ref.watch(userReviewsProvider);
-    final insightsAsync = ref.watch(musicProfileInsightsAutoProvider);
-    final topArtistsAsync = ref.watch(spotifyTopArtistsProvider);
     final user = FirebaseAuth.instance.currentUser;
-    final reviewCount = ref.watch(reviewCountProvider);
-    final crateCount = ref.watch(userPlaylistsProvider).value?.length ?? 0;
-    final friendCount = ref.watch(friendIdsProvider).value?.length ?? 0;
+    final ownReviewCount = ref
+            .watch(userReviewsProvider)
+            .valueOrNull
+            ?.where((r) => !r.review.isRepost)
+            .length ??
+        0;
+    final friendCount = ref.watch(friendIdsProvider).valueOrNull?.length ?? 0;
+    final topCategories = rankTags([
+      for (final r in ref.watch(userReviewsProvider).valueOrNull ?? const [])
+        if (!r.review.isRepost) r.review.genres,
+    ]);
+    final topArtists = ref.watch(spotifyTopArtistsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.surfaceContainerLowest,
       body: CustomScrollView(
         slivers: [
-          // ── Profile header ──────────────────────────────────────
           SliverToBoxAdapter(
             child: _ProfileHeader(
               displayName: user?.displayName ?? 'User',
-              reviewCount: reviewCount,
-              crateCount: crateCount,
+              reviewCount: ownReviewCount,
               friendCount: friendCount,
-              joinDate: user?.metadata.creationTime,
-              onEditProfile: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => Scaffold(body: profileRoute('Preferences')),
-                ),
-              ),
+              topCategories: topCategories,
+              topArtists: topArtists,
             ),
           ),
-
-          // ── Sticky tab bar ─────────────────────────────────────
           SliverPersistentHeader(
             pinned: true,
             delegate: _TabBarDelegate(_tabController),
           ),
-
-          // ── Tab content ────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _TabContent(
-              selectedTab: _selectedTab,
-              reviewsAsync: reviewsAsync,
-              insightsAsync: insightsAsync,
-              topArtistsAsync: topArtistsAsync,
-            ),
-          ),
-
-          // ── Bottom padding ─────────────────────────────────────
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: MediaQuery.of(context).padding.bottom + 80,
-            ),
+          if (_tabController.index == _reviewsTab)
+            const _YourReviews()
+          else
+            const _Activity(),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: AppSpacing.dockClearance),
           ),
         ],
       ),
@@ -108,682 +98,766 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 }
 
-// ── Tab bar persistent header ─────────────────────────────────────────────────
+// ── Header ────────────────────────────────────────────────────────────────────
 
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabController tabController;
-  _TabBarDelegate(this.tabController);
-
-  @override
-  double get minExtent => 48;
-  @override
-  double get maxExtent => 48;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.black,
-      child: TabBar(
-        controller: tabController,
-        indicatorColor: const Color.fromARGB(255, 227, 44, 27),
-        indicatorWeight: 2.5,
-        indicatorSize: TabBarIndicatorSize.label,
-        labelColor: const Color.fromARGB(255, 220, 40, 23),
-        unselectedLabelColor: Colors.white38,
-        labelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.4,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.4,
-        ),
-        tabs: const [
-          Tab(text: 'CRATES'),
-          Tab(text: 'ACTIVITY'),
-          Tab(text: 'REVIEWS'),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(_TabBarDelegate oldDelegate) => false;
-}
-
-// ── Tab content switcher ──────────────────────────────────────────────────────
-
-class _TabContent extends ConsumerWidget {
-  final int selectedTab;
-  final AsyncValue<List<ReviewWithDocId>> reviewsAsync;
-  final AsyncValue<dynamic> insightsAsync;
-  final AsyncValue<dynamic> topArtistsAsync;
-
-  const _TabContent({
-    required this.selectedTab,
-    required this.reviewsAsync,
-    required this.insightsAsync,
-    required this.topArtistsAsync,
+/// Editorial header: name and handle on the left with the avatar opposite,
+/// the user's counts, then their top categories and top artists, then the
+/// profile actions. One spacing rhythm throughout: [_gapS] inside a group,
+/// [_gapL] between groups.
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({
+    required this.displayName,
+    required this.reviewCount,
+    required this.friendCount,
+    required this.topCategories,
+    required this.topArtists,
   });
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: KeyedSubtree(
-        key: ValueKey(selectedTab),
-        child: switch (selectedTab) {
-          0 => _CratesContent(ref: ref),
-          1 => _ActivityContent(
-              reviewsAsync: reviewsAsync,
-              insightsAsync: insightsAsync,
-              topArtistsAsync: topArtistsAsync,
-            ),
-          2 => _ReviewsListContent(reviewsAsync: reviewsAsync),
-          _ => const SizedBox.shrink(),
-        },
-      ),
-    );
-  }
-}
+  final String displayName;
+  final int reviewCount;
+  final int friendCount;
+  final List<String> topCategories;
+  final AsyncValue<List<TopArtistData>> topArtists;
 
-// ── CRATES content ────────────────────────────────────────────────────────────
-
-class _CratesContent extends StatelessWidget {
-  final WidgetRef ref;
-  const _CratesContent({required this.ref});
+  static const double _avatarSize = 88;
+  static const double _buttonHeight = 44;
+  static const double _gapS = AppSpacing.md;
+  static const double _gapL = AppSpacing.xl;
+  static const int _categoryCount = 3;
 
   @override
   Widget build(BuildContext context) {
-    final playlistsAsync = ref.watch(userPlaylistsProvider);
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
+    final handle = displayName.toLowerCase().replaceAll(' ', '');
 
-    return playlistsAsync.when(
-      data: (playlists) {
-        if (playlists.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 64),
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(Ionicons.albums_outline,
-                      size: 56, color: Colors.white24),
-                  SizedBox(height: 16),
-                  Text('No crates yet',
-                      style: TextStyle(color: Colors.white, fontSize: 18)),
-                  SizedBox(height: 8),
-                  Text('Make your first crate and start curating music',
-                      style: TextStyle(color: Colors.white54)),
-                ],
-              ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.pageGutter, AppSpacing.xs, AppSpacing.pageGutter, _gapL),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              tooltip: 'Settings',
+              icon: const Icon(Ionicons.settings_outline,
+                  color: AppColors.onSurface, size: 26),
+              onPressed: () =>
+                  context.findAncestorStateOfType<MainNavState>()?.openDrawer(),
             ),
-          );
-        }
+          ),
 
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          itemCount: playlists.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, i) {
-            final pl = playlists[i];
-            return GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PlaylistDetailScreen(playlistId: pl.id),
-                ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: Colors.white.withOpacity(0.08), width: 1),
-                ),
-                child: Row(
+          // Name block opposite the avatar.
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: pl.coverImageUrl != null
-                          ? Image.network(
-                              pl.coverImageUrl!,
-                              width: 54,
-                              height: 54,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  _CratePlaceholder(size: 54),
-                            )
-                          : _CratePlaceholder(size: 54),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            pl.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${pl.tracks.length} track${pl.tracks.length == 1 ? '' : 's'}',
-                            style: const TextStyle(
-                                color: Colors.white54, fontSize: 12),
-                          ),
-                          if (pl.tags.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 6,
-                              children: pl.tags.take(3).map((tag) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.white30, width: 1),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    tag,
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 11),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ],
+                    Text(
+                      displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.spaceGrotesk(
+                        color: AppColors.onSurface,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        height: 1.05,
+                        letterSpacing: -0.8,
                       ),
                     ),
-                    const Icon(Icons.chevron_right,
-                        color: Colors.white24, size: 20),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '@$handle',
+                      style: const TextStyle(
+                          color: AppColors.onSurfaceVariant, fontSize: 15),
+                    ),
+                    const SizedBox(height: _gapS),
+                    Text.rich(
+                      TextSpan(children: [
+                        _countSpan(reviewCount),
+                        const TextSpan(text: ' reviews  ·  '),
+                        _countSpan(friendCount),
+                        const TextSpan(text: ' friends'),
+                      ]),
+                      style: const TextStyle(
+                          color: AppColors.onSurfaceVariant, fontSize: 14),
+                    ),
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (_, __) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(
-          child: Text('Error loading crates',
-              style: TextStyle(color: Colors.white54)),
-        ),
+              const SizedBox(width: AppSpacing.lg),
+              _Avatar(initial: initial, size: _avatarSize),
+            ],
+          ),
+
+          if (topCategories.isNotEmpty) ...[
+            const SizedBox(height: _gapL),
+            const _SectionLabel('Top categories'),
+            GenrePills(
+              tags: topCategories,
+              maxTags: _categoryCount,
+              showOverflowCount: true,
+              topPadding: _gapS - AppSpacing.xs,
+            ),
+          ],
+
+          if (_hasArtists) ...[
+            const SizedBox(height: _gapL),
+            const _SectionLabel('Top artists'),
+            const SizedBox(height: _gapS),
+            _TopArtistsRow(artists: topArtists),
+          ],
+
+          const SizedBox(height: _gapL),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: _buttonHeight,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            Scaffold(body: profileRoute('Preferences')),
+                      ),
+                    ),
+                    style: _outlinedStyle,
+                    child: const Text(
+                      'Edit Profile',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              SizedBox.square(
+                dimension: _buttonHeight,
+                child: OutlinedButton(
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Share profile — coming soon'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  ),
+                  style: _outlinedStyle.copyWith(
+                      padding: const WidgetStatePropertyAll(EdgeInsets.zero)),
+                  child: const Icon(Ionicons.share_outline, size: 20),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+
+  /// Show the artists row while loading, or once there are any.
+  bool get _hasArtists =>
+      topArtists.isLoading || (topArtists.valueOrNull?.isNotEmpty ?? false);
+
+  static TextSpan _countSpan(int value) => TextSpan(
+        text: '$value',
+        style: const TextStyle(
+            color: AppColors.onSurface, fontWeight: FontWeight.w700),
+      );
+
+  static final ButtonStyle _outlinedStyle = OutlinedButton.styleFrom(
+    backgroundColor: AppColors.surfaceContainerHigh,
+    foregroundColor: AppColors.onSurface,
+    side: const BorderSide(color: AppColors.ghostBorder),
+    shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillAll),
+  );
 }
 
-class _CratePlaceholder extends StatelessWidget {
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.initial, required this.size});
+
+  final String initial;
   final double size;
-  const _CratePlaceholder({required this.size});
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: size,
       height: size,
-      color: Colors.grey[850],
-      child: const Icon(Ionicons.musical_notes_outline,
-          color: Colors.white24, size: 22),
-    );
-  }
-}
-
-// ── ACTIVITY content (analytics) ─────────────────────────────────────────────
-
-class _ActivityContent extends StatelessWidget {
-  final AsyncValue<List<ReviewWithDocId>> reviewsAsync;
-  final AsyncValue<dynamic> insightsAsync;
-  final AsyncValue<dynamic> topArtistsAsync;
-
-  const _ActivityContent({
-    required this.reviewsAsync,
-    required this.insightsAsync,
-    required this.topArtistsAsync,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: reviewsAsync.when(
-        data: (reviewsWithDocIds) {
-          final List<Review> reviews =
-              reviewsWithDocIds.map((r) => r.review).toList();
-
-          if (reviews.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 64),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.bar_chart, size: 56, color: Colors.white24),
-                    SizedBox(height: 16),
-                    Text('No reviews yet',
-                        style: TextStyle(color: Colors.white, fontSize: 18)),
-                    SizedBox(height: 8),
-                    Text('Start reviewing music to see your stats!',
-                        style: TextStyle(color: Colors.white54),
-                        textAlign: TextAlign.center),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ReviewHeatmap(reviews: reviews),
-              const SizedBox(height: 16),
-              topArtistsAsync.when(
-                data: (artists) => Column(
-                  children: [
-                    TopArtistsCard(artists: artists),
-                    const SizedBox(height: 16),
-                    GenreDistributionChart(artists: artists),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-                loading: () => Column(
-                  children: [
-                    SkeletonLoader(
-                        width: double.infinity,
-                        height: 160,
-                        borderRadius: BorderRadius.circular(12)),
-                    const SizedBox(height: 16),
-                    SkeletonLoader(
-                        width: double.infinity,
-                        height: 230,
-                        borderRadius: BorderRadius.circular(12)),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-              ReviewStatsCards(reviews: reviews),
-              const SizedBox(height: 16),
-              ReviewScoreChartCard(reviews: reviews),
-              const SizedBox(height: 16),
-              insightsAsync.when(
-                data: (insights) => InsightsSummaryCard(insights: insights),
-                loading: () => const SkeletonLoader(
-                  width: double.infinity,
-                  height: 150,
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 8),
-            ],
-          );
-        },
-        loading: () => const _LoadingSkeleton(),
-        error: (_, __) => const Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(
-            child: Text('Error loading reviews',
-                style: TextStyle(color: Colors.white70)),
-          ),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primaryLight, AppColors.primaryDim],
+        ),
+        border: Border.all(color: AppColors.ghostBorder, width: 2),
+      ),
+      child: Text(
+        initial,
+        style: GoogleFonts.spaceGrotesk(
+          color: AppColors.onPrimary,
+          fontSize: size * 0.42,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-// ── REVIEWS list content (ReviewCardWithGenres) ───────────────────────────────
+/// Small tracked-out caps label above a header group ("archival" labels).
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
 
-class _ReviewsListContent extends StatelessWidget {
-  final AsyncValue<List<ReviewWithDocId>> reviewsAsync;
-  const _ReviewsListContent({required this.reviewsAsync});
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return reviewsAsync.when(
-      data: (reviewsWithDocIds) {
-        if (reviewsWithDocIds.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 64),
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(Icons.bar_chart, size: 56, color: Colors.white24),
-                  SizedBox(height: 16),
-                  Text('No reviews yet',
-                      style: TextStyle(color: Colors.white, fontSize: 18)),
-                  SizedBox(height: 8),
-                  Text('Start reviewing music to see your reviews here',
-                      style: TextStyle(color: Colors.white54),
-                      textAlign: TextAlign.center),
-                ],
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: AppColors.onSurfaceVariant,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.4,
+      ),
+    );
+  }
+}
+
+/// The user's five most-reviewed artists as photos, spread across the width.
+/// Long-press or hover shows the name.
+class _TopArtistsRow extends StatelessWidget {
+  const _TopArtistsRow({required this.artists});
+
+  final AsyncValue<List<TopArtistData>> artists;
+
+  static const int _count = 5;
+  static const double _size = 56;
+
+  @override
+  Widget build(BuildContext context) {
+    final list = artists.valueOrNull;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        for (var i = 0; i < _count; i++)
+          if (list == null)
+            const SkeletonLoader(
+              width: _size,
+              height: _size,
+              borderRadius: BorderRadius.all(Radius.circular(_size / 2)),
+            )
+          else if (i < list.length)
+            _ArtistPhoto(artist: list[i], size: _size)
+          else
+            const SizedBox.square(dimension: _size),
+      ],
+    );
+  }
+}
+
+class _ArtistPhoto extends StatelessWidget {
+  const _ArtistPhoto({required this.artist, required this.size});
+
+  final TopArtistData artist;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final photo = artist.imageUrl.isNotEmpty
+        ? AppCachedImage(
+            imageUrl: artist.imageUrl,
+            width: size,
+            height: size,
+            borderRadius: BorderRadius.circular(size / 2),
+          )
+        : Container(
+            width: size,
+            height: size,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.surfaceContainerHigh,
+            ),
+            child: Text(
+              artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
               ),
             ),
           );
-        }
+    return Tooltip(
+      message: artist.name,
+      child: Semantics(label: artist.name, child: photo),
+    );
+  }
+}
 
-        final sorted = List.of(reviewsWithDocIds)
-          ..sort((a, b) {
-            final aDate = a.review.date;
-            final bDate = b.review.date;
-            if (aDate == null && bDate == null) return 0;
-            if (aDate == null) return 1;
-            if (bDate == null) return -1;
-            return bDate.compareTo(aDate);
-          });
+// ── Tab bar ───────────────────────────────────────────────────────────────────
 
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-          itemCount: sorted.length,
-          itemBuilder: (context, i) {
-            final item = sorted[i];
-            return Padding(
-              padding: AppSpacing.cardListItem,
-              child: ReviewCardWithGenres(
-                review: item.review,
-                reviewId: item.fullReviewId,
-                showLikeButton: true,
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  _TabBarDelegate(this.tabController);
+
+  final TabController tabController;
+
+  static const double _height = 52;
+
+  @override
+  double get minExtent => _height;
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    // Fill exactly [_height]: the header must paint as tall as it reports,
+    // and an icon-only TabBar on its own is shorter.
+    return SizedBox.expand(
+      child: ColoredBox(
+        color: AppColors.surfaceContainerLowest,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: TabBar(
+            controller: tabController,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: const UnderlineTabIndicator(
+              borderSide: BorderSide(color: AppColors.onSurface, width: 2.5),
+            ),
+            dividerColor: Colors.transparent,
+            dividerHeight: 0,
+            labelColor: AppColors.onSurface,
+            unselectedLabelColor: AppColors.onSurfaceVariant,
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+            tabs: const [
+              Tab(
+                icon: Tooltip(
+                  message: 'Your reviews',
+                  child: Icon(Icons.view_agenda_outlined, size: 26),
+                ),
+              ),
+              Tab(
+                icon: Tooltip(
+                  message: 'Activity',
+                  child: Icon(Icons.access_time, size: 26),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_TabBarDelegate oldDelegate) =>
+      oldDelegate.tabController != tabController;
+}
+
+// ── Your reviews ──────────────────────────────────────────────────────────────
+
+/// The user's own reviews as full cards, newest first. Reposts are left out —
+/// they show under Activity.
+class _YourReviews extends ConsumerWidget {
+  const _YourReviews();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref.watch(userReviewsProvider).when(
+          data: (all) {
+            final reviews = all.where((r) => !r.review.isRepost).toList()
+              ..sort(_newestFirst);
+            if (reviews.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: Icons.rate_review_outlined,
+                  title: 'No reviews yet',
+                  action: AppStateAction(
+                    label: 'Add your first review',
+                    icon: Icons.add,
+                    onPressed: () => context
+                        .findAncestorStateOfType<MainNavState>()
+                        ?.navigateToTab(MainNavState.addTab),
+                  ),
+                ),
+              );
+            }
+            return SliverPadding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              sliver: SliverList.builder(
+                itemCount: reviews.length,
+                itemBuilder: (context, i) => Padding(
+                  padding: AppSpacing.cardListItem,
+                  child: ReviewCardWithGenres(
+                    review: reviews[i].review,
+                    reviewId: reviews[i].fullReviewId,
+                    showLikeButton: true,
+                  ),
+                ),
               ),
             );
           },
+          loading: () => const _SliverLoading(),
+          error: (error, _) => SliverFillRemaining(
+            hasScrollBody: false,
+            child: AppErrorState(
+              title: 'Error loading your reviews',
+              error: error,
+              onRetry: () => ref.invalidate(userReviewsProvider),
+            ),
+          ),
         );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (_, __) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(
-          child: Text('Error loading reviews',
-              style: TextStyle(color: Colors.white54)),
-        ),
+  }
+
+  static int _newestFirst(ReviewWithDocId a, ReviewWithDocId b) {
+    final aDate = a.review.date;
+    final bDate = b.review.date;
+    if (aDate == null && bDate == null) return 0;
+    if (aDate == null) return 1;
+    if (bDate == null) return -1;
+    return bDate.compareTo(aDate);
+  }
+}
+
+// ── Activity ──────────────────────────────────────────────────────────────────
+
+enum _ActivityFilter {
+  all('All'),
+  you('You'),
+  onYou('On your reviews');
+
+  const _ActivityFilter(this.label);
+  final String label;
+
+  bool matches(ActivityItem item) => switch (this) {
+        all => true,
+        you => !ActivityType.isOnYou(item.type),
+        onYou => ActivityType.isOnYou(item.type),
+      };
+}
+
+class _Activity extends ConsumerStatefulWidget {
+  const _Activity();
+
+  @override
+  ConsumerState<_Activity> createState() => _ActivityState();
+}
+
+class _ActivityState extends ConsumerState<_Activity> {
+  _ActivityFilter _filter = _ActivityFilter.all;
+
+  @override
+  Widget build(BuildContext context) {
+    return ref.watch(profileActivityProvider).when(
+          data: (all) {
+            final items = all.where(_filter.matches).toList();
+            return SliverMainAxisGroup(
+              slivers: [
+                SliverToBoxAdapter(child: _filterChips()),
+                if (items.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: AppEmptyState(
+                      icon: Icons.access_time,
+                      title: 'Nothing here yet',
+                      message: switch (_filter) {
+                        _ActivityFilter.onYou =>
+                          'Likes, comments and reposts on your reviews will show up here.',
+                        _ =>
+                          'Reviews you write, like, repost or comment on will show up here.',
+                      },
+                    ),
+                  )
+                else
+                  SliverList.separated(
+                    itemCount: items.length,
+                    itemBuilder: (context, i) => _ActivityRow(item: items[i]),
+                    separatorBuilder: (_, __) => const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: AppColors.ghostBorder,
+                      indent: AppSpacing.pageGutter,
+                      endIndent: AppSpacing.pageGutter,
+                    ),
+                  ),
+              ],
+            );
+          },
+          loading: () => const _SliverLoading(),
+          error: (error, _) => SliverFillRemaining(
+            hasScrollBody: false,
+            child: AppErrorState(
+              title: 'Error loading activity',
+              error: error,
+              onRetry: () => ref.invalidate(userActivityLogProvider),
+            ),
+          ),
+        );
+  }
+
+  Widget _filterChips() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.pageGutter, AppSpacing.md,
+          AppSpacing.pageGutter, AppSpacing.xs),
+      child: Wrap(
+        spacing: AppSpacing.sm,
+        children: [
+          for (final f in _ActivityFilter.values)
+            _FilterChip(
+              label: f.label,
+              selected: f == _filter,
+              onTap: () => setState(() => _filter = f),
+            ),
+        ],
       ),
     );
   }
 }
 
-// ── Profile header ────────────────────────────────────────────────────────────
-
-class _ProfileHeader extends StatelessWidget {
-  final String displayName;
-  final int reviewCount;
-  final int crateCount;
-  final int friendCount;
-  final DateTime? joinDate;
-  final VoidCallback onEditProfile;
-
-  const _ProfileHeader({
-    required this.displayName,
-    required this.reviewCount,
-    required this.crateCount,
-    required this.friendCount,
-    required this.onEditProfile,
-    this.joinDate,
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
-    final handle = '@${displayName.toLowerCase().replaceAll(' ', '_')}';
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 24,
-        bottom: 20,
-        left: 24,
-        right: 24,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // ── Avatar with glow ──────────────────────────────────
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withOpacity(0.55),
-                  blurRadius: 28,
-                  spreadRadius: 2,
-                ),
-              ],
-              border: Border.all(color: Colors.white24, width: 2),
-            ),
-            child: CircleAvatar(
-              radius: 48,
-              backgroundColor: Colors.grey[850],
-              child: Text(
-                initial,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // ── Display name ──────────────────────────────────────
-          Text(
-            displayName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // ── @handle ───────────────────────────────────────────
-          Text(
-            handle,
-            style: TextStyle(
-              color: Colors.red[300],
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-
-          // ── Join date ─────────────────────────────────────────
-          if (joinDate != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Member since ${_formatJoinDate(joinDate!)}',
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
-            ),
-          ],
-          const SizedBox(height: 22),
-
-          // ── Action buttons ────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: onEditProfile,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 28, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 138, 138, 138),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'Edit Profile',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Share profile — coming soon'),
-                      duration: Duration(seconds: 2)),
-                ),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: Colors.white30, width: 1.2),
-                  ),
-                  child: const Text(
-                    'Share',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // ── Stats row ─────────────────────────────────────────
-          Row(
-            children: [
-              Expanded(child: _StatBox(value: '$crateCount', label: 'CRATES')),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: _StatBox(value: '$friendCount', label: 'FRIENDS')),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: _StatBox(value: '$reviewCount', label: 'REVIEWS')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatJoinDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.year}';
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final String value;
   final String label;
-  const _StatBox({required this.value, required this.label});
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(20),
+    return Material(
+      color: selected ? AppColors.onSurface : AppColors.surfaceContainerHigh,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.pillAll,
+        side: BorderSide(color: AppColors.ghostBorder),
       ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md + 2, vertical: AppSpacing.sm - 1),
+          child: Text(
             label,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 11,
+            style: TextStyle(
+              color: selected
+                  ? AppColors.surfaceContainerLowest
+                  : AppColors.onSurface,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
-              letterSpacing: 1.3,
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _LoadingSkeleton extends StatelessWidget {
-  const _LoadingSkeleton();
+class _ActivityRow extends ConsumerWidget {
+  const _ActivityRow({required this.item});
+
+  final ActivityItem item;
+
+  static const double _thumbSize = 52;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    const strong = TextStyle(fontWeight: FontWeight.w700);
+    final author = (item.reviewAuthorName?.isNotEmpty ?? false)
+        ? "${item.reviewAuthorName}'s"
+        : 'a';
+    final title = item.title ?? 'a track';
+
+    // Older notifications were saved without the person's name.
+    var actor = item.actorDisplayName;
+    if (needsActorName(actor) && item.actorId != null) {
+      actor = ref.watch(actorNameProvider(item.actorId!)).valueOrNull;
+    }
+    final actorSpan = TextSpan(
+        text: needsActorName(actor) ? 'Someone' : actor, style: strong);
+    final comment = '“${item.commentText ?? ''}”';
+
+    final List<InlineSpan> sentence = switch (item.type) {
+      ActivityType.like => [
+          const TextSpan(text: 'You liked '),
+          TextSpan(text: author),
+          const TextSpan(text: ' review of '),
+          TextSpan(text: title, style: strong),
+        ],
+      ActivityType.repost => [
+          const TextSpan(text: 'You reposted '),
+          TextSpan(text: author),
+          const TextSpan(text: ' review of '),
+          TextSpan(text: title, style: strong),
+        ],
+      ActivityType.comment => [
+          const TextSpan(text: 'You commented '),
+          TextSpan(text: comment, style: strong),
+          TextSpan(text: ' on $author review of '),
+          TextSpan(text: title, style: strong),
+        ],
+      ActivityType.review => [
+          const TextSpan(text: 'You reviewed '),
+          TextSpan(text: title, style: strong),
+          if (item.artist?.isNotEmpty ?? false)
+            TextSpan(text: ' by ${item.artist}'),
+        ],
+      ActivityType.likedYourReview => [
+          actorSpan,
+          const TextSpan(text: ' liked your review of '),
+          TextSpan(text: title, style: strong),
+        ],
+      ActivityType.commentedOnYourReview => [
+          actorSpan,
+          const TextSpan(text: ' commented '),
+          TextSpan(text: comment, style: strong),
+          const TextSpan(text: ' on your review of '),
+          TextSpan(text: title, style: strong),
+        ],
+      ActivityType.repostedYourReview => [
+          actorSpan,
+          const TextSpan(text: ' reposted your review of '),
+          TextSpan(text: title, style: strong),
+        ],
+      ActivityType.friendAdded => [
+          actorSpan,
+          const TextSpan(text: ' added you as a friend'),
+        ],
+      _ => const [TextSpan(text: 'Activity')],
+    };
+
+    return InkWell(
+      onTap: item.reviewId == null ? null : () => _openReview(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pageGutter, vertical: AppSpacing.md),
+        child: Row(
+          children: [
+            _leading(),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(children: sentence),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.onSurface,
+                      fontSize: 14,
+                      height: 1.35,
+                    ),
+                  ),
+                  if (_subtitle.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      _subtitle,
+                      style: const TextStyle(
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Icon(_typeIcon, size: 18, color: AppColors.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Star rating (for reviews) and how long ago.
+  String get _subtitle => [
+        if (item.score != null) '★ ${_formatScore(item.score!)}',
+        if (item.createdAt != null) formatRelativeTime(item.createdAt),
+      ].join('  ·  ');
+
+  static String _formatScore(double score) =>
+      score == score.roundToDouble() ? '${score.toInt()}' : '$score';
+
+  IconData get _typeIcon => switch (item.type) {
+        ActivityType.like ||
+        ActivityType.likedYourReview =>
+          Icons.favorite_border,
+        ActivityType.repost || ActivityType.repostedYourReview => Icons.repeat,
+        ActivityType.comment ||
+        ActivityType.commentedOnYourReview =>
+          Icons.chat_bubble_outline,
+        ActivityType.review => Icons.rate_review_outlined,
+        ActivityType.friendAdded => Icons.person_add_alt,
+        _ => Icons.access_time,
+      };
+
+  Widget _leading() {
+    final art = item.albumImageUrl;
+    if (art != null && art.isNotEmpty) {
+      return AppCachedImage(
+        imageUrl: art,
+        width: _thumbSize,
+        height: _thumbSize,
+        borderRadius: AppRadius.smAll,
+      );
+    }
+    final isPerson = item.type == ActivityType.friendAdded;
+    return Container(
+      width: _thumbSize,
+      height: _thumbSize,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        shape: isPerson ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: isPerson ? null : AppRadius.smAll,
+      ),
+      child: Icon(isPerson ? Icons.person : Icons.music_note,
+          color: AppColors.onSurfaceVariant),
+    );
+  }
+
+  Future<void> _openReview(BuildContext context) async {
+    final path = item.reviewId!;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final data = (await FirebaseFirestore.instance.doc(path).get()).data();
+      if (data == null) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('This review has been deleted')),
+        );
+        return;
+      }
+      navigator.push(MaterialPageRoute(
+        builder: (_) => ReviewDetailPage(
+          review: Review.fromFirestore(data),
+          reviewId: path,
+        ),
+      ));
+    } catch (e) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't open this review")),
+      );
+    }
+  }
+}
+
+class _SliverLoading extends StatelessWidget {
+  const _SliverLoading();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SkeletonLoader(
-          width: double.infinity,
-          height: 180,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: SkeletonLoader(
-                width: double.infinity,
-                height: 100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SkeletonLoader(
-                width: double.infinity,
-                height: 100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        SkeletonLoader(
-          width: double.infinity,
-          height: 250,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        const SizedBox(height: 16),
-      ],
+    return const SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+        child: Center(child: CircularProgressIndicator()),
+      ),
     );
   }
 }

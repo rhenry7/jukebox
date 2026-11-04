@@ -73,6 +73,12 @@ service cloud.firestore {
         allow update, delete: if isOwner(userId);
       }
       
+      // Activity log: reviews this user liked, reposted or commented on.
+      // Private to the owner, who writes it alongside each action.
+      match /activity/{activityId} {
+        allow read, write: if isOwner(userId);
+      }
+
       // Signals subcollection (AI-powered search: rec clicks, search queries, etc.)
       match /signals/{signalId} {
         allow read, write: if isOwner(userId);
