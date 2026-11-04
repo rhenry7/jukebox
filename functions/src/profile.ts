@@ -7,7 +7,7 @@ import { RANKING } from "./config";
 import { embed } from "./openai";
 import { UserAspect } from "./scoring";
 import { aspectsByReview, loadPreferences, ReviewVector, reviewVectorsByUser } from "./store";
-import { parseSavedTrack } from "./text";
+import { parseSavedTrack, trackKey } from "./text";
 import { kmeans, recencyWeight, Vec, weightedCentroid } from "./vectors";
 
 export interface Profile {
@@ -34,7 +34,13 @@ export async function buildProfile(
   opts: { excludeReviewPath?: string } = {},
 ): Promise<Profile> {
   const now = new Date();
-  const [allReviews, prefs] = await Promise.all([reviewVectorsByUser(db, userId), loadPreferences(db, userId)]);
+  const [allReviews, prefs, reviewedTracks] = await Promise.all([
+    reviewVectorsByUser(db, userId),
+    loadPreferences(db, userId),
+    // Every track they've reviewed — including star-only reviews and
+    // reposts, which have no vector.
+    db.collection(`users/${userId}/reviews`).select("artist", "title").get(),
+  ]);
   const reviews = allReviews.filter((r) => r.reviewPath !== opts.excludeReviewPath);
   const aspectMap = await aspectsByReview(
     db,
@@ -85,6 +91,10 @@ export async function buildProfile(
   }
 
   const knownTrackKeys = new Set(reviews.map((r) => r.trackKey));
+  for (const doc of reviewedTracks.docs) {
+    if (doc.ref.path === opts.excludeReviewPath) continue;
+    knownTrackKeys.add(trackKey(doc.get("artist") ?? "", doc.get("title") ?? ""));
+  }
   for (const saved of prefs?.savedTracks ?? []) {
     const key = parseSavedTrack(saved);
     if (key) knownTrackKeys.add(key);

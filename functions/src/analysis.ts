@@ -13,7 +13,9 @@ import {
   aspectEmbeddingText,
   contentHash,
   mergedTags,
+  normalizeReview,
   reviewDate,
+  starsOrPolarity,
   ReviewDoc,
   reviewDocId,
   reviewEmbeddingText,
@@ -88,7 +90,7 @@ export async function analyzeText(
 ): Promise<AnalysisResult> {
   const result = await chatJson<AnalysisResult>(apiKey, {
     system: ANALYSIS_SYSTEM,
-    user: `Track: "${data.title}" by ${data.artist}\nStars: ${data.score}/5\nTags: ${tags.join(", ") || "none"}\nReview:\n${data.review}`,
+    user: `Track: "${data.title}" by ${data.artist}\nStars: ${Number.isFinite(data.score) ? `${data.score}/5` : "not given"}\nTags: ${tags.join(", ") || "none"}\nReview:\n${data.review}`,
     schemaName: "review_analysis",
     schema: ANALYSIS_SCHEMA,
   });
@@ -123,7 +125,7 @@ export async function syncReview(
     await deleteVectors(db, reviewPath);
     return "deleted";
   }
-  const data = snap.data() as ReviewDoc;
+  const data = normalizeReview(snap.data() as Partial<ReviewDoc>, reviewPath);
   if (data.isRepost || !data.review?.trim()) {
     // Reposts are copies; empty reviews have nothing to analyse.
     await deleteVectors(db, reviewPath);
@@ -149,7 +151,7 @@ export async function syncReview(
   } catch (e) {
     // Fall back to stars only; version 0 marks it for the next backfill run.
     logger.warn("LLM analysis failed, using stars only", { reviewPath, error: String(e) });
-    analysis = { polarity: starsToPolarity(data.score), tone: [], aspects: [] };
+    analysis = { polarity: Number.isFinite(data.score) ? starsToPolarity(data.score) : 0, tone: [], aspects: [] };
     version = 0;
   }
 
@@ -158,6 +160,7 @@ export async function syncReview(
     ...analysis.aspects.map((a) => aspectEmbeddingText(a.category, a.statement)),
   ];
   const [reviewVec, ...aspectVecs] = await embed(apiKey, texts);
+  const stars = starsOrPolarity(data.score, analysis.polarity);
   const key = trackKey(data.artist, data.title);
   const date = reviewDate(data);
 
@@ -169,12 +172,12 @@ export async function syncReview(
     artist: data.artist,
     title: data.title,
     tags,
-    stars: data.score,
+    stars,
     likes: data.likes ?? 0,
     textLength: data.review.trim().length,
     polarity: analysis.polarity,
     tone: analysis.tone,
-    affinity: affinity(data.score, analysis.polarity),
+    affinity: affinity(stars, analysis.polarity),
     aspects: analysis.aspects,
     isRepost: false,
     date: date ?? FieldValue.serverTimestamp(),

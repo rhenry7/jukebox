@@ -3,11 +3,11 @@
   "private": true,
   "main": "lib/index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "build": "tsc",
-    "test": "tsc && node --test lib/__tests__/",
+    "test": "tsc && node --test lib/__tests__/*.test.js",
     "backfill": "tsc && node lib/scripts/backfill.js",
     "eval": "tsc && node lib/scripts/eval.js",
     "deploy": "firebase deploy --only functions"

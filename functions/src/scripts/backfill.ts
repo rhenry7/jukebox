@@ -5,6 +5,7 @@
  *   … npm run backfill                 # analyse new/changed reviews only
  *   … npm run backfill -- --force      # re-analyse everything
  *   … npm run backfill -- --for-you    # then build every user's For You
+ *   … npm run backfill -- --for-you --user=<uid>   # … or just one user's
  *
  * Idempotent: unchanged reviews (same text/stars/tags and ANALYSIS_VERSION)
  * are skipped, so it is safe to re-run after a failure.
@@ -13,9 +14,11 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { analyzeText, syncReview } from "../analysis";
 import { computeForYou } from "../forYou";
-import { mergedTags, ReviewDoc } from "../text";
+import { mergedTags, normalizeReview, ReviewDoc } from "../text";
 
 const args = new Set(process.argv.slice(2));
+// --user=<uid>: build For You for that one user instead of everyone.
+const onlyUser = process.argv.find((a) => a.startsWith("--user="))?.slice("--user=".length);
 const apiKey = process.env.OPENAI_API_KEY ?? "";
 if (!apiKey) {
   console.error("Set OPENAI_API_KEY (server key, never the old client one).");
@@ -32,7 +35,7 @@ async function main() {
 
   if (args.has("--dry-run")) {
     for (const doc of originals.slice(0, 5)) {
-      const data = doc.data() as ReviewDoc;
+      const data = normalizeReview(doc.data() as Partial<ReviewDoc>, doc.ref.path);
       const analysis = await analyzeText(apiKey, data, mergedTags(data));
       console.log(`\n${doc.ref.path} — "${data.title}" by ${data.artist} (${data.score}★)`);
       console.log(`  ${data.review.slice(0, 160)}…`);
@@ -64,7 +67,7 @@ async function main() {
   console.log(`reviewVectors: ${vectors.data().count} (expect ${originals.length} minus empty reviews)`);
 
   if (args.has("--for-you")) {
-    const users = [...new Set(originals.map((d) => d.ref.path.split("/")[1]))];
+    const users = onlyUser ? [onlyUser] : [...new Set(originals.map((d) => d.ref.path.split("/")[1]))];
     for (const uid of users) {
       const items = await computeForYou(db, apiKey, uid, { write: true });
       console.log(`  For You ${uid}: ${items.length} items`);

@@ -13,6 +13,29 @@ export interface ReviewDoc {
   isRepost?: boolean;
 }
 
+/**
+ * Fills fields that older reviews lack, with the same defaults as
+ * `Review.fromFirestore` in the app; the author comes from the path
+ * (users/{uid}/reviews/{id}). A missing star score stays NaN — see
+ * `starsOrPolarity`.
+ */
+export function normalizeReview(data: Partial<ReviewDoc>, reviewPath: string): ReviewDoc {
+  const score = typeof data.score === "number" ? data.score : Number(data.score);
+  return {
+    ...data,
+    userId: data.userId || reviewPath.split("/")[1] || "",
+    artist: data.artist ?? "",
+    title: data.title ?? "",
+    review: data.review ?? "",
+    score: Number.isFinite(score) ? score : NaN,
+  };
+}
+
+/** The review's stars, or — when it has none — the stars its words imply. */
+export function starsOrPolarity(score: number, textPolarity: number): number {
+  return Number.isFinite(score) ? score : ((textPolarity + 1) / 2) * 5;
+}
+
 /** One identity per song: the same track reviewed by many users groups together. */
 export function trackKey(artist: string, title: string): string {
   const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
