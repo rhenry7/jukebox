@@ -325,35 +325,41 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// The user's five most-reviewed artists as photos, spread across the width.
+/// The user's four most-reviewed artists as square photos (same corners as
+/// the album art on review cards), filling the width.
 /// Long-press or hover shows the name.
 class _TopArtistsRow extends StatelessWidget {
   const _TopArtistsRow({required this.artists});
 
   final AsyncValue<List<TopArtistData>> artists;
 
-  static const int _count = 5;
-  static const double _size = 56;
+  static const double _gap = AppSpacing.sm;
 
+  /// [topArtistCount] equal squares filling the full width, [_gap] apart.
   @override
   Widget build(BuildContext context) {
     final list = artists.valueOrNull;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        for (var i = 0; i < _count; i++)
-          if (list == null)
-            const SkeletonLoader(
-              width: _size,
-              height: _size,
-              borderRadius: BorderRadius.all(Radius.circular(_size / 2)),
-            )
-          else if (i < list.length)
-            _ArtistPhoto(artist: list[i], size: _size)
-          else
-            const SizedBox.square(dimension: _size),
-      ],
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final size =
+          (constraints.maxWidth - _gap * (topArtistCount - 1)) / topArtistCount;
+      return Row(
+        children: [
+          for (var i = 0; i < topArtistCount; i++) ...[
+            if (i > 0) const SizedBox(width: _gap),
+            if (list == null)
+              SkeletonLoader(
+                width: size,
+                height: size,
+                borderRadius: AppRadius.smAll,
+              )
+            else if (i < list.length)
+              _ArtistPhoto(artist: list[i], size: size)
+            else
+              SizedBox.square(dimension: size),
+          ],
+        ],
+      );
+    });
   }
 }
 
@@ -370,21 +376,21 @@ class _ArtistPhoto extends StatelessWidget {
             imageUrl: artist.imageUrl,
             width: size,
             height: size,
-            borderRadius: BorderRadius.circular(size / 2),
+            borderRadius: AppRadius.smAll,
           )
         : Container(
             width: size,
             height: size,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
-              shape: BoxShape.circle,
+              borderRadius: AppRadius.smAll,
               color: AppColors.surfaceContainerHigh,
             ),
             child: Text(
               artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.onSurfaceVariant,
-                fontSize: 20,
+                fontSize: size * 0.35,
                 fontWeight: FontWeight.w700,
               ),
             ),

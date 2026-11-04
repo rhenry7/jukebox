@@ -40,10 +40,8 @@ class ReviewCardSkeleton extends StatelessWidget {
         color: AppColors.surfaceContainer,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.cardAll,
-          side: BorderSide(color: AppColors.ghostBorder),
-        ),
+        // Same frame as CardSurface, so nothing shifts when cards load.
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardAll),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.cardPadding),
           child: Row(

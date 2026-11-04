@@ -31,7 +31,8 @@ abstract final class AppSpacing {
   static const double cardPadding = xl;
 
   /// Vertical gap between stacked cards in a list. Cards sit flush against
-  /// each other; the ghost border is the only separator.
+  /// each other, with no border; each card's own album-art backdrop sets it
+  /// apart from the next.
   static const double cardGap = 0;
 
   /// Bottom padding for scrollable content under the floating nav dock

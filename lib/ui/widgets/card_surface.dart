@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 
 /// The card surface shared by every content card (review cards, Explore
-/// track cards): tonal fill, square corners, a faint ghost border and,
-/// optionally, the blurred album art behind the content. Screens must not
+/// track cards): tonal fill, square corners, no border and, optionally, the blurred album art behind the content. Screens must not
 /// wrap cards in their own Card — only position them (e.g. with
 /// [AppSpacing.cardListItem]) and pad the content with
 /// [AppSpacing.cardPadding].
@@ -23,10 +22,7 @@ class CardSurface extends StatelessWidget {
     final showArt = kAlbumArtCardBackground && url != null && url.isNotEmpty;
     return Material(
       color: AppColors.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: AppRadius.cardAll,
-        side: BorderSide(color: AppColors.ghostBorder),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardAll),
       clipBehavior: Clip.antiAlias,
       child: showArt
           ? Stack(
