@@ -124,7 +124,7 @@ class _ProfileHeader extends StatelessWidget {
   static const double _buttonHeight = 44;
   static const double _gapS = AppSpacing.md;
   static const double _gapL = AppSpacing.xl;
-  static const int _categoryCount = 3;
+  static const int _categoryCount = 5;
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +185,6 @@ class _ProfileHeader extends StatelessWidget {
             GenrePills(
               tags: topCategories,
               maxTags: _categoryCount,
-              showOverflowCount: true,
               topPadding: _gapS - AppSpacing.xs,
             ),
           ],
