@@ -25,12 +25,11 @@ Screens currently using this widget:
 - `lib/ui/screens/Home/friends_reviews.dart` (Friends tab)
 - `lib/ui/screens/Home/recommended_reviews.dart` (For You tab)
 - `lib/ui/screens/Profile/profilePage.dart` (Profile → Reviews tab)
-- `lib/ui/screens/Trending/album_detail_page.dart` (Album detail)
 - `lib/ui/screens/search/search_screen.dart` (Search results)
 
-The card frame (inset 8 from the screen edges, 8 between cards, 12 corner radius, no border, blurred album-art background) is `CardSurface` in `lib/ui/widgets/card_surface.dart`. Review cards and Explore track cards both use it; any new content card should too, with `AppSpacing.cardPadding` inside and `AppSpacing.cardListItem` around it.
+The card frame (inset 8 from the screen edges, 8 between cards, 12 corner radius, no border, blurred album-art background) is `CardSurface` in `lib/ui/widgets/card_surface.dart`. Review cards use it; any new content card should too, with `AppSpacing.cardPadding` inside and `AppSpacing.cardListItem` around it.
 
-Genre / tag pills come from `lib/ui/widgets/genre_pills.dart`: `GenrePills(tags)` when the genres are known, or `TrackGenrePills(title, artist)` to look them up first (used by Explore track cards). Never build tag chips inline. Tapping a pill opens that tag's page (`lib/ui/screens/tag/tag_reviews_page.dart`): reviews with the tag, then reviews with similar tags (`tagsSimilar`), then reviews whose text mentions it, plus related tags to explore. It pages through a database index, not a scan: every review carries `tagKeys` / `tagWordKeys` / `textWordKeys` (`searchKeysFor` in `lib/providers/tag_reviews_provider.dart`, written by `submitReview` and kept in sync by the `onReviewWritten` function via `syncSearchKeys`). The Dart and TypeScript (`searchKeys` in `functions/src/text.ts`) versions must match; both are tested against `functions/src/__tests__/fixtures/search_keys.json`. Backfill with `npm run backfill -- --search-keys`.
+Genre / tag pills come from `lib/ui/widgets/genre_pills.dart`: `GenrePills(tags)`. Never build tag chips inline. Tapping a pill opens that tag's page (`lib/ui/screens/tag/tag_reviews_page.dart`): reviews with the tag, then reviews with similar tags (`tagsSimilar`), then reviews whose text mentions it, plus related tags to explore. It pages through a database index, not a scan: every review carries `tagKeys` / `tagWordKeys` / `textWordKeys` (`searchKeysFor` in `lib/providers/tag_reviews_provider.dart`, written by `submitReview` and kept in sync by the `onReviewWritten` function via `syncSearchKeys`). The Dart and TypeScript (`searchKeys` in `functions/src/text.ts`) versions must match; both are tested against `functions/src/__tests__/fixtures/search_keys.json`. Backfill with `npm run backfill -- --search-keys`.
 
 `lib/ui/screens/Home/_comments.dart` contains `UserReviewsCollection` and `FriendsReviewList` (the dismissible list wrapper used by the Profile screen). It imports `ReviewCardWithGenres` from the shared widget file.
 
@@ -50,7 +49,7 @@ Empty / error / loading-more states come from `lib/ui/widgets/app_states.dart` (
 
 **Rule:** Screens never set padding, margins or gaps around review cards and never hand-build empty/error states. Change the shared widget instead so every screen stays in sync. Spacing, radius and color values come from `lib/ui/theme/tokens.dart`.
 
-Currently using `ReviewFeed`: the three Home tabs (Popular, Friends, For You). Profile, Search and Album detail still build their own lists and are next to migrate.
+Currently using `ReviewFeed`: the three Home tabs (Popular, Friends, For You). Profile and Search still build their own lists and are next to migrate.
 
 ### For You recommendations (server-side CF-RAG)
 The For You list and the post-review "Because you just reviewed X" sheet are built in **Cloud Functions** (`functions/`, TypeScript). See `functions/README.md`.
@@ -85,7 +84,7 @@ lib/ui/screens/review_detail/review_detail_page.dart
 if a user is not signed in, or anonymous user, display a modal that says sign up - use the discoball.gif as a the art for the modal with a cheeky message for a CTA to sign up or sign in
 - do not allow anonymous users to submit reviews
 - prevent anonymous users from submitting or completing any action other than viewing content from specific pre-approved fields.
-- limit anonymous user visibility to popular reviews; popular tracks and suggested tracks; popular crates - else keep suggestion that they sign in / sign up 
+- limit anonymous user visibility to popular reviews - else keep suggestion that they sign in / sign up 
 - default "anonymous user" as not signed in, anonymous user is for previewing functionality that should lead to CTA for sign up/ sign in
 ### Sign-in / sign-up routing
 The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild on auth changes by themselves, so screens never push `MainNav` or a new `MyApp` after signing in or out. All in `lib/ui/screens/Profile/helpers/profileHelpers.dart`:

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../services/genre_cache_service.dart';
 import '../screens/tag/tag_reviews_page.dart';
 import '../theme/tokens.dart';
 
@@ -118,57 +117,6 @@ class GenrePills extends StatelessWidget {
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
       shape: shape,
-    );
-  }
-}
-
-/// [GenrePills] for a track that has no stored genres yet: looks them up
-/// through [GenreCacheService] (Firestore cache first, then MusicBrainz) and
-/// shows nothing until they arrive.
-class TrackGenrePills extends StatefulWidget {
-  const TrackGenrePills({super.key, required this.title, required this.artist});
-
-  final String title;
-  final String artist;
-
-  @override
-  State<TrackGenrePills> createState() => _TrackGenrePillsState();
-}
-
-class _TrackGenrePillsState extends State<TrackGenrePills> {
-  late Future<List<String>> _genres;
-
-  @override
-  void initState() {
-    super.initState();
-    _genres = _load();
-  }
-
-  @override
-  void didUpdateWidget(TrackGenrePills oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.title != widget.title || oldWidget.artist != widget.artist) {
-      _genres = _load();
-    }
-  }
-
-  Future<List<String>> _load() async {
-    try {
-      return splitGenreTags(
-        await GenreCacheService.getGenresWithCache(widget.title, widget.artist),
-      );
-    } catch (e) {
-      debugPrint('Error loading genres for ${widget.title}: $e');
-      return const [];
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<String>>(
-      future: _genres,
-      builder: (context, snapshot) =>
-          GenrePills(tags: snapshot.data ?? const []),
     );
   }
 }
