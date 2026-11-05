@@ -20,16 +20,18 @@ Future<DocumentReference?> submitReviewTestable({
   required bool liked,
   required String albumImageUrl,
   List<String>? genres,
+  String? reviewId,
 }) async {
   final User? user = auth.currentUser;
   if (user == null) return null;
 
   final String userId = user.uid;
-  final docRef = await firestore
+  final docRef = firestore
       .collection('users')
       .doc(userId)
       .collection('reviews')
-      .add({
+      .doc(reviewId);
+  await docRef.set({
     'displayName': user.displayName,
     'email': user.email,
     'userId': userId,
@@ -41,7 +43,7 @@ Future<DocumentReference?> submitReviewTestable({
     'date': FieldValue.serverTimestamp(),
     'albumImageUrl': albumImageUrl,
     if (genres != null && genres.isNotEmpty) 'genres': genres,
-  });
+  }, SetOptions(merge: true));
   return docRef;
 }
 
@@ -104,6 +106,32 @@ void main() {
       expect(data['score'], 4.5);
       expect(data['liked'], true);
       expect(data['albumImageUrl'], 'https://example.com/image.jpg');
+    });
+
+    test('saving twice with the same id leaves one review', () async {
+      // A tap that got through twice, or a retry after a slow save.
+      Future<DocumentReference?> save() => submitReviewTestable(
+            firestore: fakeFirestore,
+            auth: mockAuth,
+            review: 'Great track!',
+            score: 4.5,
+            artist: 'Test Artist',
+            title: 'Test Song',
+            liked: true,
+            albumImageUrl: 'https://example.com/image.jpg',
+            reviewId: 'form-review-id',
+          );
+      final first = await save();
+      await first!.update({'likes': 3});
+      await save();
+
+      final reviews = await fakeFirestore
+          .collection('users/test-user-123/reviews')
+          .get();
+      expect(reviews.docs, hasLength(1));
+      expect(reviews.docs.single.id, 'form-review-id');
+      // The retry didn't wipe what the first save picked up.
+      expect(reviews.docs.single.data()['likes'], 3);
     });
 
     test('includes genres when provided', () async {

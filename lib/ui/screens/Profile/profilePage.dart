@@ -20,6 +20,7 @@ import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
 import 'package:flutter_test_project/ui/widgets/friend_toggle.dart';
 import 'package:flutter_test_project/ui/widgets/genre_pills.dart';
+import 'package:flutter_test_project/ui/widgets/review_options.dart';
 import 'package:flutter_test_project/ui/widgets/review_card.dart'
     show ReviewCardWithGenres;
 import 'package:flutter_test_project/utils/cached_image.dart';
@@ -644,12 +645,17 @@ class _ReviewsList extends StatelessWidget {
           padding: const EdgeInsets.only(top: AppSpacing.sm),
           sliver: SliverList.builder(
             itemCount: reviews.length,
+            // Your own cards swipe (or long-press) open edit / delete, as
+            // on Home; the reviews stream drops a deleted card by itself.
             itemBuilder: (context, i) => Padding(
               padding: AppSpacing.cardListItem,
-              child: ReviewCardWithGenres(
-                review: reviews[i].review,
-                reviewId: reviews[i].fullReviewId,
-                showLikeButton: true,
+              child: OwnReviewOptions(
+                review: reviews[i],
+                child: ReviewCardWithGenres(
+                  review: reviews[i].review,
+                  reviewId: reviews[i].fullReviewId,
+                  showLikeButton: true,
+                ),
               ),
             ),
           ),

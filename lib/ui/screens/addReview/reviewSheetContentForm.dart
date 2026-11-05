@@ -60,6 +60,15 @@ class _MyReviewSheetContentFormState
   String? _searchError; // User-facing error message for search failures
   bool _showRequiredError = false; // Glow when submit fails validation
 
+  /// True from the tap on Save Review until the save finishes. Set before
+  /// anything is awaited, so a second tap on a slow network can't send the
+  /// review twice; the button shows a spinner and is disabled meanwhile.
+  bool _isSubmitting = false;
+
+  /// Where this review is saved. Fixed for the life of the form, so a retry
+  /// after a failed or timed-out save updates the same review.
+  final String _reviewId = newReviewId();
+
   @override
   void initState() {
     super.initState();
@@ -395,6 +404,7 @@ class _MyReviewSheetContentFormState
   }
 
   Future<void> handleSubmit() async {
+    if (_isSubmitting) return;
     final user = auth.currentUser;
     if (user == null) {
       showAuthGateModal(context);
@@ -422,6 +432,7 @@ class _MyReviewSheetContentFormState
       return;
     }
 
+    setState(() => _isSubmitting = true);
     try {
       final reviewPath = await submitReview(
         review,
@@ -433,7 +444,16 @@ class _MyReviewSheetContentFormState
             ? _selectedTrackImageUrl
             : widget.albumImageUrl,
         tags, // stored as genres (required, validated above)
+        reviewId: _reviewId,
       );
+      if (reviewPath == null) {
+        // Signed out while the form was open.
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+          showAuthGateModal(context);
+        }
+        return;
+      }
 
       // Log review_submit signal (strongest explicit signal)
       final submittedArtist = _selectedTrackArtist.isNotEmpty
@@ -483,7 +503,7 @@ class _MyReviewSheetContentFormState
         final navigatorContext =
             Navigator.of(context, rootNavigator: true).context;
         Navigator.pop(context);
-        if (reviewPath != null && navigatorContext.mounted) {
+        if (navigatorContext.mounted) {
           unawaited(showReviewMatchesSheet(
             navigatorContext,
             reviewPath: reviewPath,
@@ -494,10 +514,13 @@ class _MyReviewSheetContentFormState
         }
       }
     } catch (e) {
+      debugPrint('Could not submit review: $e');
       if (mounted) {
+        setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not submit review: ${e.toString()}'),
+          const SnackBar(
+            content: Text("Couldn't save your review. Check your connection "
+                'and try again.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -805,19 +828,28 @@ class _MyReviewSheetContentFormState
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: handleSubmit,
+        onPressed: _isSubmitting ? null : handleSubmit,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.green,
           foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.green.withValues(alpha: 0.5),
+          disabledForegroundColor: Colors.white70,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Text(
-          'Save Review',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        child: _isSubmitting
+            ? const SizedBox(
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2.5, color: Colors.white),
+              )
+            : const Text(
+                'Save Review',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
       ),
     );
   }

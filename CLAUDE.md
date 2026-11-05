@@ -43,6 +43,7 @@ lib/ui/widgets/review_feed.dart
 
 - `ReviewFeed` — owns page gutter, card gap, top/bottom spacing (incl. floating-dock clearance), pull-to-refresh, infinite scroll and the loading footer. Screens pass only `reviews`, `onRefresh`, optional `onLoadMore`/`hasMore`, a `storageKey`, a `layout` (`tab` or `pushed`) and an optional `itemWrapper` (e.g. Dismissible — must not add padding).
 - `ReviewFeedSkeleton` — the loading state, same spacing as the feed.
+- Your own review cards swipe left (or long-press) to open the glass edit / delete options: wrap the card in `OwnReviewOptions` (`lib/ui/widgets/review_options.dart`), which does nothing for other people's reviews. Used by Popular (as the `itemWrapper`) and Profile → Reviews.
 - Tapping Home while already on Home calls `ReviewFeed.scrollToTopAndRefresh()`: the `tab`-layout feed on screen scrolls to the top and runs its `onRefresh`.
 
 Empty / error / loading-more states come from `lib/ui/widgets/app_states.dart` (`AppEmptyState`, `AppErrorState`, `AppLoadingFooter`).
