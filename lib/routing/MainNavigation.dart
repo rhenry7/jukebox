@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 import 'package:flutter_test_project/ui/screens/Home/categoryTapBar.dart';
@@ -222,6 +223,8 @@ class MainNavState extends ConsumerState<MainNav> {
       key: _scaffoldKey,
       extendBody: true,
       drawer: _AppDrawer(),
+      // Lighter than the default, so the glass drawer has the feed to blur.
+      drawerScrimColor: Colors.black26,
       // The top bar sits in the body (not Scaffold.appBar) so it can fade and
       // collapse with the bottom dock when the feed scrolls down, instead of
       // popping out and making the page jump.
@@ -463,79 +466,117 @@ class _DockButton extends StatelessWidget {
 
 // ── App drawer (hamburger menu) ───────────────────────────────────────────────
 
-class _AppDrawer extends StatelessWidget {
+class _AppDrawer extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Log out and Delete Account only mean something when signed in, and
+    // the shared demo account can't be deleted.
+    final user = ref.watch(currentUserProvider);
+    final signedIn = user != null;
+    final canDeleteAccount = signedIn && !DemoAutoSignIn.isDemoUser(user.email);
+    const shape = BorderRadius.horizontal(right: Radius.circular(AppRadius.xl));
     return Drawer(
-      backgroundColor: Colors.grey[950] ?? const Color(0xFF0D0D0D),
+      // Frosted glass, like the dock: the feed shows through, blurred.
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(borderRadius: shape),
+      clipBehavior: Clip.antiAlias,
       width: MediaQuery.of(context).size.width * 0.82,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              const Padding(
-                padding: EdgeInsets.only(left: 8, bottom: 24),
-                child: Text(
-                  'MENU',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
+      child: BackdropFilter(
+        filter: ImageFilter.compose(
+          outer: const ColorFilter.matrix(_GlassDock._saturate),
+          inner: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: shape,
+            // Tinted glass, lit from the top-left.
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.alphaBlend(Colors.white.withValues(alpha: 0.08),
+                    AppColors.surfaceContainerHighest.withValues(alpha: 0.62)),
+                AppColors.surfaceContainerHighest.withValues(alpha: 0.48),
+              ],
+            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8, bottom: 24),
+                    child: Text(
+                      'MENU',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                      ),
+                    ),
                   ),
-                ),
-              ),
 
-              // Settings card
-              Card(
-                color: Colors.grey[900],
-                elevation: 0,
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                      color: Colors.white.withOpacity(0.1), width: 1),
-                ),
-                child: Column(
-                  children: [
-                    const ProfileButton(
-                      name: 'Notifications',
-                      icon: Ionicons.notifications_outline,
+                  // Settings card
+                  Card(
+                    color: Colors.grey[900],
+                    elevation: 0,
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                          color: Colors.white.withOpacity(0.1), width: 1),
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                    const ProfileButton(
-                      name: 'Legal',
-                      icon: Ionicons.document_text_outline,
+                    child: Column(
+                      children: [
+                        const ProfileButton(
+                          name: 'Notifications',
+                          icon: Ionicons.notifications_outline,
+                        ),
+                        Divider(
+                            color: Colors.white.withOpacity(0.05), height: 1),
+                        const ProfileButton(
+                          name: 'Legal',
+                          icon: Ionicons.document_text_outline,
+                        ),
+                        if (signedIn) ...[
+                          Divider(
+                              color: Colors.white.withOpacity(0.05), height: 1),
+                          const ProfileButton(
+                            name: 'LogOut',
+                            icon: Ionicons.exit_outline,
+                          ),
+                        ],
+                      ],
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                    const ProfileButton(
-                      name: 'LogOut',
-                      icon: Ionicons.exit_outline,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
+                  ),
+                  const SizedBox(height: 8),
 
-              // Danger zone
-              Card(
-                color: Colors.red.withOpacity(0.08),
-                elevation: 0,
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side:
-                      BorderSide(color: Colors.red.withOpacity(0.25), width: 1),
-                ),
-                child: const ProfileButton(
-                  name: 'Delete Account',
-                  icon: Ionicons.trash_outline,
-                ),
+                  // Danger zone
+                  if (canDeleteAccount)
+                    Card(
+                      color: Colors.red.withOpacity(0.08),
+                      elevation: 0,
+                      margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                            color: Colors.red.withOpacity(0.25), width: 1),
+                      ),
+                      child: const ProfileButton(
+                        name: 'Delete Account',
+                        icon: Ionicons.trash_outline,
+                      ),
+                    ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

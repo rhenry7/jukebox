@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_test_project/providers/tag_reviews_provider.dart'
+    show searchKeysFor;
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/models/music_recommendation.dart';
 import 'package:flutter_test_project/models/review.dart';
@@ -57,6 +59,9 @@ Future<String?> submitReview(String review, double score, String artist,
         'albumImageUrl': albumImageUrl,
        // if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
         if (genres != null && genres.isNotEmpty) 'genres': genres,
+        // Tag page index (also kept up to date by the onReviewWritten
+        // function).
+        ...searchKeysFor(genres: genres, review: review),
       });
       
       debugPrint('✅ Review saved successfully! Document ID: ${docRef.id}');

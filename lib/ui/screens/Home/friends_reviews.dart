@@ -6,7 +6,7 @@ import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/friends_provider.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
-import '../Profile/ProfileSignIn.dart';
+import '../Profile/helpers/profileHelpers.dart' show openSignIn;
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 
@@ -44,9 +44,7 @@ class _FriendsReviewsCollectionState
           label: 'Sign In!',
           icon: Icons.login,
           onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const SignInScreen()),
-            );
+            openSignIn(context);
           },
         ),
       );
@@ -54,7 +52,7 @@ class _FriendsReviewsCollectionState
 
     final friendsReviewsAsync = ref.watch(friendsReviewsProvider);
     final friendIdsAsync = ref.watch(friendIdsProvider);
-    final friendIds = friendIdsAsync.value ?? [];
+    final friendIds = friendIdsAsync.valueOrNull ?? [];
 
     if (widget.selectedGenres.isNotEmpty && friendIds.isNotEmpty) {
       _ensureGenreFilteredFuture(userId, friendIds);

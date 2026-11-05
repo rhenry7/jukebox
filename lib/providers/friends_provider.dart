@@ -21,7 +21,7 @@ final friendIdsProvider = StreamProvider<List<String>>((ref) {
 
 /// Check whether a specific user is a friend (derived from the friend list).
 final isFriendProvider = Provider.family<bool, String>((ref, friendId) {
-  final friendIds = ref.watch(friendIdsProvider).value ?? [];
+  final friendIds = ref.watch(friendIdsProvider).valueOrNull ?? [];
   return friendIds.contains(friendId);
 });
 
@@ -34,7 +34,7 @@ final isFriendProvider = Provider.family<bool, String>((ref, friendId) {
 final friendsReviewsProvider =
     StreamProvider<List<ReviewWithDocId>>((ref) {
   final friendIdsAsync = ref.watch(friendIdsProvider);
-  final friendIds = friendIdsAsync.value ?? [];
+  final friendIds = friendIdsAsync.valueOrNull ?? [];
 
   if (friendIds.isEmpty) return Stream.value([]);
 

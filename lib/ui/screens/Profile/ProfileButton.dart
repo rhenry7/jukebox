@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/main.dart';
 import 'package:ionicons/ionicons.dart';
 
 
@@ -10,6 +9,9 @@ class ProfileButton extends StatelessWidget {
   const ProfileButton({super.key, required this.name, required this.icon});
 
   Future<void> showSignOutConfirmationDialog(BuildContext context) {
+    // The drawer this button sits in; it isn't a route, so popping routes
+    // doesn't close it.
+    final scaffold = Scaffold.maybeOf(context);
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -35,21 +37,17 @@ class ProfileButton extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () {
-                signOut();
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          const MyApp()), // Replace with your app's main widget
-                  (Route<dynamic> route) =>
-                      false, // Removes all previous routes
+              onPressed: () async {
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                await signOut();
+                // Close this dialog, the drawer and anything above Home; the
+                // screens rebuild for the signed-out state by themselves.
+                navigator.popUntil((route) => route.isFirst);
+                scaffold?.closeDrawer();
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('You have signed out')),
                 );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('You have signed out!'),
-                  ),
-                );
-                //Navigator.of(context).pop();
               },
               child: const Text(
                 'Yes',

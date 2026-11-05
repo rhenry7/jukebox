@@ -11,8 +11,8 @@ import 'package:flutter_test_project/providers/crate_comments_provider.dart';
 import 'package:flutter_test_project/providers/user_playlist_provider.dart';
 import 'package:flutter_test_project/services/crate_comment_service.dart';
 import 'package:flutter_test_project/services/user_playlist_service.dart';
-import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
-import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
+import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart'
+    show openSignIn, openSignUp;
 import 'package:flutter_test_project/ui/screens/playlists/add_songs_screen.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/utils/helpers.dart';
@@ -819,9 +819,7 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
               child: GestureDetector(
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ProfileSignUp()),
-                  );
+                  openSignUp(context);
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -855,9 +853,7 @@ class _CommentSectionState extends ConsumerState<_CommentSection> {
               child: TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SignInScreen()),
-                  );
+                  openSignIn(context);
                 },
                 child: const Text(
                   'Sign In',

@@ -1,8 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/ui/screens/onboarding/onboarding_flow.dart';
 import 'package:ionicons/ionicons.dart';
 
 class ProfileSignUp extends StatefulWidget {
@@ -18,6 +15,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
   late String email;
   late String password;
   bool _isGoogleLoading = false;
+  bool _isSubmitting = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   final _formKey = GlobalKey<FormState>();
@@ -34,64 +32,55 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
     super.initState();
   }
 
-  /// Handle Google sign-up / sign-in flow
+  /// Signs up (or in) with Google, then [completeSignIn]. Cancelling does
+  /// nothing.
   Future<void> _handleGoogleSignUp() async {
     setState(() => _isGoogleLoading = true);
     try {
       final user = await signInWithGoogle();
-      if (user == null) {
-        // User cancelled
-        if (mounted) {
-          setState(() => _isGoogleLoading = false);
-        }
-        return;
-      }
-
-      // Wait for Firebase to settle
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      if (!mounted) return;
-
-      // Check if user has preferences set up
-      final hasPrefs = await hasUserPreferences(user.uid);
-
-      if (!mounted) return;
-
-      if (hasPrefs) {
-        // Returning user — go straight home
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVERB')),
-          (Route<dynamic> route) => false,
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Welcome back!'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        // New user — run onboarding flow
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const OnboardingFlow()),
-          (Route<dynamic> route) => false,
-        );
-      }
+      if (user != null && mounted) await completeSignIn(context, user);
     } catch (e) {
       debugPrint('Google sign-up error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Google sign-in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showError(e);
     } finally {
-      if (mounted) {
-        setState(() => _isGoogleLoading = false);
-      }
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
+  }
+
+  /// Creates the account, then [completeSignIn] (onboarding, for a new
+  /// account). On failure the form keeps what was typed.
+  Future<void> _handleCreateAccount() async {
+    if (_isSubmitting) return;
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    try {
+      final user = await signUp(
+        _userNameController.text.trim(),
+        _emailController.text.trim(),
+        // Passwords are used exactly as typed.
+        _passwordController.text,
+      );
+      if (mounted) await completeSignIn(context, user);
+    } catch (e) {
+      _showError(e);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _showError(Object e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString().replaceFirst('Exception: ', '')),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
@@ -276,64 +265,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                 SizedBox(
                   width: double.infinity,
                   child: GestureDetector(
-                    onTap: () async {
-                      final isValid =
-                          _formKey.currentState?.validate() ?? false;
-                      if (!isValid) {
-                        setState(() => _autovalidateMode =
-                            AutovalidateMode.onUserInteraction);
-                        return;
-                      }
-                      try {
-                        await signUp(
-                          _userNameController.text.trim(),
-                          _emailController.text.trim(),
-                          _passwordController.text.trim(),
-                        );
-                        await Future.delayed(const Duration(milliseconds: 500));
-                        final currentUser = FirebaseAuth.instance.currentUser;
-                        if (currentUser != null && mounted) {
-                          final hasPrefs =
-                              await hasUserPreferences(currentUser.uid);
-                          if (!mounted) return;
-                          if (hasPrefs) {
-                            // Existing preferences — go straight home
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (_) => const MainNav(title: 'REVERB'),
-                              ),
-                              (route) => false,
-                            );
-                          } else {
-                            // New user — run onboarding flow
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (_) => const OnboardingFlow(),
-                              ),
-                              (route) => false,
-                            );
-                          }
-                        } else if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Sign-up failed. Please try again.')),
-                          );
-                        }
-                        if (mounted) {
-                          _userNameController.clear();
-                          _emailController.clear();
-                          _passwordController.clear();
-                          _confirmPasswordController.clear();
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Sign-up failed: $e')),
-                          );
-                        }
-                      }
-                    },
+                    onTap: _isSubmitting ? null : _handleCreateAccount,
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
@@ -347,15 +279,24 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Text(
-                          'Create Account',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: Center(
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Text(
+                                'Create Account',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ),

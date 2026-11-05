@@ -5,6 +5,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { syncReview } from "./analysis";
+import { syncSearchKeys } from "./search";
 import { ANALYSIS_VERSION, COLLECTIONS, OPENAI_API_KEY, RERANK_ENABLED } from "./config";
 import { computeForYou } from "./forYou";
 import { matchForReview } from "./match";
@@ -31,6 +32,12 @@ export const onReviewWritten = onDocumentWritten(
   { document: "users/{uid}/reviews/{rid}", secrets: [OPENAI_API_KEY], timeoutSeconds: 120 },
   async (event) => {
     const reviewPath = `users/${event.params.uid}/reviews/${event.params.rid}`;
+    // Tag-page index fields. Writing them fires this trigger again, and that
+    // run (keys now unchanged) does the analysis — so it happens only once.
+    if ((await syncSearchKeys(db, reviewPath)) === "updated") {
+      logger.info("Search keys updated", { reviewPath });
+      return;
+    }
     const outcome = await syncReview(db, OPENAI_API_KEY.value(), reviewPath);
     logger.info("Review synced", { reviewPath, outcome });
     if (outcome === "analyzed" || outcome === "deleted") {

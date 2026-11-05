@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
 
 /// Permanently deletes all data associated with the current user
 /// and removes their Firebase Auth account.
@@ -29,6 +30,10 @@ class AccountDeletionService {
     final user = _auth.currentUser;
     if (user == null) throw Exception('No signed-in user found.');
 
+    if (DemoAutoSignIn.isDemoUser(user.email)) {
+      throw Exception("The demo account can't be deleted.");
+    }
+
     final userId = user.uid;
 
     // 1. Delete all subcollections under users/{userId}
@@ -51,7 +56,10 @@ class AccountDeletionService {
     // 5. Delete the top-level users/{userId} document
     await _db.collection('users').doc(userId).delete();
 
-    // 6. Delete the Firebase Auth account (must be last)
+    // 6. Don't sign the demo account in on the next launch.
+    await DemoAutoSignIn.optOut();
+
+    // 7. Delete the Firebase Auth account (must be last)
     await user.delete();
   }
 

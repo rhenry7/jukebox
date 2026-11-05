@@ -18,6 +18,17 @@ class DemoAutoSignIn {
   static bool get isEnabled =>
       demoUserEmail.isNotEmpty && demoUserPassword.isNotEmpty;
 
+  /// Whether [email] is the shared demo account. It can be used like any
+  /// account, except that it can't be deleted.
+  static bool isDemoUser(String? email) =>
+      isDemoEmail(email, demoEmail: demoUserEmail);
+
+  @visibleForTesting
+  static bool isDemoEmail(String? email, {required String demoEmail}) =>
+      demoEmail.isNotEmpty &&
+      email != null &&
+      email.trim().toLowerCase() == demoEmail.trim().toLowerCase();
+
   /// Call after Firebase.initializeApp() and before runApp().
   static Future<void> signInIfNeeded() async {
     if (!isEnabled) return;

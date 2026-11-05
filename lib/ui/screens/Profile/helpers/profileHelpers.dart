@@ -1,8 +1,11 @@
 // Function that uses switch to return a Widget based on the string input
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
+import 'package:flutter_test_project/ui/screens/Profile/ProfileSignUpWidget.dart';
 import 'package:flutter_test_project/ui/screens/Profile/auth/authService.dart';
 import 'package:flutter_test_project/ui/screens/Profile/delete_account_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/legal_screen.dart';
@@ -11,6 +14,7 @@ import 'package:flutter_test_project/ui/screens/Profile/profilePage.dart';
 import 'package:flutter_test_project/ui/screens/Profile/user_profile_summary.dart';
 import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
 import 'package:flutter_test_project/ui/screens/feed/comments.dart';
+import 'package:flutter_test_project/ui/screens/onboarding/onboarding_flow.dart';
 
 Future<Map<String, dynamic>> getCurrentUser() async {
   final User? user = FirebaseAuth.instance.currentUser;
@@ -64,14 +68,19 @@ Widget profileRoute(String route) {
   }
 }
 
-void signOut() async {
-  try {
-    await DemoAutoSignIn.optOut();
-    FirebaseAuth.instance.signOut();
-    debugPrint('user signed out');
-  } catch (e) {
-    debugPrint('Error signing out: $e');
+/// Signs out of Firebase (and Google on mobile, so the next Google sign-in
+/// asks which account), and stops the demo account signing back in.
+Future<void> signOut() async {
+  await DemoAutoSignIn.optOut();
+  if (!kIsWeb) {
+    try {
+      await GoogleSignIn().signOut();
+    } catch (e) {
+      debugPrint('Google sign-out skipped: $e');
+    }
   }
+  await FirebaseAuth.instance.signOut();
+  debugPrint('user signed out');
 }
 
 /// Returns true only if there is a signed-in user.
@@ -104,58 +113,97 @@ Widget profileRouter() {
   return const ProfileGate();
 }
 
-/// Check if user has music preferences set up
-Future<bool> hasUserPreferences(String userId) async {
+// ── Sign-in / sign-up routing ────────────────────────────────────────────────
+//
+// The signed-in user drives the UI: the Profile tab (ProfileGate) and the
+// auth providers rebuild on auth changes by themselves. So after signing in
+// these only need to close the sign-in screens and return the user to where
+// they were — or show onboarding first if they haven't finished it.
+
+/// Name given to the sign-in and sign-up routes, so they can all be closed
+/// together after signing in.
+const String authRouteName = '/auth';
+
+/// Opens the sign-in screen on top of the current one.
+Future<void> openSignIn(BuildContext context) => Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: authRouteName),
+        builder: (_) => const SignInScreen(),
+      ),
+    );
+
+/// Opens the sign-up screen on top of the current one.
+Future<void> openSignUp(BuildContext context) => Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: authRouteName),
+        builder: (_) => const ProfileSignUp(),
+      ),
+    );
+
+/// Call once a user has signed in or signed up, from the sign-in or sign-up
+/// screen. Shows onboarding if they haven't finished it; otherwise closes
+/// the sign-in screens, back to where the user was.
+Future<void> completeSignIn(BuildContext context, User user,
+    {FirebaseFirestore? db}) async {
+  // Captured now: in the Profile tab the sign-in screen is replaced as soon
+  // as auth changes, so [context] may be gone after the await.
+  final navigator = Navigator.of(context);
+  if (!await hasCompletedOnboarding(user.uid, db: db)) {
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const OnboardingFlow()),
+      (_) => false,
+    );
+    return;
+  }
+  navigator.popUntil((route) => route.settings.name != authRouteName);
+}
+
+/// Whether the user finished (or skipped) onboarding. Accounts from before
+/// the `onboardingComplete` flag count as done if they saved any genres or
+/// artists. If the check fails, assume done rather than trap the user.
+Future<bool> hasCompletedOnboarding(String userId,
+    {FirebaseFirestore? db}) async {
   try {
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('musicPreferences')
-        .doc('profile')
-        .get();
-
-    if (!doc.exists) {
-      return false;
-    }
-
-    final data = doc.data();
-    if (data == null) {
-      return false;
-    }
-
-    // Check if they have at least some preferences set
-    final favoriteGenres = data['favoriteGenres'] as List?;
-    final favoriteArtists = data['favoriteArtists'] as List?;
-
-    return (favoriteGenres != null && favoriteGenres.isNotEmpty) ||
-        (favoriteArtists != null && favoriteArtists.isNotEmpty);
+    final data = (await (db ?? FirebaseFirestore.instance)
+            .collection('users')
+            .doc(userId)
+            .collection('musicPreferences')
+            .doc('profile')
+            .get())
+        .data();
+    if (data == null) return false;
+    if (data['onboardingComplete'] == true) return true;
+    final genres = data['favoriteGenres'] as List?;
+    final artists = data['favoriteArtists'] as List?;
+    return (genres?.isNotEmpty ?? false) || (artists?.isNotEmpty ?? false);
   } catch (e) {
-    debugPrint('Error checking user preferences: $e');
-    return false;
+    debugPrint('Error checking onboarding: $e');
+    return true;
   }
 }
 
-Future<void> signUp(String userName, String email, String password) async {
-  final AuthService authService = AuthService();
-  final User? user = await authService.signUp(userName, email, password);
-  // add userId, userDisplay name
+/// Creates an email/password account and its `users/{uid}` record.
+/// Throws an [Exception] whose message is safe to show the user.
+Future<User> signUp(String userName, String email, String password) async {
+  final user = await AuthService().signUp(userName, email, password);
+  await ensureUserDoc(user, displayName: userName);
+  debugPrint('Sign-up successful! User ID: ${user.uid}');
+  return user;
+}
 
-  if (user != null) {
-    final String userId = user.uid;
-    await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'password': password,
-      'email': email,
-      'userId': userId,
-      'displayName': userName,
-      'joinDate': FieldValue.serverTimestamp(),
-      // for some reason we dont add them here
-      //'friends': [],
-      //'reviews': []
-    });
-    debugPrint('Sign-up successful! User ID: ${user.uid}');
-  } else {
-    debugPrint('Sign-up failed.');
-  }
+/// Creates the `users/{uid}` record (display name, email, join date) the
+/// first time a user signs in, whichever way they signed up.
+Future<void> ensureUserDoc(User user, {String? displayName}) async {
+  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+  if ((await userDoc.get()).exists) return;
+  await userDoc.set({
+    'email': user.email ?? '',
+    'userId': user.uid,
+    'displayName':
+        displayName ?? user.displayName ?? user.email?.split('@').first ?? '',
+    'joinDate': FieldValue.serverTimestamp(),
+    'photoUrl': user.photoURL ?? '',
+  });
 }
 
 /// Sign in (or sign up) with Apple.
@@ -170,19 +218,7 @@ Future<User?> signInWithApple() async {
   final User? user = userCredential.user;
   if (user == null) return null;
 
-  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-  final docSnapshot = await userDoc.get();
-
-  if (!docSnapshot.exists) {
-    await userDoc.set({
-      'email': user.email ?? '',
-      'userId': user.uid,
-      'displayName': user.displayName ?? user.email?.split('@').first ?? '',
-      'joinDate': FieldValue.serverTimestamp(),
-      'photoUrl': user.photoURL ?? '',
-    });
-  }
-
+  await ensureUserDoc(user);
   return user;
 }
 
@@ -201,23 +237,6 @@ Future<User?> signInWithGoogle() async {
   final User? user = userCredential.user;
   if (user == null) return null;
 
-  // Check if this is a new user — create Firestore doc if it doesn't exist
-  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-  final docSnapshot = await userDoc.get();
-
-  if (!docSnapshot.exists) {
-    // First-time Google sign-in: create the user document
-    await userDoc.set({
-      'email': user.email ?? '',
-      'userId': user.uid,
-      'displayName': user.displayName ?? user.email?.split('@').first ?? '',
-      'joinDate': FieldValue.serverTimestamp(),
-      'photoUrl': user.photoURL ?? '',
-    });
-    debugPrint('New Google user created: ${user.uid}');
-  } else {
-    debugPrint('Existing Google user signed in: ${user.uid}');
-  }
-
+  await ensureUserDoc(user);
   return user;
 }

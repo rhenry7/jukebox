@@ -126,3 +126,80 @@ export function truncateAtSentence(text: string, max: number): string {
   const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
   return end > max * 0.5 ? cut.slice(0, end + 1) : `${cut.trimEnd()}…`;
 }
+
+// ── Search keys (tag page index) ────────────────────────────────────────────
+// Must match `searchKeysFor` in lib/providers/tag_reviews_provider.dart; both
+// are tested against src/__tests__/fixtures/search_keys.json.
+
+/** Words too generic to make two tags similar on their own. */
+const GENERIC_TAG_WORDS = new Set(["music", "and", "the", "of", "song", "songs"]);
+
+/** Common words left out of `textWordKeys`. */
+const STOPWORDS = new Set([
+  "a", "an", "and", "the", "of", "to", "in", "on", "for", "is", "it", "its",
+  "this", "that", "with", "as", "at", "be", "but", "by", "are", "was", "were",
+  "i", "im", "my", "me", "so", "or", "if", "you", "your", "we", "they", "he",
+  "she", "his", "her", "them", "than", "then", "there", "from", "have", "has",
+  "had", "do", "does", "did", "not", "no", "just", "very", "too", "also",
+]);
+
+/** How many distinct words of a review's text are indexed. */
+export const MAX_TEXT_WORD_KEYS = 150;
+
+/**
+ * Lowercase, with spelling variants folded together: "R&B", "rnb" and
+ * "R and B" → "r&b"; "hip-hop" and "hiphop" → "hip hop". Same as
+ * `normalizeTag` in the app.
+ */
+export function normalizeTag(tag: string): string {
+  let t = tag.toLowerCase().trim().replace(/[-_]+/g, " ");
+  t = t.replace(/\s+/g, " ");
+  t = t.replace(/\b(rnb|r ?n ?b|r and b|r ?& ?b)\b/g, "r&b");
+  t = t.replace(/\bhiphop\b/g, "hip hop");
+  return t;
+}
+
+/** Normalized words of [text], in order (letters, digits and "&"). */
+export function textWords(text: string): string[] {
+  return normalizeTag(text)
+    .split(/[^\p{L}\p{N}&]+/u)
+    .filter((w) => w.length >= 2 && /[\p{L}\p{N}]/u.test(w));
+}
+
+export interface SearchKeys {
+  tagKeys: string[];
+  tagWordKeys: string[];
+  textWordKeys: string[];
+}
+
+/**
+ * The tag page's index fields for a review: its normalized tags, the
+ * meaningful words of those tags (for similar tags), and the distinct words
+ * of its text (for "mentions"). Reposts get none, so they never match.
+ */
+export function searchKeys(
+  data: Partial<Pick<ReviewDoc, "genres" | "tags" | "review" | "isRepost">>,
+): SearchKeys {
+  if (data.isRepost) return { tagKeys: [], tagWordKeys: [], textWordKeys: [] };
+  const tagKeys = new Set<string>();
+  const tagWordKeys = new Set<string>();
+  for (const tag of mergedTags(data)) {
+    const key = normalizeTag(tag);
+    if (!key) continue;
+    tagKeys.add(key);
+    for (const word of key.split(" ")) {
+      if (word && !GENERIC_TAG_WORDS.has(word)) tagWordKeys.add(word);
+    }
+  }
+  const textWordKeys = new Set<string>();
+  for (const word of textWords(data.review ?? "")) {
+    if (textWordKeys.size >= MAX_TEXT_WORD_KEYS) break;
+    if (!STOPWORDS.has(word)) textWordKeys.add(word);
+  }
+  const sorted = (s: Set<string>) => [...s].sort();
+  return {
+    tagKeys: sorted(tagKeys),
+    tagWordKeys: sorted(tagWordKeys),
+    textWordKeys: sorted(textWordKeys),
+  };
+}

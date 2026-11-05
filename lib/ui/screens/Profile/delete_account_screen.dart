@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/main.dart';
 import 'package:flutter_test_project/services/account_deletion_service.dart';
 
 class DeleteAccountScreen extends StatefulWidget {
@@ -66,11 +65,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       await AccountDeletionService().deleteAccount();
 
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MyApp()),
-        (route) => false,
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Your account has been deleted.'),
           backgroundColor: Colors.green,

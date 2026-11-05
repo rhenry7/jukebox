@@ -417,8 +417,8 @@ class _StatsBar extends ConsumerWidget {
         : null;
 
     final likeCount =
-        likeCountAsync?.value ?? review.likes;
-    final isLiked = isLikedAsync?.value ?? false;
+        likeCountAsync?.valueOrNull ?? review.likes;
+    final isLiked = isLikedAsync?.valueOrNull ?? false;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -512,7 +512,7 @@ class _CommentsSection extends ConsumerWidget {
         ? ref.watch(reviewCommentsProvider(reviewId!))
         : null;
 
-    final comments = commentsAsync?.value ?? [];
+    final comments = commentsAsync?.valueOrNull ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

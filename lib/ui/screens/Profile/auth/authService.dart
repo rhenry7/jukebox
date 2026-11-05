@@ -10,84 +10,38 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Sign up function
-  Future<User?> signUp(
-      String displayName, String email, String password) async {
+  /// Creates an email/password account and sets its display name.
+  /// Throws an [Exception] whose message is safe to show the user.
+  Future<User> signUp(String displayName, String email, String password) async {
+    final UserCredential credential;
     try {
-      // Attempt to create a new user
-      final UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      // Get the current user
-      User? user = userCredential.user;
-
-      // Check if user is not null and update the displayName
-      if (user != null) {
-        await user.updateDisplayName(displayName);
-        await user.reload();
-        user = _auth.currentUser; // Refresh the user instance after update
-      }
-
-      return user;
+      credential = await _auth.createUserWithEmailAndPassword(
+          email: email, password: password);
     } on FirebaseAuthException catch (e) {
-      // Handle different error codes from Firebase
-      if (e.code == 'email-already-in-use') {
-        debugPrint('This email address is already in use.');
-      } else if (e.code == 'weak-password') {
-        debugPrint('The password is too weak.');
-      } else if (e.code == 'invalid-email') {
-        debugPrint('The email address is not valid.');
-      } else {
-        debugPrint('Sign-up failed: ${e.message}');
-      }
-      return null;
-    } catch (e) {
-      debugPrint('An unexpected error occurred: $e');
-      return null;
+      debugPrint('Sign-up failed: ${e.code} – ${e.message}');
+      throw Exception(authErrorMessage(e.code));
     }
+    final user = credential.user!;
+    // The account exists now; a failed name update mustn't fail sign-up.
+    try {
+      await user.updateDisplayName(displayName);
+      await user.reload();
+    } catch (e) {
+      debugPrint('Could not set display name: $e');
+    }
+    return _auth.currentUser ?? user;
   }
 
-  /// Sign in with email and password
-  /// Returns true if successful, false if failed
-  /// Throws exception with error message if failed
-  Future<bool> signIn(String email, String password) async {
+  /// Signs in with email and password.
+  /// Throws an [Exception] whose message is safe to show the user.
+  Future<User> signIn(String email, String password) async {
     try {
-      debugPrint(email);
-      // Attempt to sign in with Firebase
-      await _auth.signInWithEmailAndPassword(
+      final credential = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-      debugPrint('successfully signed in!');
-      return true; // Sign-in successful
+      return credential.user!;
     } on FirebaseAuthException catch (e) {
-      // Handle errors
-      String errorMessage;
-      switch (e.code) {
-        case 'user-not-found':
-          errorMessage = 'No user found with this email.';
-          break;
-        case 'wrong-password':
-          errorMessage = 'Incorrect password.';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email address.';
-          break;
-        case 'too-many-requests':
-          errorMessage = 'Too many requests. Please try again later.';
-          break;
-        case 'operation-not-allowed':
-          errorMessage = 'This operation is not allowed.';
-          break;
-        default:
-          errorMessage = 'An error occurred. Please try again.';
-      }
-      debugPrint(errorMessage); // Print to console for debugging
-      throw Exception(errorMessage); // Throw exception with error message
-    } catch (e) {
-      debugPrint('Sign-in error: $e');
-      rethrow; // Re-throw to be handled by caller
+      debugPrint('Sign-in failed: ${e.code} – ${e.message}');
+      throw Exception(authErrorMessage(e.code));
     }
   }
 
@@ -123,7 +77,8 @@ class AuthService {
 
     final UserCredential userCredential =
         await _auth.signInWithPopup(googleProvider);
-    debugPrint('Google sign-in (web) successful: ${userCredential.user?.email}');
+    debugPrint(
+        'Google sign-in (web) successful: ${userCredential.user?.email}');
     return userCredential;
   }
 
@@ -153,7 +108,8 @@ class AuthService {
       // Apple only sends the name on the very first sign-in.
       // If we got a name, update the Firebase display name.
       final fullName = appleCredential.givenName != null
-          ? '${appleCredential.givenName} ${appleCredential.familyName ?? ''}'.trim()
+          ? '${appleCredential.givenName} ${appleCredential.familyName ?? ''}'
+              .trim()
           : null;
       if (fullName != null &&
           fullName.isNotEmpty &&
@@ -186,8 +142,8 @@ class AuthService {
     const charset =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
     final random = Random.secure();
-    return List.generate(
-        length, (_) => charset[random.nextInt(charset.length)]).join();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
   }
 
   String _sha256ofString(String input) {
@@ -227,3 +183,25 @@ class AuthService {
     return userCredential;
   }
 }
+
+/// A message for a Firebase Auth error code that's safe to show the user.
+@visibleForTesting
+String authErrorMessage(String code) => switch (code) {
+      // Current Firebase reports a wrong password or unknown email as one
+      // code, so it can't say which.
+      'invalid-credential' ||
+      'INVALID_LOGIN_CREDENTIALS' ||
+      'wrong-password' ||
+      'user-not-found' =>
+        'Wrong email or password.',
+      'email-already-in-use' =>
+        'An account with this email already exists. Try signing in.',
+      'weak-password' => 'Choose a stronger password (at least 6 characters).',
+      'invalid-email' => "That email address doesn't look right.",
+      'user-disabled' => 'This account has been disabled.',
+      'too-many-requests' => 'Too many attempts. Please wait and try again.',
+      'network-request-failed' =>
+        'No connection. Check your internet and try again.',
+      'operation-not-allowed' => 'This sign-in method is not available.',
+      _ => 'Something went wrong. Please try again.',
+    };

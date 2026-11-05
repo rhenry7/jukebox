@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../screens/Profile/ProfileSignIn.dart';
+import '../screens/Profile/helpers/profileHelpers.dart'
+    show openSignIn, openSignUp;
 
 /// Shows a sign-up/sign-in prompt modal sheet.
 /// Use this whenever an anonymous or unauthenticated user tries to
@@ -75,9 +76,7 @@ class _AuthGateSheet extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SignInScreen()),
-                );
+                openSignUp(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEE2309),
@@ -102,9 +101,7 @@ class _AuthGateSheet extends StatelessWidget {
           GestureDetector(
             onTap: () {
               Navigator.pop(context);
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SignInScreen()),
-              );
+              openSignIn(context);
             },
             child: const Text(
               'Already have an account? Sign in',

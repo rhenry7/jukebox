@@ -11,6 +11,7 @@ import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../../../routing/MainNavigation.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
+import 'package:flutter_test_project/ui/widgets/glass_dialog.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 
 /// Popular tab: community reviews with real text and album art, in a fresh
@@ -140,9 +141,11 @@ class _CommunityReviewsCollectionState
     );
   }
 
-  /// Swipe left or long-press a card to open the review options dialog.
+  /// Swipe left or long-press your own review to open its options (edit,
+  /// delete). Other people's reviews have no options, so they don't swipe.
   Widget _withReviewOptions(
       BuildContext context, ReviewWithDocId review, Widget card) {
+    if (!_isUserReview(review.review, ref)) return card;
     return Dismissible(
       key: Key(review.docId.toString()),
       direction: DismissDirection.endToStart,
@@ -260,69 +263,44 @@ class _CommunityReviewsCollectionState
 
   void _showReviewOptionsDialog(
       BuildContext context, ReviewWithDocId review, WidgetRef ref) {
-    showDialog(
+    showGlassDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            'Review Options',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white,
+      builder: (dialogContext) => GlassDialog(
+        title: 'Your review',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('${review.review.title} · ${review.review.artist}',
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: AppSpacing.sm),
+            _GlassOption(
+              icon: Icons.edit_outlined,
+              label: 'Edit review',
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _editReview(context, review);
+              },
             ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Show review info
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Text(
-                  'Review by ${review.review.displayName.isNotEmpty ? review.review.displayName : "Unknown"}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              // Edit option (if it's user's own review)
-              if (_isUserReview(review.review, ref))
-                ListTile(
-                  leading: const Icon(Icons.edit),
-                  title: const Text('Edit Review'),
-                  textColor: Colors.white,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _editReview(context, review);
-                  },
-                ),
-              // Delete option (if it's user's own review)
-              if (_isUserReview(review.review, ref))
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text(
-                    'Delete Review',
-                  ),
-                  textColor: Colors.white,
-                  titleTextStyle: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _deleteReview(context, review, ref);
-                  },
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+            _GlassOption(
+              icon: Icons.delete_outline,
+              label: 'Delete review',
+              destructive: true,
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _deleteReview(context, review, ref);
+              },
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            style: TextButton.styleFrom(foregroundColor: AppColors.onSurface),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -350,26 +328,17 @@ class _CommunityReviewsCollectionState
       return;
     }
 
-    showDialog(
+    showGlassDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Delete Review',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white,
-          ),
-        ),
+      builder: (context) => GlassDialog(
+        title: 'Delete review?',
         content: const Text(
-          'Are you sure you want to delete this review? This action cannot be undone.',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white,
-          ),
+          'This review will be deleted for good. This can\'t be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: AppColors.onSurface),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -397,9 +366,47 @@ class _CommunityReviewsCollectionState
                 );
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Delete', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One row in the review options dialog.
+class _GlassOption extends StatelessWidget {
+  const _GlassOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = destructive ? Colors.redAccent : AppColors.onSurface;
+    return InkWell(
+      borderRadius: AppRadius.mdAll,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xs, vertical: AppSpacing.md),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: AppSpacing.md),
+            Text(label,
+                style: TextStyle(
+                    color: color, fontSize: 15, fontWeight: FontWeight.w500)),
+          ],
+        ),
       ),
     );
   }

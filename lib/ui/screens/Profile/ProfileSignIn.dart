@@ -3,16 +3,12 @@ import 'package:flutter/material.dart';
 
 import 'package:ionicons/ionicons.dart';
 
-import '../../../GIFs/gifs.dart';
-import 'ProfileSignUpWidget.dart';
 import 'auth/authService.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'helpers/profileHelpers.dart'
-    show signInWithGoogle, signInWithApple, hasUserPreferences;
-import '../../../routing/MainNavigation.dart';
-import '../onboarding/onboarding_flow.dart';
+    show signInWithGoogle, signInWithApple, completeSignIn, openSignUp;
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -35,8 +31,6 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   void initState() {
     super.initState();
-    // Check if user is already signed in
-    _checkAuthState();
 
     // Add listeners to focus nodes to update UI when focus changes
     _emailFocusNode.addListener(() {
@@ -57,27 +51,12 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  /// Check if user is already signed in and redirect to home
-  void _checkAuthState() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = _auth.currentUser;
-      if (user != null) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => const MainNav(title: 'REVERB'),
-          ),
-          (Route<dynamic> route) => false,
-        );
-      }
-    });
-  }
-
-  /// Handle sign in with success/failure toasts and routing
+  /// Signs in with email and password, then [completeSignIn].
   Future<void> _handleSignIn() async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    // Passwords are used exactly as typed.
+    final password = _passwordController.text;
 
-    // Basic validation
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -88,108 +67,36 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
-      final AuthService authService = AuthService();
-      final success = await authService.signIn(email, password);
-
-      if (success && _auth.currentUser != null) {
-        // Success - show toast and navigate to home
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Successfully signed in!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-
-          // Navigate to home page after a short delay to show toast
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          if (mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => const MainNav(title: 'REVERB'),
-              ),
-              (Route<dynamic> route) => false, // Remove all previous routes
-            );
-          }
-        }
-      }
+      final user = await AuthService().signIn(email, password);
+      if (mounted) await completeSignIn(context, user);
     } catch (e) {
-      // Failure - show error toast
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Sign in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      _showError(e);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  /// Handle Apple sign-in flow
+  void _showError(Object e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString().replaceFirst('Exception: ', '')),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  /// Signs in with Apple, then [completeSignIn]. Cancelling does nothing.
   Future<void> _handleAppleSignIn() async {
     setState(() => _isAppleLoading = true);
     try {
       final user = await signInWithApple();
-      if (user == null) {
-        if (mounted) setState(() => _isAppleLoading = false);
-        return;
-      }
-
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-
-      final hasPrefs = await hasUserPreferences(user.uid);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Successfully signed in with Apple!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-
-      if (hasPrefs) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVERB')),
-          (Route<dynamic> route) => false,
-        );
-      } else {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const OnboardingFlow()),
-          (Route<dynamic> route) => false,
-        );
-      }
+      if (user != null && mounted) await completeSignIn(context, user);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Apple sign-in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      _showError(e);
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);
     }
@@ -237,8 +144,8 @@ class _SignInScreenState extends State<SignInScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.white54)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -283,57 +190,15 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  /// Handle Google sign-in flow
+  /// Signs in with Google, then [completeSignIn]. Cancelling does nothing.
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
     try {
       final user = await signInWithGoogle();
-      if (user == null) {
-        // User cancelled
-        if (mounted) setState(() => _isGoogleLoading = false);
-        return;
-      }
-
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-
-      final hasPrefs = await hasUserPreferences(user.uid);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Successfully signed in with Google!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-
-      if (hasPrefs) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainNav(title: 'REVERB')),
-          (Route<dynamic> route) => false,
-        );
-      } else {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const OnboardingFlow()),
-          (Route<dynamic> route) => false,
-        );
-      }
+      if (user != null && mounted) await completeSignIn(context, user);
     } catch (e) {
       debugPrint('Google sign-in error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Google sign-in failed: ${e.toString().replaceFirst('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      _showError(e);
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
     }
@@ -341,13 +206,18 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      return const Scaffold(backgroundColor: Colors.black, body: DiscoBallLoading());
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
+      // Opened from a sign-up prompt: a way back without signing in. (In the
+      // Profile tab there is nothing to go back to.)
+      appBar: Navigator.canPop(context)
+          ? AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+            )
+          : null,
       body: SafeArea(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -397,8 +267,8 @@ class _SignInScreenState extends State<SignInScreen> {
                     borderSide:
                         const BorderSide(color: Colors.white24, width: 1),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 16),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
               ),
               const SizedBox(height: 16),
@@ -434,8 +304,8 @@ class _SignInScreenState extends State<SignInScreen> {
                     borderSide:
                         const BorderSide(color: Colors.white24, width: 1),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 16),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   suffixIcon: IconButton(
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
@@ -457,8 +327,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   onPressed: _isLoading ? null : _handleForgotPassword,
                   child: Text(
                     'Forgot Password?',
-                    style:
-                        TextStyle(color: Colors.grey[500], fontSize: 13),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
                   ),
                 ),
               ),
@@ -477,8 +346,8 @@ class _SignInScreenState extends State<SignInScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Text(
@@ -495,24 +364,15 @@ class _SignInScreenState extends State<SignInScreen> {
                   // Sign Up — neon green pill
                   Expanded(
                     child: GestureDetector(
-                      onTap: _isLoading
-                          ? null
-                          : () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ProfileSignUp(),
-                                ),
-                              ),
+                      onTap: _isLoading ? null : () => openSignUp(context),
                       child: Container(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
                           color: const Color(0xFF39FF6A),
                           borderRadius: BorderRadius.circular(999),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF39FF6A)
-                                  .withOpacity(0.35),
+                              color: const Color(0xFF39FF6A).withOpacity(0.35),
                               blurRadius: 22,
                               spreadRadius: 1,
                             ),
@@ -571,14 +431,12 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                       )
                     : GestureDetector(
-                        onTap: (_isLoading ||
-                                _isGoogleLoading ||
-                                _isAppleLoading)
-                            ? null
-                            : _handleGoogleSignIn,
+                        onTap:
+                            (_isLoading || _isGoogleLoading || _isAppleLoading)
+                                ? null
+                                : _handleGoogleSignIn,
                         child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1C1C1C),
                             borderRadius: BorderRadius.circular(12),
@@ -615,8 +473,8 @@ class _SignInScreenState extends State<SignInScreen> {
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           ),
                         )

@@ -137,7 +137,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
       return false;
     }
 
-    return hasUserPreferences(userId);
+    return hasCompletedOnboarding(userId);
   }
 
   Future<List<MusicRecommendation>> processRecommendations() async {

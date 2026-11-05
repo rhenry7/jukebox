@@ -86,7 +86,7 @@ class _ReviewCommentsSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final commentsAsync = ref.watch(reviewCommentsProvider(reviewId));
-    final comments = commentsAsync.value ?? const <ReviewComment>[];
+    final comments = commentsAsync.valueOrNull ?? const <ReviewComment>[];
 
     return DraggableScrollableSheet(
       expand: false,
@@ -388,7 +388,7 @@ class CommentTileState extends ConsumerState<CommentTile> {
       userId: currentUserId ?? '',
     );
     final isLiked = currentUserId != null
-        ? ref.watch(commentLikeStatusProvider(likeKey)).value ?? false
+        ? ref.watch(commentLikeStatusProvider(likeKey)).valueOrNull ?? false
         : false;
 
     return Padding(

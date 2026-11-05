@@ -550,7 +550,7 @@ class _LikeButton extends ConsumerWidget {
 
     return likeCountAsync.when(
       data: (likeCount) {
-        final isLiked = isLikedAsync.value ?? false;
+        final isLiked = isLikedAsync.valueOrNull ?? false;
 
         return GestureDetector(
           onTap: userId != null
@@ -643,12 +643,12 @@ class _RepostButton extends ConsumerWidget {
         ? ref
                 .watch(repostStatusProvider(
                     (reviewId: reviewId, userId: currentUserId)))
-                .value ??
+                .valueOrNull ??
             false
         : false;
 
     final repostCount =
-        ref.watch(repostCountProvider(reviewId)).value ?? review.reposts;
+        ref.watch(repostCountProvider(reviewId)).valueOrNull ?? review.reposts;
 
     return GestureDetector(
       onTap: () async {

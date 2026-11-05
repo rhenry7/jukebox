@@ -30,7 +30,7 @@ Screens currently using this widget:
 
 The card frame (inset 8 from the screen edges, 8 between cards, 12 corner radius, no border, blurred album-art background) is `CardSurface` in `lib/ui/widgets/card_surface.dart`. Review cards and Explore track cards both use it; any new content card should too, with `AppSpacing.cardPadding` inside and `AppSpacing.cardListItem` around it.
 
-Genre / tag pills come from `lib/ui/widgets/genre_pills.dart`: `GenrePills(tags)` when the genres are known, or `TrackGenrePills(title, artist)` to look them up first (used by Explore track cards). Never build tag chips inline. Tapping a pill opens that tag's page (`lib/ui/screens/tag/tag_reviews_page.dart`): reviews with the tag, then reviews with similar tags (`tagsSimilar` in `lib/providers/tag_reviews_provider.dart`), and related tags to explore.
+Genre / tag pills come from `lib/ui/widgets/genre_pills.dart`: `GenrePills(tags)` when the genres are known, or `TrackGenrePills(title, artist)` to look them up first (used by Explore track cards). Never build tag chips inline. Tapping a pill opens that tag's page (`lib/ui/screens/tag/tag_reviews_page.dart`): reviews with the tag, then reviews with similar tags (`tagsSimilar`), then reviews whose text mentions it, plus related tags to explore. It pages through a database index, not a scan: every review carries `tagKeys` / `tagWordKeys` / `textWordKeys` (`searchKeysFor` in `lib/providers/tag_reviews_provider.dart`, written by `submitReview` and kept in sync by the `onReviewWritten` function via `syncSearchKeys`). The Dart and TypeScript (`searchKeys` in `functions/src/text.ts`) versions must match; both are tested against `functions/src/__tests__/fixtures/search_keys.json`. Backfill with `npm run backfill -- --search-keys`.
 
 `lib/ui/screens/Home/_comments.dart` contains `UserReviewsCollection` and `FriendsReviewList` (the dismissible list wrapper used by the Profile screen). It imports `ReviewCardWithGenres` from the shared widget file.
 
@@ -86,5 +86,14 @@ if a user is not signed in, or anonymous user, display a modal that says sign up
 - prevent anonymous users from submitting or completing any action other than viewing content from specific pre-approved fields.
 - limit anonymous user visibility to popular reviews; popular tracks and suggested tracks; popular crates - else keep suggestion that they sign in / sign up 
 - default "anonymous user" as not signed in, anonymous user is for previewing functionality that should lead to CTA for sign up/ sign in
+### Sign-in / sign-up routing
+The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild on auth changes by themselves, so screens never push `MainNav` or a new `MyApp` after signing in or out. All in `lib/ui/screens/Profile/helpers/profileHelpers.dart`:
+- Open the auth screens with `openSignIn(context)` / `openSignUp(context)` (they share the route name `authRouteName`).
+- After any successful sign-in or sign-up, call `completeSignIn(context, user)`: it shows onboarding if `hasCompletedOnboarding` is false, otherwise pops the auth screens back to where the user was.
+- Onboarding is done when `users/{uid}/musicPreferences/profile.onboardingComplete` is true (skipping sets it too); older accounts count as done if they saved genres or artists.
+- New users' `users/{uid}` record is created by `ensureUserDoc` only. Never store passwords in Firestore.
+- Show auth errors with `authErrorMessage(code)` (`auth/authService.dart`), never raw Firebase text.
+- Sign out with `await signOut()`, then `popUntil(isFirst)`.
+
 ### Web updates (installed PWA)
 Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Any new web deploy path must stamp the build id the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.

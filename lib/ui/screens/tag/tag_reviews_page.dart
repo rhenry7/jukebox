@@ -21,8 +21,9 @@ void openTagPage(BuildContext context, String tag) {
   ));
 }
 
-/// Every recent review tagged [tag], then reviews with similar tags, with
-/// related tags to explore next.
+/// Reviews tagged [tag], then reviews with similar tags, then reviews whose
+/// text mentions it — paged from the database index (see [tagFeedProvider]),
+/// with related tags to explore next.
 class TagReviewsPage extends ConsumerWidget {
   const TagReviewsPage({super.key, required this.tag});
 
@@ -30,7 +31,7 @@ class TagReviewsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final result = ref.watch(tagReviewsProvider(tag));
+    final result = ref.watch(tagFeedProvider(tag));
     final data = result.valueOrNull;
 
     return Scaffold(
@@ -79,10 +80,10 @@ class TagReviewsPage extends ConsumerWidget {
         error: (error, _) => AppErrorState(
           title: 'Could not load reviews',
           error: error,
-          onRetry: () => ref.invalidate(tagReviewsProvider(tag)),
+          onRetry: () => ref.invalidate(tagFeedProvider(tag)),
         ),
         data: (data) {
-          final reviews = [...data.exact, ...data.similar];
+          final reviews = data.all;
           if (reviews.isEmpty) {
             return const AppEmptyState(
               icon: Icons.sell_outlined,
@@ -90,8 +91,13 @@ class TagReviewsPage extends ConsumerWidget {
               message: 'Tag a review with it and it will show up here.',
             );
           }
-          final firstSimilar =
-              data.similar.isEmpty ? null : data.similar.first.fullReviewId;
+          // Headings above the first review of each later section.
+          final headings = {
+            if (data.similar.isNotEmpty)
+              data.similar.first.fullReviewId: 'Similar tags',
+            if (data.mentions.isNotEmpty)
+              data.mentions.first.fullReviewId: 'Mentions $tag',
+          };
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -106,13 +112,17 @@ class TagReviewsPage extends ConsumerWidget {
                   reviews: reviews,
                   storageKey: 'tag-${normalizeTag(tag)}',
                   layout: ReviewFeedLayout.pushed,
+                  hasMore: data.hasMore,
+                  onLoadMore: () =>
+                      ref.read(tagFeedProvider(tag).notifier).loadMore(),
                   onRefresh: () async =>
-                      ref.refresh(tagReviewsProvider(tag).future),
-                  itemWrapper: (context, review, card) =>
-                      review.fullReviewId != null &&
-                              review.fullReviewId == firstSimilar
-                          ? _SimilarHeading(child: card)
-                          : card,
+                      ref.refresh(tagFeedProvider(tag).future),
+                  itemWrapper: (context, review, card) {
+                    final heading = headings[review.fullReviewId];
+                    return heading == null
+                        ? card
+                        : _SectionHeading(title: heading, child: card);
+                  },
                 ),
               ),
             ],
@@ -122,19 +132,20 @@ class TagReviewsPage extends ConsumerWidget {
     );
   }
 
-  static String _countLabel(TagReviews data) {
-    final n = data.exact.length;
+  static String _countLabel(TagFeed data) {
+    final n = data.exactCount ?? data.exact.length;
     final exact = '$n ${n == 1 ? 'review' : 'reviews'}';
-    return data.similar.isEmpty
-        ? exact
-        : '$exact · ${data.similar.length} with similar tags';
+    final similar = data.similarCount ?? data.similar.length;
+    return similar == 0 ? exact : '$exact · $similar with similar tags';
   }
 }
 
-/// "Similar tags" heading above the first review that only has a similar tag.
-class _SimilarHeading extends StatelessWidget {
-  const _SimilarHeading({required this.child});
+/// A section heading ("Similar tags", "Mentions r&b") above the first
+/// review of that section.
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.child});
 
+  final String title;
   final Widget child;
 
   @override
@@ -147,7 +158,7 @@ class _SimilarHeading extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(AppSpacing.cardPadding,
               AppSpacing.xl, AppSpacing.cardPadding, AppSpacing.sm),
           child: Text(
-            'Similar tags',
+            title,
             style: GoogleFonts.spaceGrotesk(
               color: AppColors.onSurface,
               fontSize: 16,

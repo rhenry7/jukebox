@@ -7,7 +7,7 @@ import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/recommended_reviews_provider.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../../../services/review_recommendation_service.dart';
-import '../Profile/ProfileSignIn.dart';
+import '../Profile/helpers/profileHelpers.dart' show openSignIn;
 import '../../../routing/MainNavigation.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
 import 'package:flutter_test_project/ui/widgets/reason_label.dart';
@@ -110,9 +110,7 @@ class _RecommendedReviewsCollectionState
           label: 'Sign In!',
           icon: Icons.login,
           onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const SignInScreen()),
-            );
+            openSignIn(context);
           },
         ),
       );

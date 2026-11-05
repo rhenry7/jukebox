@@ -1,0 +1,39 @@
+[
+  {
+    "name": "r&b spellings fold together; generic words are not similar keys",
+    "review": {"genres": ["R&B", "alternative rnb"], "tags": ["Soul Music"], "review": "Smooth R and B vocals, pure rnb."},
+    "keys": {
+      "tagKeys": ["alternative r&b", "r&b", "soul music"],
+      "tagWordKeys": ["alternative", "r&b", "soul"],
+      "textWordKeys": ["pure", "r&b", "smooth", "vocals"]
+    }
+  },
+  {
+    "name": "hip-hop and hiphop; slash-joined tags split; duplicates dropped",
+    "review": {"genres": ["Hip-Hop/Rap", "hiphop"], "review": "Best hiphop beat this year. Hip-hop is back!"},
+    "keys": {
+      "tagKeys": ["hip hop", "rap"],
+      "tagWordKeys": ["hip", "hop", "rap"],
+      "textWordKeys": ["back", "beat", "best", "hip", "hop", "year"]
+    }
+  },
+  {
+    "name": "reposts get no keys",
+    "review": {"genres": ["jazz"], "review": "jazz", "isRepost": true},
+    "keys": {"tagKeys": [], "tagWordKeys": [], "textWordKeys": []}
+  },
+  {
+    "name": "accents and digits are kept; punctuation and stopwords dropped",
+    "review": {"genres": ["Électro"], "review": "It's a 90s-style électro track, I love it!!"},
+    "keys": {
+      "tagKeys": ["électro"],
+      "tagWordKeys": ["électro"],
+      "textWordKeys": ["90s", "love", "style", "track", "électro"]
+    }
+  },
+  {
+    "name": "no tags or text",
+    "review": {},
+    "keys": {"tagKeys": [], "tagWordKeys": [], "textWordKeys": []}
+  }
+]

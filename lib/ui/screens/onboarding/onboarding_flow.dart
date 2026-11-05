@@ -233,8 +233,37 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       }
     } catch (e) {
       debugPrint('[Onboarding] Save error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Couldn't save your picks. You can add them later."),
+        ));
+      }
     }
+    _goHome();
+  }
 
+  /// The ✕ button: marks onboarding done without saving picks, so it doesn't
+  /// come back — and doesn't wipe anything saved before.
+  Future<void> _skip() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('musicPreferences')
+            .doc('profile')
+            .set({'onboardingComplete': true}, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('[Onboarding] Skip save error: $e');
+      }
+    }
+    _goHome();
+  }
+
+  void _goHome() {
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainNav(title: 'REVERB')),
@@ -255,7 +284,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       body: SafeArea(
         child: Column(
           children: [
-            _TopBar(currentPage: _currentPage, onClose: _finish),
+            _TopBar(currentPage: _currentPage, onClose: _skip),
             Expanded(
               child: PageView(
                 controller: _pageController,

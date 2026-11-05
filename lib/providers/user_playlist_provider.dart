@@ -29,7 +29,7 @@ final communityPlaylistsProvider = StreamProvider<List<UserPlaylist>>((ref) {
 
 /// Provider for friends' playlists
 final friendsPlaylistsProvider = StreamProvider<List<UserPlaylist>>((ref) {
-  final friendIds = ref.watch(friendIdsProvider).value ?? [];
+  final friendIds = ref.watch(friendIdsProvider).valueOrNull ?? [];
   if (friendIds.isEmpty) return Stream.value([]);
   return UserPlaylistService.getPlaylistsByUserIds(friendIds);
 });
@@ -43,7 +43,7 @@ final likedPlaylistIdsProvider = StreamProvider<List<String>>((ref) {
 
 /// Playlists liked/saved by the current user (real-time).
 final likedPlaylistsProvider = StreamProvider<List<UserPlaylist>>((ref) {
-  final likedIds = ref.watch(likedPlaylistIdsProvider).value ?? [];
+  final likedIds = ref.watch(likedPlaylistIdsProvider).valueOrNull ?? [];
   return UserPlaylistService.getPlaylistsByIds(likedIds);
 });
 
