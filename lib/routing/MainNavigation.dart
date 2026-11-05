@@ -1,12 +1,11 @@
-import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 import 'package:flutter_test_project/ui/screens/Home/categoryTapBar.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
-import 'package:flutter_test_project/models/music_preferences.dart';
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/services/data_preloader.dart';
@@ -17,10 +16,8 @@ import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
 
 class MainNav extends ConsumerStatefulWidget {
-  const MainNav(
-      {super.key, required this.title, this.navigateToPreferences = false});
+  const MainNav({super.key, required this.title});
   final String title;
-  final bool navigateToPreferences;
 
   @override
   ConsumerState<MainNav> createState() => MainNavState();
@@ -93,17 +90,10 @@ class _NeonTitle extends StatelessWidget {
 class MainNavState extends ConsumerState<MainNav> {
   static const Duration _bottomNavTweenDuration = Duration(milliseconds: 260);
 
-  /// Bottom dock size: a centred pill about two thirds of the screen wide,
-  /// floating just above the bottom edge.
-  static const double _dockHeight = 75;
-  static const double _dockWidthFactor = 0.63;
-  static const double _dockMaxWidth = 280;
-  static const double _dockIconSize = 36;
   int currentPageIndex = 0;
   bool _isNavigationChromeVisible = true;
   final TextEditingController _controller = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  late Future<MusicPreferences?> _preferencesFuture;
   late final List<Widget> _pages;
 
   /// Bottom nav destinations, in order.
@@ -177,29 +167,6 @@ class MainNavState extends ConsumerState<MainNav> {
       ),
       profileRouter(),
     ];
-    // If navigateToPreferences is true, navigate after first frame
-    if (widget.navigateToPreferences) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          // Navigate to profile tab first
-          setState(() {
-            currentPageIndex = profileTab;
-          });
-          // Then navigate to preferences
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => Scaffold(
-                    body: profileRoute('Preferences'),
-                  ),
-                ),
-              );
-            }
-          });
-        }
-      });
-    }
   }
 
   Widget _buildTopBar(BuildContext context) {
@@ -303,77 +270,18 @@ class MainNavState extends ConsumerState<MainNav> {
           left: false,
           right: false,
           minimum: const EdgeInsets.fromLTRB(15, 0, 15, 12),
-          // Compact centred dock, capped so it stays small on wide screens.
-          child: Align(
-            alignment: Alignment.bottomCenter,
+          child: Center(
             heightFactor: 1,
-            child: SizedBox(
-              width: math.min(
-                  (MediaQuery.sizeOf(context).width - 30) * _dockWidthFactor,
-                  _dockMaxWidth),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(100)),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      border: Border(
-                        top: BorderSide(
-                          color: Colors.white.withOpacity(0.18),
-                          width: 0.8,
-                        ),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.03),
-                          blurRadius: 18,
-                          spreadRadius: 0.5,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
-                    ),
-                    child: NavigationBar(
-                      height: _dockHeight,
-                      onDestinationSelected: _onItemTapped,
-                      selectedIndex: currentPageIndex,
-                      indicatorColor: Colors.white.withOpacity(0),
-                      indicatorShape: const CircleBorder(),
-                      backgroundColor: Colors.transparent,
-                      labelBehavior:
-                          NavigationDestinationLabelBehavior.alwaysHide,
-                      destinations: <Widget>[
-                        NavigationDestination(
-                          selectedIcon: const Icon(Ionicons.home,
-                              size: _dockIconSize, color: Colors.white),
-                          icon: Icon(Ionicons.home_outline,
-                              size: _dockIconSize, color: Colors.grey[500]!),
-                          label: '',
-                        ),
-                        NavigationDestination(
-                          selectedIcon: Icon(Ionicons.add_circle,
-                              size: 39, color: Colors.greenAccent[700]),
-                          icon: Icon(Ionicons.add_circle_outline,
-                              size: 47, color: Colors.greenAccent[700]),
-                          label: '',
-                        ),
-                        NavigationDestination(
-                          selectedIcon: const Icon(Ionicons.person_circle,
-                              size: _dockIconSize, color: Colors.white),
-                          icon: Icon(Ionicons.person_circle_outline,
-                              size: _dockIconSize, color: Colors.grey[500]!),
-                          label: '',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            child: _GlassDock(
+              selectedIndex: currentPageIndex,
+              onSelected: _onItemTapped,
             ),
           ),
         ),
         builder: (context, value, child) {
           final visibility = value.clamp(0.0, 1.0);
+          // Fully shown: no clip, so the dock's shadow isn't cut off.
+          if (visibility == 1) return child!;
           return ClipRect(
             child: Align(
               alignment: Alignment.bottomCenter,
@@ -391,6 +299,163 @@ class MainNavState extends ConsumerState<MainNav> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ── Bottom dock ───────────────────────────────────────────────────────────────
+
+/// The floating nav dock (design_system.md → "The Floating Dock"): a frosted
+/// glass pill holding three identical circular buttons, evenly spaced.
+class _GlassDock extends StatelessWidget {
+  const _GlassDock({required this.selectedIndex, required this.onSelected});
+
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  /// Every button gets the same round hit area, so the three line up exactly
+  /// and the gaps between them are equal.
+  static const double buttonSize = 56;
+  static const double _gap = AppSpacing.lg;
+  static const double _inset = AppSpacing.sm;
+  static const BorderRadius _shape = AppRadius.pillAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      // Outside the clip, so the shadow lifts the dock off the feed.
+      decoration: const BoxDecoration(
+        borderRadius: _shape,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: _shape,
+        child: BackdropFilter(
+          // Blur plus a little extra saturation, so colours behind the glass
+          // glow through instead of turning grey.
+          filter: ImageFilter.compose(
+            outer: const ColorFilter.matrix(_saturate),
+            inner: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: _shape,
+              // Tinted glass, lighter at the top where light catches it.
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.surfaceContainerHighest.withValues(alpha: 0.62),
+                  AppColors.surfaceContainerHighest.withValues(alpha: 0.48),
+                ],
+              ),
+              border: Border.all(color: AppColors.ghostBorder),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(_inset),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _DockButton(
+                    tooltip: 'Home',
+                    selected: selectedIndex == MainNavState.homeTab,
+                    icon: Ionicons.home_outline,
+                    selectedIcon: Ionicons.home,
+                    onTap: () => onSelected(MainNavState.homeTab),
+                  ),
+                  const SizedBox(width: _gap),
+                  _DockButton(
+                    tooltip: 'New review',
+                    selected: false, // An action, never a tab.
+                    icon: Ionicons.add_circle_outline,
+                    selectedIcon: Ionicons.add_circle_outline,
+                    iconSize: 34,
+                    color: Colors.greenAccent[700]!,
+                    onTap: () => onSelected(MainNavState.addTab),
+                  ),
+                  const SizedBox(width: _gap),
+                  _DockButton(
+                    tooltip: 'Profile',
+                    selected: selectedIndex == MainNavState.profileTab,
+                    icon: Ionicons.person_circle_outline,
+                    selectedIcon: Ionicons.person_circle,
+                    onTap: () => onSelected(MainNavState.profileTab),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Saturation 1.3 (standard luminance weights).
+  static const List<double> _saturate = [
+    1.2364, -0.2145, -0.0219, 0, 0, //
+    -0.0636, 1.0855, -0.0219, 0, 0,
+    -0.0636, -0.2145, 1.2781, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+}
+
+class _DockButton extends StatelessWidget {
+  const _DockButton({
+    required this.tooltip,
+    required this.selected,
+    required this.icon,
+    required this.selectedIcon,
+    required this.onTap,
+    this.iconSize = 28,
+    this.color,
+  });
+
+  final String tooltip;
+  final bool selected;
+  final IconData icon;
+  final IconData selectedIcon;
+  final VoidCallback onTap;
+  final double iconSize;
+
+  /// Fixed colour (the add button); otherwise white when selected, grey not.
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: tooltip,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          // The selected tab sits in a soft lighter circle.
+          color: selected
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox.square(
+              dimension: _GlassDock.buttonSize,
+              child: Icon(
+                selected ? selectedIcon : icon,
+                size: iconSize,
+                color: color ??
+                    (selected ? Colors.white : AppColors.onSurfaceVariant),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -439,11 +504,6 @@ class _AppDrawer extends StatelessWidget {
                     const ProfileButton(
                       name: 'Notifications',
                       icon: Ionicons.notifications_outline,
-                    ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                    const ProfileButton(
-                      name: 'Preferences',
-                      icon: Ionicons.analytics_outline,
                     ),
                     Divider(color: Colors.white.withOpacity(0.05), height: 1),
                     const ProfileButton(

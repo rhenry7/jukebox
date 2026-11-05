@@ -8,6 +8,13 @@ import 'package:flutter/material.dart';
 /// See docs/ui_audit/token_mapping.md for the raw-value → token migration
 /// mapping.
 
+/// Fonts. [body] is the app-wide default (set on every ThemeData in
+/// main.dart); headlines use Space Grotesk and the wordmark Gasoek One via
+/// google_fonts.
+abstract final class AppFonts {
+  static const String body = 'Google Sans';
+}
+
 /// Spacing scale (4pt base). Use for EdgeInsets, SizedBox, Gap, etc.
 ///
 /// When a layout feels crowded, step up to the next tier rather than
@@ -30,19 +37,18 @@ abstract final class AppSpacing {
   /// Inner padding of a Crate Card (review / playlist / album cards).
   static const double cardPadding = xl;
 
-  /// Vertical gap between stacked cards in a list. Cards sit flush against
-  /// each other, with no border; each card's own album-art backdrop sets it
-  /// apart from the next.
-  static const double cardGap = 0;
+  /// Gap between stacked cards in a list, and their inset from the screen
+  /// edges: a slight frame so each card reads as its own rounded tile.
+  static const double cardGap = sm;
 
   /// Bottom padding for scrollable content under the floating nav dock
-  /// (NavigationBar 80 + dock inset 15, rounded up to clear it with a gutter).
+  /// (dock 72 + bottom inset 12, plus a gutter so the last card clears it).
   static const double dockClearance = 112;
 
-  /// Padding around each card in a vertical card list. Cards run edge to edge
-  /// (no side margin) and stack with [cardGap] between them.
+  /// Padding around each card in a vertical card list: [cardGap] in from the
+  /// screen edges and [cardGap] between cards.
   static const EdgeInsets cardListItem =
-      EdgeInsets.symmetric(vertical: cardGap / 2);
+      EdgeInsets.symmetric(horizontal: cardGap, vertical: cardGap / 2);
 }
 
 /// Corner radius scale.
@@ -58,9 +64,8 @@ abstract final class AppRadius {
   /// Bottom sheets and large modals.
   static const double xl = 24;
 
-  /// Crate Card edge (review / playlist / album cards): square, since cards
-  /// run the full width of the screen.
-  static const double card = 0;
+  /// Crate Card edge (review / playlist / album cards): slightly rounded.
+  static const double card = md;
 
   /// Text inputs — always 25, never 12.
   static const double input = 25;

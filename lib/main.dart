@@ -11,6 +11,7 @@ import 'package:flutter_test_project/utils/env_config.dart';
 import 'package:flutter_test_project/utils/firebase_options.dart';
 import 'package:flutter_test_project/ui/widgets/app_update_watcher.dart';
 import 'package:flutter_test_project/ui/widgets/mobile_frame.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -171,6 +172,7 @@ class MyApp extends ConsumerWidget {
         title: 'REVERB',
         themeMode: ThemeMode.dark,
         darkTheme: ThemeData(
+          fontFamily: AppFonts.body,
           brightness: Brightness.dark,
           scaffoldBackgroundColor: Colors.black,
         ),
@@ -194,6 +196,7 @@ class MyApp extends ConsumerWidget {
       title: 'REVERB',
       themeMode: ThemeMode.dark,
       theme: ThemeData(
+        fontFamily: AppFonts.body,
         colorScheme: ColorScheme.fromSeed(
             seedColor: const Color.fromRGBO(214, 40, 40, 80)),
         useMaterial3: true,
@@ -205,6 +208,7 @@ class MyApp extends ConsumerWidget {
         ),
       ),
       darkTheme: ThemeData(
+        fontFamily: AppFonts.body,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black, // Black background
         colorScheme: const ColorScheme.dark(

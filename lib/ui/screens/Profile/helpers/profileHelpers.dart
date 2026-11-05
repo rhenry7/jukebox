@@ -2,7 +2,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileSignIn.dart';
 import 'package:flutter_test_project/ui/screens/Profile/auth/authService.dart';
 import 'package:flutter_test_project/ui/screens/Profile/delete_account_screen.dart';
@@ -49,13 +48,6 @@ Widget profileRoute(String route) {
       return const CommentWidget();
     case 'Notifications':
       return const NotificationsPage();
-    case 'Preferences':
-      if (auth.currentUser == null) {
-        return const SignInScreen();
-      }
-      return MusicTasteProfileWidget(
-        onPreferencesChanged: (EnhancedUserPreferences) {},
-      );
     case 'Legal':
       return const LegalScreen();
     case 'Delete Account':
@@ -121,22 +113,22 @@ Future<bool> hasUserPreferences(String userId) async {
         .collection('musicPreferences')
         .doc('profile')
         .get();
-    
+
     if (!doc.exists) {
       return false;
     }
-    
+
     final data = doc.data();
     if (data == null) {
       return false;
     }
-    
+
     // Check if they have at least some preferences set
     final favoriteGenres = data['favoriteGenres'] as List?;
     final favoriteArtists = data['favoriteArtists'] as List?;
-    
+
     return (favoriteGenres != null && favoriteGenres.isNotEmpty) ||
-           (favoriteArtists != null && favoriteArtists.isNotEmpty);
+        (favoriteArtists != null && favoriteArtists.isNotEmpty);
   } catch (e) {
     debugPrint('Error checking user preferences: $e');
     return false;
@@ -178,8 +170,7 @@ Future<User?> signInWithApple() async {
   final User? user = userCredential.user;
   if (user == null) return null;
 
-  final userDoc =
-      FirebaseFirestore.instance.collection('users').doc(user.uid);
+  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
   final docSnapshot = await userDoc.get();
 
   if (!docSnapshot.exists) {
@@ -211,8 +202,7 @@ Future<User?> signInWithGoogle() async {
   if (user == null) return null;
 
   // Check if this is a new user — create Firestore doc if it doesn't exist
-  final userDoc =
-      FirebaseFirestore.instance.collection('users').doc(user.uid);
+  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
   final docSnapshot = await userDoc.get();
 
   if (!docSnapshot.exists) {

@@ -15,7 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Function to sort and get top genres
 class RecommendedAlbumScreen extends StatefulWidget {
-const RecommendedAlbumScreen({
+  const RecommendedAlbumScreen({
     super.key,
   });
 
@@ -347,8 +347,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const SignInScreen()),
+                      MaterialPageRoute(builder: (_) => const SignInScreen()),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[700],
@@ -360,8 +359,8 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
                     ),
                     child: const Text(
                       'Sign In / Sign Up',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -444,7 +443,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
                                           Text(
                                             hasPreferences
                                                 ? 'No recommendations yet'
-                                                : 'Set your preferences to start getting recommendations',
+                                                : 'Leave reviews to start getting recommendations',
                                             style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 20),
@@ -453,7 +452,7 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
                                           const SizedBox(height: 8),
                                           Text(
                                             hasPreferences
-                                                ? 'Update your music preferences or leave more reviews to get personalized recommendations!'
+                                                ? 'Leave more reviews to get personalized recommendations!'
                                                 : 'Leave more reviews to get personalized recommendations.',
                                             style: const TextStyle(
                                                 color: Colors.white70),
@@ -466,35 +465,6 @@ class _RecommendedAlbumScreenState extends State<RecommendedAlbumScreen>
                                                   _refreshRecommendations,
                                               icon: const Icon(Icons.refresh),
                                               label: const Text('Refresh'),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.red[600],
-                                                foregroundColor: Colors.white,
-                                              ),
-                                            )
-                                          else
-                                            ElevatedButton.icon(
-                                              onPressed: () {
-                                                // Navigate to preferences
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Scaffold(
-                                                      appBar: AppBar(
-                                                        title: const Text(
-                                                            'Set Up Preferences'),
-                                                        backgroundColor:
-                                                            Colors.black,
-                                                      ),
-                                                      body: profileRoute(
-                                                          'Preferences'),
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              icon: const Icon(Icons.settings),
-                                              label:
-                                                  const Text('Set Preferences'),
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
                                                     Colors.red[600],

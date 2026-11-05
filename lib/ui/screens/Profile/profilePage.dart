@@ -15,7 +15,6 @@ import 'package:flutter_test_project/providers/user_profile_provider.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/services/activity_service.dart';
 import 'package:flutter_test_project/services/spotify_open/spotify_open.dart';
-import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:flutter_test_project/ui/screens/review_detail/review_detail_page.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
@@ -316,12 +315,8 @@ class _EditProfileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton(
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => Scaffold(body: profileRoute('Preferences')),
-        ),
-      ),
+      // No destination yet.
+      onPressed: () {},
       style: _ProfileHeader._outlinedStyle,
       child: const Text(
         'Edit Profile',

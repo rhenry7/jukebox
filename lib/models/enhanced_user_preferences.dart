@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_test_project/MusicPreferences/MusicTaste.dart';
 
 class EnhancedUserPreferences {
   final List<String> favoriteGenres;
@@ -191,6 +190,65 @@ class EnhancedUserPreferences {
               : 0,
       skipCounts: safeIntMap(json['skipCounts']),
       repeatCounts: safeIntMap(json['repeatCounts']),
+    );
+  }
+}
+
+// Track history model with enhanced metadata
+class TrackHistory {
+  final String trackId;
+  final String trackName;
+  final String artistName;
+  final List<String> genres;
+  final DateTime playedAt;
+  final int listeningDuration; // in seconds
+  final bool wasSkipped;
+  final bool wasRepeated;
+  final String context; // playlist, album, radio, etc.
+  final Map<String, double>? audioFeatures; // from Spotify API
+
+  TrackHistory({
+    required this.trackId,
+    required this.trackName,
+    required this.artistName,
+    required this.genres,
+    required this.playedAt,
+    required this.listeningDuration,
+    this.wasSkipped = false,
+    this.wasRepeated = false,
+    this.context = 'unknown',
+    this.audioFeatures,
+  });
+
+  toJson() {
+    return {
+      'trackId': trackId,
+      'trackName': trackName,
+      'artistName': artistName,
+      'genres': genres,
+      'playedAt': playedAt.toIso8601String(),
+      'listeningDuration': listeningDuration,
+      'wasSkipped': wasSkipped,
+      'wasRepeated': wasRepeated,
+      'context': context,
+      'audioFeatures': audioFeatures,
+    };
+  }
+
+  static TrackHistory fromJson(Map<String, dynamic> json) {
+    return TrackHistory(
+      trackId: json['trackId'],
+      trackName: json['trackName'],
+      artistName: json['artistName'],
+      genres: List<String>.from(json['genres']),
+      playedAt: DateTime.parse(json['playedAt']),
+      listeningDuration: json['listeningDuration'],
+      wasSkipped: json['wasSkipped'] ?? false,
+      wasRepeated: json['wasRepeated'] ?? false,
+      context: json['context'] ?? 'unknown',
+      audioFeatures: json['audioFeatures'] != null
+          ? Map<String, double>.from(json['audioFeatures'])
+          : null,
     );
   }
 }

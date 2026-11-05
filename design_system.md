@@ -40,7 +40,7 @@ We use three fonts, each with a narrow job.
 
 *   **Wordmark (Gasoek One):** The CRATEBOXD logo only, via `GoogleFonts.gasoekOne`, with the custom red outer glow (`drop-shadow: 0 0 12px var(--primary-dim)`).
 *   **Display & Headline (Space Grotesk):** Our "loud" voice, via `GoogleFonts.spaceGrotesk`. Bold, wide, and futuristic. Currently used for onboarding headlines.
-*   **Body & Title (Roboto — Flutter's default):** Our "functional" voice. Used everywhere else with no `fontFamily` set, so it ensures long-form music reviews remain legible on a pitch-black background.
+*   **Body & Title (Google Sans, regular weight):** Our "functional" voice, gentle and easy to read. Set once as the theme's `fontFamily` (`AppFonts.body` in `tokens.dart`), so every text without its own font uses it; never set `fontFamily` per widget. Bundled in `assets/fonts/google_sans/`, trimmed to Latin characters to keep the web download small. It ships in weights 400–700 only (no light weight).
 
 **The Identity Gap:** We create hierarchy not just through size, but through dramatic shifts in tracking and weight. Labels (`label-sm`) should be tracked out by 5-10% to provide an "archival" look, while headlines remain tightly packed for a bold, punchy impact.
 
