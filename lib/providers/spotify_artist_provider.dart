@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotify/spotify.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/utils/spotify_retry.dart';
+import 'package:flutter_test_project/services/spotify_client.dart';
+import 'package:flutter_test_project/providers/cache_first.dart';
 
 class TopArtistData {
   final String name;
@@ -42,6 +43,7 @@ final spotifyTopArtistsProvider =
 /// The same for any user (another reviewer's profile page).
 final topArtistsForUserProvider = FutureProvider.autoDispose
     .family<List<TopArtistData>, String>((ref, userId) async {
+  ref.keepAliveFor();
   return _topArtists(ref.watch(reviewsByUserProvider(userId)).value);
 });
 
@@ -54,7 +56,7 @@ Future<List<TopArtistData>> _topArtists(List<ReviewWithDocId>? reviews) async {
       if (!r.review.isRepost) (artist: r.review.artist, date: r.review.date),
   ]).take(topArtistCount);
 
-  final spotify = SpotifyApi(SpotifyApiCredentials(clientId, clientSecret));
+  final spotify = sharedSpotifyApi();
   return Future.wait(top.map((tally) async {
     try {
       final pages = await withSpotifyRetry(

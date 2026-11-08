@@ -144,6 +144,9 @@ class _ReviewFeedState extends State<ReviewFeed> {
 
           final review = reviews[index];
           final Widget card = ReviewCardWithGenres(
+            // Keyed by review, so a refresh or reshuffle never hands one
+            // review's card state (tags, loading) to another.
+            key: ValueKey(review.fullReviewId ?? review.docId),
             review: review.review,
             reviewId: review.fullReviewId,
             showLikeButton: true,

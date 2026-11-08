@@ -29,10 +29,11 @@ String newReviewId() => FirebaseFirestore.instance.collection('users').doc().id;
 /// Saves the review under `users/{uid}/reviews/{reviewId}` and returns its
 /// Firestore path, or null if no one is signed in. Throws if the save fails.
 /// Saving again with the same [reviewId] overwrites it rather than adding a
-/// second review.
+/// second review. [spotifyUrl] is the picked song or album on Spotify, saved
+/// so cards can link to it without searching.
 Future<String?> submitReview(String review, double score, String artist,
     String title, bool liked, String albumImageUrl, List<String>? genres,
-    {required String reviewId}) async {
+    {required String reviewId, String? spotifyUrl}) async {
   // album display image url
   debugPrint(artist);
   final User? user = FirebaseAuth.instance.currentUser;
@@ -67,6 +68,8 @@ Future<String?> submitReview(String review, double score, String artist,
         'albumImageUrl': albumImageUrl,
         // if (cachedGenres != null && cachedGenres.isNotEmpty) 'genres': cachedGenres,
         if (genres != null && genres.isNotEmpty) 'genres': genres,
+        if (spotifyUrl != null && spotifyUrl.isNotEmpty)
+          'spotifyUrl': spotifyUrl,
         // Tag page index (also kept up to date by the onReviewWritten
         // function).
         ...searchKeysFor(genres: genres, review: review),

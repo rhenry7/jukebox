@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:spotify/spotify.dart' as sp;
 
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/services/review_recommendation_service.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/utils/spotify_retry.dart';
+import 'package:flutter_test_project/services/spotify_client.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -40,8 +40,7 @@ class _AlbumItem {
 
 // ─── Spotify helpers ──────────────────────────────────────────────────────────
 
-sp.SpotifyApi _buildSpotifyApi() =>
-    sp.SpotifyApi(sp.SpotifyApiCredentials(clientId, clientSecret));
+sp.SpotifyApi _buildSpotifyApi() => sharedSpotifyApi();
 
 /// Fetch the top Spotify image URL for an artist name.
 Future<String?> _fetchArtistImageUrl(sp.SpotifyApi api, String name) async {

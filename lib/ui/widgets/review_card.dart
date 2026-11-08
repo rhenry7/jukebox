@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,9 @@ import '../../providers/auth_provider.dart'
     show currentUserProvider, isAnonymousUserProvider;
 import '../../providers/bookmarks_provider.dart';
 import '../../providers/repost_provider.dart';
+import '../../providers/user_profile_provider.dart';
+import '../../providers/reviews_provider.dart' show reviewsByUserProvider;
+import '../../providers/similar_reviews_provider.dart';
 import '../../services/bookmark_service.dart';
 import '../../services/repost_service.dart';
 import '../screens/Profile/profilePage.dart';
@@ -28,6 +32,14 @@ import 'friend_toggle.dart';
 import 'genre_pills.dart';
 import 'review_comments.dart';
 import 'spotify_play_button.dart';
+
+/// Starts loading what the review page shows beyond the review itself (the
+/// "More like this" row), ahead of the tap that opens it. The data is kept
+/// for a few minutes, so a touch that doesn't become a tap costs one query.
+void prefetchReviewPage(
+    ProviderContainer container, Review review, String? reviewId) {
+  container.read(similarReviewsProvider(similarReviewsKeyFor(review, reviewId)));
+}
 
 /// Cards show only the start of the review; the full text is on the detail
 /// page. Cuts at a word boundary near [maxChars] and adds an ellipsis.
@@ -67,6 +79,12 @@ class ReviewCardWidget extends ConsumerWidget {
           // Tappable area: album art, review text, tags → navigates to detail
           GestureDetector(
             behavior: HitTestBehavior.opaque,
+            // Start loading the review page's data on touch, so it's
+            // usually ready when the page opens.
+            onTapDown: (_) => prefetchReviewPage(
+                ProviderScope.containerOf(context, listen: false),
+                review,
+                reviewId),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => ReviewDetailPage(
@@ -168,6 +186,7 @@ class ReviewCardWidget extends ConsumerWidget {
                     SpotifyPlayButton(
                       title: review.title,
                       artist: review.artist,
+                      url: review.spotifyUrl,
                       compact: true,
                     ),
                   ],
@@ -327,6 +346,10 @@ class ReviewCardWidget extends ConsumerWidget {
       );
       return;
     }
+
+    // "View profile" is the likely next tap; start loading that page.
+    ref.read(reviewsByUserProvider(review.userId));
+    ref.read(userProfileInfoProvider(review.userId));
 
     const radius = BorderRadius.vertical(top: Radius.circular(AppRadius.xl));
     showModalBottomSheet(
@@ -789,6 +812,22 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
     }
   }
 
+  @override
+  void didUpdateWidget(ReviewCardWithGenres oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A list can hand this card a different review (a refresh or reshuffle,
+    // a delete above it): show that review's tags, not the previous one's.
+    final before = oldWidget.review;
+    final now = widget.review;
+    if (before.title != now.title ||
+        before.artist != now.artist ||
+        !listEquals(before.genres, now.genres)) {
+      _isLoadingGenres = false;
+      _genres = _splitGenres(now.genres);
+      if (_genres == null) _loadGenres();
+    }
+  }
+
   List<String>? _splitGenres(List<String>? raw) {
     final tags = splitGenreTags(raw);
     return tags.isEmpty ? null : tags;
@@ -803,12 +842,17 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
 
     try {
       // Use cache service: checks Firestore cache first, then MusicBrainz API
-      final genres = await GenreCacheService.getGenresWithCache(
-        widget.review.title,
-        widget.review.artist,
-      );
+      final title = widget.review.title;
+      final artist = widget.review.artist;
+      final genres = await GenreCacheService.getGenresWithCache(title, artist);
+      // The card may show a different review by now (see didUpdateWidget).
+      if (!mounted ||
+          widget.review.title != title ||
+          widget.review.artist != artist) {
+        return;
+      }
 
-      if (genres.isNotEmpty && mounted) {
+      if (genres.isNotEmpty) {
         setState(() {
           _genres = genres;
           _isLoadingGenres = false;
@@ -877,6 +921,7 @@ extension ReviewCopyWith on Review {
     String? repostedByDisplayName,
     String? repostedByUserId,
     String? originalReviewId,
+    String? spotifyUrl,
   }) {
     return Review(
       displayName: displayName ?? this.displayName,
@@ -897,6 +942,7 @@ extension ReviewCopyWith on Review {
           repostedByDisplayName ?? this.repostedByDisplayName,
       repostedByUserId: repostedByUserId ?? this.repostedByUserId,
       originalReviewId: originalReviewId ?? this.originalReviewId,
+      spotifyUrl: spotifyUrl ?? this.spotifyUrl,
     );
   }
 }
@@ -933,6 +979,10 @@ class CompactReviewCard extends StatelessWidget {
         child: CardSurface(
           imageUrl: review.albumImageUrl,
           child: InkWell(
+            onTapDown: (_) => prefetchReviewPage(
+                ProviderScope.containerOf(context, listen: false),
+                review,
+                reviewId),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) =>
@@ -1034,6 +1084,7 @@ class CompactReviewCard extends StatelessWidget {
                       SpotifyPlayButton(
                         title: review.title,
                         artist: review.artist,
+                        url: review.spotifyUrl,
                         compact: true,
                       ),
                     ],

@@ -232,6 +232,7 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
                           SpotifyPlayButton(
                             title: review.title,
                             artist: review.artist,
+                            url: review.spotifyUrl,
                           ),
 
                           const SizedBox(height: 24),

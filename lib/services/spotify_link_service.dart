@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:spotify/spotify.dart';
 
-import '../Api/api_key.dart';
 import '../utils/spotify_retry.dart';
+import 'package:flutter_test_project/services/spotify_client.dart';
 
 /// A Spotify search result reduced to what link matching needs.
 class SpotifyCandidate {
@@ -48,7 +48,7 @@ class SpotifyLinkService {
 
   static Future<Uri?> _search(String title, String artist) async {
     if (title.trim().isEmpty) return null;
-    final api = SpotifyApi(SpotifyApiCredentials(clientId, clientSecret));
+    final api = sharedSpotifyApi();
     final pages = await withSpotifyRetry(
       () => api.search.get('$title $artist',
           types: [SearchType.track, SearchType.album]).first(10),

@@ -156,11 +156,13 @@ class _RecommendedReviewsCollectionState
     }
 
     return recommendedAsync.when(
-      data: (allReviews) {
+      // "Load more" re-runs the provider; keep the cards on screen meanwhile.
+      skipLoadingOnReload: true,
+      data: (feed) {
         final filteredByGenre =
-            _filterScoredReviewsByGenres(allReviews, widget.selectedGenres);
+            _filterScoredReviewsByGenres(feed.loaded, widget.selectedGenres);
 
-        if (allReviews.isEmpty) {
+        if (feed.total == 0) {
           return AppEmptyState(
             icon: Icons.auto_awesome,
             title: 'No recommendations yet',
@@ -184,6 +186,7 @@ class _RecommendedReviewsCollectionState
         return _feed(
           storageKey: 'recommended_reviews_list',
           scored: filteredByGenre,
+          total: feed.total,
           displayLimit: displayLimit,
           onRefresh: _fetchNewRecommendations,
         );
@@ -201,9 +204,12 @@ class _RecommendedReviewsCollectionState
   }
 
   /// Shows the first [displayLimit] of [scored]; scrolling raises the limit.
+  /// [total] is the whole list's length when [scored] is only the part
+  /// loaded so far.
   Widget _feed({
     required String storageKey,
     required List<ScoredReview> scored,
+    int? total,
     required int displayLimit,
     required Future<void> Function() onRefresh,
   }) {
@@ -216,7 +222,7 @@ class _RecommendedReviewsCollectionState
     return ReviewFeed(
       storageKey: storageKey,
       reviews: [for (final s in displayed) s.reviewWithDocId],
-      hasMore: scored.length > displayLimit,
+      hasMore: (total ?? scored.length) > displayLimit,
       onLoadMore: _loadMore,
       onRefresh: onRefresh,
       itemWrapper: (context, review, card) =>

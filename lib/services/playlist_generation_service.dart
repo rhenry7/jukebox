@@ -3,10 +3,10 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
 import 'package:flutter_test_project/services/album_art_cache_service.dart';
 import 'package:spotify/spotify.dart' as spotify;
+import 'package:flutter_test_project/services/spotify_client.dart';
 
 /// HTTP timeout for MusicBrainz API requests in playlist generation.
 const _httpTimeout = Duration(seconds: 20);
@@ -135,8 +135,7 @@ class PlaylistGenerationService {
       artist,
       () async {
         try {
-          final credentials = spotify.SpotifyApiCredentials(clientId, clientSecret);
-          final spotifyApi = spotify.SpotifyApi(credentials);
+          final spotifyApi = sharedSpotifyApi();
           
           // Search for track on Spotify
           final query = 'track:"$title" artist:"$artist"';

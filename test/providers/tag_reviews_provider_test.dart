@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -67,6 +68,20 @@ ProviderContainer _container(FakeFirebaseFirestore db) {
   return container;
 }
 
+/// The tag feed once its real first page is in, past any quick preview (from
+/// Popular in memory or from the on-device cache, which this fake database
+/// always has).
+Future<TagFeed> _settled(ProviderContainer container, String tag) {
+  final done = Completer<TagFeed>();
+  container.listen<AsyncValue<TagFeed>>(tagFeedProvider(tag), (_, next) {
+    final feed = next.valueOrNull;
+    if (feed != null && !feed.isPreview && !done.isCompleted) {
+      done.complete(feed);
+    }
+  }, fireImmediately: true);
+  return done.future.timeout(const Duration(seconds: 5));
+}
+
 void main() {
   group('searchKeysFor', () {
     // Shared with the Cloud Functions tests, so both sides build the same
@@ -121,7 +136,7 @@ void main() {
       await _seed(db, 'x1', genres: ['rock'], text: 'nothing here', day: 5);
       await _seed(db, 'rp', genres: ['r&b'], day: 6, repost: true);
 
-      final feed = await _container(db).read(tagFeedProvider('R&B').future);
+      final feed = await _settled(_container(db), 'R&B');
 
       expect(_ids(feed.exact), ['e2', 'e1']);
       expect(_ids(feed.similar), ['s1']);
@@ -140,7 +155,7 @@ void main() {
       await _seed(db, 's1', genres: ['smooth jazz'], day: 1);
       final container = _container(db);
 
-      final first = await container.read(tagFeedProvider('jazz').future);
+      final first = await _settled(container, 'jazz');
       expect(first.exact, hasLength(tagPageSize));
       expect(first.exact.first.docId, 'e25', reason: 'newest first');
       expect(first.similar, isEmpty);
@@ -197,7 +212,7 @@ void main() {
         'date': Timestamp.fromDate(DateTime(2026, 1, 1)),
       });
 
-      final feed = await _container(db).read(tagFeedProvider('funk').future);
+      final feed = await _settled(_container(db), 'funk');
       expect(_ids(feed.exact), ['old']);
     });
   });

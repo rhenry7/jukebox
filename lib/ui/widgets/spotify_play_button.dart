@@ -10,19 +10,36 @@ import '../theme/tokens.dart';
 /// with a label (review detail page), or with [compact] just the logo
 /// (review cards).
 ///
-/// The Spotify link is looked up as soon as the button is built, so the tap
-/// itself opens it right away (browsers block pop-ups opened after a wait).
-/// Until a confident match is found, the tap opens Spotify's search instead.
+/// Uses [url] when the review saved its Spotify link. Otherwise the link is
+/// looked up as soon as the button is built, so the tap itself opens it right
+/// away (browsers block pop-ups opened after a wait); until a confident match
+/// is found, the tap opens Spotify's search instead.
+/// [raw] as a link to open, if it's an https link to open.spotify.com. Review
+/// fields are written by their authors, so anything else is ignored and the
+/// button searches as usual.
+@visibleForTesting
+Uri? savedSpotifyLink(String? raw) {
+  final uri = raw == null ? null : Uri.tryParse(raw);
+  if (uri == null || uri.scheme != 'https' || uri.host != 'open.spotify.com') {
+    return null;
+  }
+  return uri;
+}
+
 class SpotifyPlayButton extends StatefulWidget {
   const SpotifyPlayButton({
     super.key,
     required this.title,
     required this.artist,
+    this.url,
     this.compact = false,
   });
 
   final String title;
   final String artist;
+
+  /// The review's saved Spotify link, if any ([savedSpotifyLink] checks it).
+  final String? url;
   final bool compact;
 
   @override
@@ -35,6 +52,11 @@ class _SpotifyPlayButtonState extends State<SpotifyPlayButton> {
   @override
   void initState() {
     super.initState();
+    final saved = savedSpotifyLink(widget.url);
+    if (saved != null) {
+      _link = saved;
+      return;
+    }
     SpotifyLinkService.resolve(widget.title, widget.artist).then((link) {
       if (mounted) setState(() => _link = link);
     });

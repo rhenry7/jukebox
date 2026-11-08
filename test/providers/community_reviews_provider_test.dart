@@ -56,4 +56,28 @@ void main() {
       expect(after, before);
     });
   });
+
+  group('keepPlacedOrder', () {
+    List<String> ids(List<ReviewWithDocId> l) => [for (final r in l) r.docId];
+
+    test('cards already placed keep their places; new ones go after', () {
+      final first = [for (var i = 0; i < 3; i++) _item('n$i')];
+      final placed = ids(keepPlacedOrder(first, const [], 5));
+
+      final more = [...first, for (var i = 0; i < 6; i++) _item('r$i')];
+      final next = ids(keepPlacedOrder(
+          more, [for (final id in placed) 'users/u/reviews/$id'], 5));
+
+      expect(next.take(3), placed);
+      expect(next.skip(3).toSet(), {for (var i = 0; i < 6; i++) 'r$i'});
+    });
+
+    test('a placed review that is gone is dropped', () {
+      final items = [_item('a'), _item('b')];
+      final next =
+          keepPlacedOrder(items, ['users/u/reviews/x', 'users/u/reviews/b'], 1);
+      expect(ids(next).first, 'b');
+      expect(ids(next), hasLength(2));
+    });
+  });
 }

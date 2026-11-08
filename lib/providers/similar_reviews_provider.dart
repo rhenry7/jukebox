@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/review.dart';
 import 'reviews_provider.dart' show ReviewWithDocId, firestoreProvider;
+import 'cache_first.dart';
 import 'tag_reviews_provider.dart' show searchKeysFor;
 
 /// How many similar reviews the review page shows.
@@ -35,12 +36,21 @@ SimilarReviewsKey similarReviewsKeyFor(Review review, String? path) => (
 /// Up to [similarReviewCount] other reviews tagged like this one, for the
 /// "More like this" row on the review page. Uses the tag page's index
 /// (`tagKeys`, then `tagWordKeys`), so it costs a query or two and no AI.
-final similarReviewsProvider = FutureProvider.autoDispose
-    .family<List<ReviewWithDocId>, SimilarReviewsKey>((ref, key) {
-  return findSimilarReviews(
-    ref.watch(firestoreProvider),
-    key,
-  );
+///
+/// Answers from the on-device cache first when it has matches, then from
+/// the server. Kept for a few minutes, and started when a card is touched
+/// (see `ReviewCardWidget`), so it's usually ready when the page opens.
+final similarReviewsProvider = StreamProvider.autoDispose
+    .family<List<ReviewWithDocId>, SimilarReviewsKey>((ref, key) async* {
+  ref.keepAliveFor();
+  final db = ref.watch(firestoreProvider);
+  try {
+    final cached = await findSimilarReviews(db, key, source: Source.cache);
+    if (cached.isNotEmpty) yield cached;
+  } catch (_) {
+    // Nothing cached yet.
+  }
+  yield await findSimilarReviews(db, key);
 });
 
 /// Ranks candidates by how many tags they share with the review (exact tags
@@ -50,8 +60,9 @@ final similarReviewsProvider = FutureProvider.autoDispose
 @visibleForTesting
 Future<List<ReviewWithDocId>> findSimilarReviews(
   FirebaseFirestore db,
-  SimilarReviewsKey key,
-) async {
+  SimilarReviewsKey key, {
+  Source source = Source.serverAndCache,
+}) async {
   final keys = searchKeysFor(genres: key.tags.split('\n'));
   final tagKeys = keys['tagKeys']!.take(_maxQueryKeys).toList();
   final wordKeys = keys['tagWordKeys']!.take(_maxQueryKeys).toList();
@@ -70,7 +81,7 @@ Future<List<ReviewWithDocId>> findSimilarReviews(
         .where(field, arrayContainsAny: values)
         .orderBy('date', descending: true)
         .limit(_similarPoolSize)
-        .get();
+        .get(GetOptions(source: source));
     for (final doc in snapshot.docs) {
       if (doc.reference.path == key.path) continue;
       final ReviewWithDocId item;

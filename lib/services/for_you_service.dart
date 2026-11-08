@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 
 import '../models/review.dart';
 import '../providers/reviews_provider.dart' show ReviewWithDocId;
-import 'review_recommendation_service.dart' show ScoredReview;
 
 /// A review suggested right after the user posts one of their own.
 class ReviewMatch {
@@ -15,6 +14,16 @@ class ReviewMatch {
   /// Why it was suggested, e.g. "Also praises the clean jazz guitar, like
   /// your review of Khobs".
   final String reason;
+}
+
+/// One recommendation in the server-built For You list.
+class ForYouEntry {
+  const ForYouEntry(
+      {required this.reviewPath, required this.score, this.reason});
+
+  final String reviewPath;
+  final double score;
+  final String? reason;
 }
 
 /// Client for the server-side CF-RAG recommender (`functions/`).
@@ -30,9 +39,9 @@ class ForYouService {
     try {
       final result = await _functions
           .httpsCallable(
-            'analyzeAndMatch',
-            options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
-          )
+        'analyzeAndMatch',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+      )
           .call<Map<String, dynamic>>({'reviewPath': reviewPath});
       final matches = (result.data['matches'] as List?) ?? const [];
       final reasons = <String, String>{
@@ -62,9 +71,11 @@ class ForYouService {
     }
   }
 
-  /// The cached For You list for [userId]. Emits null while no cache exists
-  /// (new user, or the backend isn't deployed yet) so callers can fall back.
-  static Stream<List<ScoredReview>?> watch(
+  /// The cached For You list for [userId]: review paths in ranked order,
+  /// without the reviews themselves, so the app fetches only the ones it
+  /// shows. Emits null while no cache exists (new user, or the backend isn't
+  /// deployed yet) so callers can fall back.
+  static Stream<List<ForYouEntry>?> watchEntries(
     String userId, {
     FirebaseFirestore? db,
   }) {
@@ -72,20 +83,15 @@ class ForYouService {
     return firestore
         .doc('users/$userId/forYou/current')
         .snapshots()
-        .asyncMap((snap) async {
+        .map((snap) {
       final items = (snap.data()?['items'] as List?)?.cast<Map>() ?? const [];
       if (items.isEmpty) return null;
-      final reviews = await fetchReviews(
-        items.map((i) => i['reviewPath'] as String).toList(),
-        db: firestore,
-      );
-      final byPath = {for (final r in reviews) r.fullReviewId: r};
       return [
         for (final i in items)
-          if (byPath[i['reviewPath']] case final review?)
-            ScoredReview(
-              reviewWithDocId: review,
-              finalScore: (i['score'] as num?)?.toDouble() ?? 0,
+          if (i['reviewPath'] case final String path)
+            ForYouEntry(
+              reviewPath: path,
+              score: (i['score'] as num?)?.toDouble() ?? 0,
               reason: i['reason'] as String?,
             ),
       ];
@@ -93,21 +99,43 @@ class ForYouService {
   }
 
   /// Loads review documents by full path, keeping the given order and
-  /// skipping any that were deleted since the list was built.
+  /// skipping any that were deleted since the list was built. With
+  /// [preferCache], reviews already on the device are used as they are and
+  /// only the rest come from the server.
   static Future<List<ReviewWithDocId>> fetchReviews(
     List<String> paths, {
     FirebaseFirestore? db,
+    bool preferCache = false,
   }) async {
-    final firestore = db ?? FirebaseFirestore.instance;
-    final snaps = await Future.wait(paths.map((p) => firestore.doc(p).get()));
-    return [
-      for (final s in snaps)
-        if (s.exists && s.data() != null)
-          ReviewWithDocId(
-            review: Review.fromFirestore(s.data()!),
-            docId: s.id,
-            fullReviewId: s.reference.path,
-          ),
-    ];
+    final reviews = await Future.wait(
+        paths.map((p) => fetchReview(p, db: db, preferCache: preferCache)));
+    return reviews.whereType<ReviewWithDocId>().toList();
+  }
+
+  /// One review by full path, or null if it was deleted. With [preferCache],
+  /// the copy on the device is used when there is one.
+  static Future<ReviewWithDocId?> fetchReview(
+    String path, {
+    FirebaseFirestore? db,
+    bool preferCache = false,
+  }) async {
+    final ref = (db ?? FirebaseFirestore.instance).doc(path);
+    DocumentSnapshot<Map<String, dynamic>>? snap;
+    if (preferCache) {
+      try {
+        final cached = await ref.get(const GetOptions(source: Source.cache));
+        if (cached.exists) snap = cached;
+      } catch (_) {
+        // Not on the device.
+      }
+    }
+    snap ??= await ref.get();
+    final data = snap.data();
+    if (!snap.exists || data == null) return null;
+    return ReviewWithDocId(
+      review: Review.fromFirestore(data),
+      docId: snap.id,
+      fullReviewId: snap.reference.path,
+    );
   }
 }

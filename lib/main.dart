@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -113,6 +114,18 @@ void main() async {
       ),
     );
     return;
+  }
+
+  if (kIsWeb) {
+    // Keep Firestore data in the browser (IndexedDB) between visits, so a
+    // repeat visit reads from the device first. Native apps already do this.
+    // Must run before anything else touches Firestore.
+    try {
+      FirebaseFirestore.instance.settings =
+          const Settings(persistenceEnabled: true);
+    } catch (e) {
+      debugPrint('Firestore web cache unavailable: $e');
+    }
   }
 
   // Sign visitors into the shared demo account when configured.

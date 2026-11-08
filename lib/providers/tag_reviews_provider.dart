@@ -95,7 +95,7 @@ class TagFeedNotifier extends AutoDisposeFamilyAsyncNotifier<TagFeed, String> {
     _db = ref.watch(firestoreProvider);
 
     final generation = ++_generation;
-    final preview = _preview();
+    final preview = _preview() ?? await _cachedPreview();
     if (preview != null) {
       // Show what's in memory now; the real first page replaces it (unless
       // the page was refreshed or closed in the meantime).
@@ -138,6 +138,37 @@ class TagFeedNotifier extends AutoDisposeFamilyAsyncNotifier<TagFeed, String> {
     if (pool == null || pool.isEmpty) return null;
     final feed = _fromPool(pool);
     return feed.all.isEmpty ? null : feed;
+  }
+
+  /// This tag's newest reviews already on the device (from an earlier
+  /// visit), to show while the server is asked. Null when none are cached.
+  Future<TagFeed?> _cachedPreview() async {
+    try {
+      final snapshot = await _db
+          .collectionGroup('reviews')
+          .where('tagKeys', arrayContains: _want)
+          .orderBy('date', descending: true)
+          .limit(tagPageSize)
+          .get(const GetOptions(source: Source.cache));
+      final pool = <ReviewWithDocId>[];
+      for (final doc in snapshot.docs) {
+        try {
+          final item = ReviewWithDocId(
+            review: Review.fromFirestore(doc.data()),
+            docId: doc.id,
+            fullReviewId: doc.reference.path,
+          );
+          if (!item.review.isRepost) pool.add(item);
+        } catch (_) {
+          // Unreadable; the server page decides.
+        }
+      }
+      if (pool.isEmpty) return null;
+      final feed = _fromPool(pool);
+      return feed.exact.isEmpty ? null : feed;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<TagFeed> _firstPage() async {

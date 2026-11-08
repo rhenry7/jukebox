@@ -40,14 +40,28 @@ class _CommunityReviewsCollectionState
   int _shuffleSeed = math.Random().nextInt(1 << 31);
   int _visibleCount = _pageSize;
 
+  /// Reviews in the order they were dealt (see [keepPlacedOrder]), so cards
+  /// keep their places as more of the pool arrives. Cleared on reshuffle.
+  List<String> _placedIds = const [];
+
   Future<void> _loadMore() async {
     setState(() => _visibleCount += _pageSize);
   }
 
+  /// Pull-to-refresh: re-reads the pool (it isn't kept live) and deals a
+  /// new order.
   Future<void> _reshuffle() async {
+    ref.invalidate(communityReviewsProvider);
+    try {
+      await ref.read(communityReviewsProvider.future);
+    } catch (_) {
+      // The tab shows the error state with its own Retry.
+    }
+    if (!mounted) return;
     setState(() {
       _shuffleSeed = math.Random().nextInt(1 << 31);
       _visibleCount = _pageSize;
+      _placedIds = const [];
     });
   }
 
@@ -116,13 +130,13 @@ class _CommunityReviewsCollectionState
           );
         }
 
-        final shuffled = shuffleReviews(reviews, _shuffleSeed);
+        final shuffled = keepPlacedOrder(reviews, _placedIds, _shuffleSeed);
+        _placedIds = [for (final r in shuffled) r.fullReviewId ?? r.docId];
         return ReviewFeed(
           storageKey: 'community_reviews_list',
           reviews: shuffled.take(_visibleCount).toList(),
           hasMore: shuffled.length > _visibleCount,
           onLoadMore: _loadMore,
-          // The pool is a live stream, so refreshing only needs a new order.
           onRefresh: _reshuffle,
           itemWrapper: _withReviewOptions,
         );

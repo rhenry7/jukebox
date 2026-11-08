@@ -2,16 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:flutter_test_project/Api/api_key.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/services/get_album_service.dart';
 import 'package:flutter_test_project/utils/spotify_retry.dart';
 import 'package:http/http.dart' as http;
 import 'package:spotify/spotify.dart';
+import 'package:flutter_test_project/services/spotify_client.dart';
 
 Future<List<Track>> fetchSpotifyTracks() async {
-  final credentials = SpotifyApiCredentials(clientId, clientSecret);
-  final getFromSpotify = SpotifyApi(credentials);
+  final getFromSpotify = sharedSpotifyApi();
   final tracks = await getFromSpotify.playlists
       .getTracksByPlaylistId('3cEYpjA9oz9GiPac4AsH4n')
       .all();
@@ -19,8 +18,7 @@ Future<List<Track>> fetchSpotifyTracks() async {
 }
 
 Future<Pages<Category>> fetchSpotifyCatgories() async {
-  final credentials = SpotifyApiCredentials(clientId, clientSecret);
-  final getFromSpotify = SpotifyApi(credentials);
+  final getFromSpotify = sharedSpotifyApi();
   final category = getFromSpotify.categories.list();
   debugPrint('Categories: ${category.toString()}');
   debugPrint(category.first(10).toString());
@@ -30,8 +28,7 @@ Future<Pages<Category>> fetchSpotifyCatgories() async {
 // Function 1: Trending tracks across genres
 Future<List<Track>> fetchTrendingTracks() async {
   try {
-    final credentials = SpotifyApiCredentials(clientId, clientSecret);
-    final spotify = SpotifyApi(credentials);
+    final spotify = sharedSpotifyApi();
 
     // Search for popular tracks from recent years
     final List<String> trendingQueries = [
@@ -91,8 +88,7 @@ Future<List<Track>> fetchTrendingTracks() async {
 // Function 3: Deep cuts and hidden gem tracks
 Future<List<Track>> fetchHiddenGemTracks() async {
   try {
-    final credentials = SpotifyApiCredentials(clientId, clientSecret);
-    final spotify = SpotifyApi(credentials);
+    final spotify = sharedSpotifyApi();
 
     // Search for tracks from niche genres
     final List<String> hiddenGemQueries = [
@@ -142,8 +138,7 @@ Future<List<Track>> fetchHiddenGemTracks() async {
 // Function 4: New release tracks
 Future<List<Track>> fetchNewReleaseTracks() async {
   try {
-    final credentials = SpotifyApiCredentials(clientId, clientSecret);
-    final spotify = SpotifyApi(credentials);
+    final spotify = sharedSpotifyApi();
 
     final currentYear = DateTime.now().year;
 
@@ -200,8 +195,7 @@ Future<List<Track>> fetchNewReleaseTracks() async {
 }
 
 Future<List<Album>> fetchSpotifyAlbums() async {
-  final credentials = SpotifyApiCredentials(clientId, clientSecret);
-  final getFromSpotify = SpotifyApi(credentials);
+  final getFromSpotify = sharedSpotifyApi();
   final tracks = await getFromSpotify.playlists
       .getTracksByPlaylistId(
           '37i9dQZF1DX1gRalH1mWrP') // replace with list from recommendation;
@@ -221,8 +215,7 @@ Future<List<Album>> fetchSpotifyAlbums() async {
 
 Future<List<Album>> fetchExploreAlbums() async {
   try {
-    final credentials = SpotifyApiCredentials(clientId, clientSecret);
-    final spotify = SpotifyApi(credentials);
+    final spotify = sharedSpotifyApi();
 
     // Mix of different genres and time periods for exploration
     final List<String> exploreQueries = [
@@ -283,8 +276,7 @@ Future<List<MusicBrainzAlbum>> fetchAlbums({String query = 'year:2025'}) async {
 
 Future<List<Album>> fetchPopularAlbums({String query = 'year:2019'}) async {
   try {
-    final credentials = SpotifyApiCredentials(clientId, clientSecret);
-    final spotify = SpotifyApi(credentials);
+    final spotify = sharedSpotifyApi();
     final searchResults = await withSpotifyRetry(
       () => spotify.search.get(query, types: [SearchType.album]).first(20),
     );
@@ -315,8 +307,7 @@ Future<List<Album>> fetchPopularAlbums({String query = 'year:2019'}) async {
 Future<List<Album>> fetchNewDiscoveries(
     {String genre1 = 'alternative', String genre2 = 'indie'}) async {
   try {
-    final credentials = SpotifyApiCredentials(clientId, clientSecret);
-    final spotify = SpotifyApi(credentials);
+    final spotify = sharedSpotifyApi();
 
     // Focus on recent releases across different categories
     final currentYear = DateTime.now().year;

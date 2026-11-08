@@ -94,6 +94,11 @@ flutter:
   assets:
     - lib/assets/images/discoball_loading.png
     - lib/assets/images/walking_music_man.png
+    # Fonts google_fonts would otherwise download from Google at startup.
+    # It finds them here by filename (see assets/fonts/google_fonts/README.txt).
+    - assets/fonts/google_fonts/SpaceGrotesk-SemiBold.ttf
+    - assets/fonts/google_fonts/SpaceGrotesk-Bold.ttf
+    - assets/fonts/google_fonts/GasoekOne-Regular.ttf
 
   # Body font. Google Sans, trimmed to Latin characters (see
   # assets/fonts/google_sans/OFL.txt for the licence).

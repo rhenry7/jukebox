@@ -96,5 +96,15 @@ The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild o
 - Show auth errors with `authErrorMessage(code)` (`auth/authService.dart`), never raw Firebase text.
 - Sign out with `await signOut()`, then `popUntil(isFirst)`.
 
+### Performance conventions
+- Spotify: always use `sharedSpotifyApi()` (`lib/services/spotify_client.dart`), never `SpotifyApi(...)` directly — each new client fetches its own token.
+- Reviews save the picked song/album as `spotifyUrl`; `SpotifyPlayButton(url: review.spotifyUrl)` opens it without searching (only `https://open.spotify.com` links are trusted).
+- Fonts used through `GoogleFonts.x()` are bundled in `assets/fonts/google_fonts/`, named as google_fonts expects (e.g. `SpaceGrotesk-Bold.ttf`) and listed in `pubspec.yaml`; google_fonts uses those before the network. A new font or weight needs its file added there, or it's downloaded from Google at startup. After adding assets, restart `flutter run` (hot restart doesn't pick up new assets).
+- Firestore keeps its web cache in IndexedDB (`persistenceEnabled` in `main.dart`).
+- Popular (`communityReviewsProvider`) is read once, not live: refresh, the Home re-tap and posting a review re-read it with `ref.invalidate`. It arrives in stages (the device copy, or on a first visit the newest `popularFirstBatch`, then the full pool); the tab keeps cards already placed in their places (`keepPlacedOrder`) and adds new ones below.
+- For You shows each card as its review arrives, top-down in ranked order (one that arrives early waits for those above it).
+- Pages show cached data first, then the server's (`lib/providers/cache_first.dart`): one-time reads use `cacheThenServer` / `docCacheThenServer` (live `snapshots()` listeners already do this). Page data providers call `ref.keepAliveFor()` so going back is instant, and cards start loading the next page's data on touch (`prefetchReviewPage` in `review_card.dart`; the reviewer sheet prefetches the profile). New page data should follow the same pattern.
+- For You reads only the list document live; reviews are fetched a page at a time as the display limit grows (`recommendedReviewsProvider` returns `(loaded, total)`).
+
 ### Web updates (installed PWA)
 Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Browsers that still run the caching service worker from older deploys can't reach that code, so deploys also publish `scripts/legacy_sw_cleanup.js` as `flutter_service_worker.js`, which removes the old worker and its caches. Any new web deploy path must stamp the build id and copy that file the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.

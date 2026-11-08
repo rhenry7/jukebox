@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test_project/Api/api_key.dart';
+import 'package:flutter_test_project/providers/community_reviews_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
 import 'package:flutter_test_project/services/signal_collection_service.dart';
@@ -18,6 +18,7 @@ import 'package:spotify/spotify.dart' as spotify;
 import 'review_matches_sheet.dart';
 import 'review_text_editor.dart';
 import '../../widgets/auth_gate_modal.dart';
+import 'package:flutter_test_project/services/spotify_client.dart';
 
 class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String title;
@@ -55,6 +56,9 @@ class _MyReviewSheetContentFormState
   String _selectedTrackTitle = '';
   String _selectedTrackArtist = '';
   String _selectedTrackImageUrl = '';
+
+  /// The picked song or album on Spotify, saved with the review.
+  String _selectedSpotifyUrl = '';
   Timer? _searchDebounce;
   String _searchFilter = 'all'; // 'all', 'song', 'album'
   String? _searchError; // User-facing error message for search failures
@@ -152,8 +156,7 @@ class _MyReviewSheetContentFormState
     });
 
     try {
-      final credentials = spotify.SpotifyApiCredentials(clientId, clientSecret);
-      final spotifyApi = spotify.SpotifyApi(credentials);
+      final spotifyApi = sharedSpotifyApi();
 
       // Determine search types based on filter
       List<spotify.SearchType> searchTypes = [];
@@ -300,6 +303,7 @@ class _MyReviewSheetContentFormState
       _selectedTrackImageUrl = track.album?.images?.isNotEmpty == true
           ? track.album!.images!.first.url ?? ''
           : '';
+      _selectedSpotifyUrl = _spotifyLink('track', track.id);
       _trackResults = [];
       _albumResults = [];
       searchParams.clear();
@@ -312,14 +316,17 @@ class _MyReviewSheetContentFormState
     String name = '';
     String artistStr = '';
     String imageUrl = '';
+    String? id;
 
     if (album is spotify.Album) {
+      id = album.id;
       name = album.name ?? '';
       artistStr = album.artists?.map((a) => a.name).join(', ') ?? '';
       imageUrl =
           album.images?.isNotEmpty == true ? album.images!.first.url ?? '' : '';
       debugPrint('💿 [SELECT] Album selected: ${album.name}');
     } else if (album is spotify.AlbumSimple) {
+      id = album.id;
       name = album.name ?? '';
       artistStr =
           album.artists?.map((a) => a.name ?? 'Unknown').join(', ') ?? '';
@@ -339,12 +346,16 @@ class _MyReviewSheetContentFormState
       _selectedTrackTitle = name;
       _selectedTrackArtist = artistStr;
       _selectedTrackImageUrl = imageUrl;
+      _selectedSpotifyUrl = _spotifyLink('album', id);
       _trackResults = [];
       _albumResults = [];
       searchParams.clear();
     });
     debugPrint('   ✅ Album selection complete');
   }
+
+  static String _spotifyLink(String type, String? id) =>
+      id == null || id.isEmpty ? '' : 'https://open.spotify.com/$type/$id';
 
   Widget _buildFilterPill(String filter, String label, IconData icon) {
     final isSelected = _searchFilter == filter;
@@ -445,6 +456,7 @@ class _MyReviewSheetContentFormState
             : widget.albumImageUrl,
         tags, // stored as genres (required, validated above)
         reviewId: _reviewId,
+        spotifyUrl: _selectedSpotifyUrl,
       );
       if (reviewPath == null) {
         // Signed out while the form was open.
@@ -477,6 +489,8 @@ class _MyReviewSheetContentFormState
 
       // Invalidate reviews provider to refresh all screens automatically
       ref.invalidate(userReviewsProvider);
+      // Popular is read once, not live, so re-read it to include this review.
+      ref.invalidate(communityReviewsProvider);
       if (liked) {
         updateSavedTracks(
           _selectedTrackArtist.isNotEmpty

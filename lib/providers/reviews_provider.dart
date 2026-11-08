@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
+import 'package:flutter_test_project/providers/cache_first.dart';
 
 /// Review with document ID for operations like edit/delete
 class ReviewWithDocId {
@@ -29,6 +30,9 @@ final userReviewsProvider = StreamProvider<List<ReviewWithDocId>>((ref) {
 /// profile page).
 final reviewsByUserProvider = StreamProvider.autoDispose
     .family<List<ReviewWithDocId>, String>((ref, userId) {
+  // Live, so it already shows the on-device copy first. Kept for a few
+  // minutes, and started when the reviewer sheet opens.
+  ref.keepAliveFor();
   return _reviewsStream(userId);
 });
 

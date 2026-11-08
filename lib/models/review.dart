@@ -72,6 +72,10 @@ class Review {
   final String? repostedByUserId;
   final String? originalReviewId; // sanitized path of the original review
 
+  /// The song or album on Spotify, saved when it was picked in the review
+  /// form, so cards can link to it without searching. Older reviews have none.
+  final String? spotifyUrl;
+
   Review({
     required this.displayName,
     required this.userId,
@@ -90,6 +94,7 @@ class Review {
     this.repostedByDisplayName,
     this.repostedByUserId,
     this.originalReviewId,
+    this.spotifyUrl,
   });
 
   // Factory method to create a Review from Firestore document data
@@ -113,6 +118,7 @@ class Review {
       repostedByDisplayName: data['repostedByDisplayName'],
       repostedByUserId: data['repostedByUserId'],
       originalReviewId: data['originalReviewId'],
+      spotifyUrl: data['spotifyUrl'] as String?,
     );
   }
 
@@ -135,6 +141,7 @@ class Review {
       repostedByDisplayName: json['repostedByDisplayName'],
       repostedByUserId: json['repostedByUserId'],
       originalReviewId: json['originalReviewId'],
+      spotifyUrl: json['spotifyUrl'] as String?,
     );
   }
 
@@ -158,6 +165,7 @@ class Review {
         'repostedByDisplayName': repostedByDisplayName,
       if (repostedByUserId != null) 'repostedByUserId': repostedByUserId,
       if (originalReviewId != null) 'originalReviewId': originalReviewId,
+      if (spotifyUrl != null) 'spotifyUrl': spotifyUrl,
     };
   }
 }
