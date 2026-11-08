@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../screens/tag/tag_reviews_page.dart';
@@ -9,8 +11,10 @@ List<String> splitGenreTags(List<String>? raw) {
   final seen = <String>{};
   final result = <String>[];
   for (final entry in raw ?? const <String>[]) {
-    final parts =
-        entry.split('/').map((s) => s.trim()).where((s) => s.isNotEmpty);
+    final parts = entry
+        .split('/')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty);
     for (final tag in parts) {
       if (seen.add(tag.toLowerCase())) result.add(tag);
     }
@@ -79,52 +83,105 @@ class GenrePills extends StatelessWidget {
         clipBehavior: singleLine ? Clip.hardEdge : Clip.none,
         children: [
           for (final tag in tags.take(maxTags))
-            _pill(tag,
-                onTap: tappable ? () => openTagPage(context, tag) : null),
+            _pill(
+              tag,
+              onTap: tappable ? () => openTagPage(context, tag) : null,
+            ),
           if (showOverflowCount && hidden > 0) _pill('$hidden+'),
         ],
       ),
     );
   }
 
-  static Widget _pill(String tag, {VoidCallback? onTap}) {
-    final label = Text(
-      tag,
-      style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
+  static Widget _pill(String tag, {VoidCallback? onTap}) =>
+      GlassPill(label: tag, onTap: onTap);
+}
+
+/// A frosted-glass pill: whatever is behind it (a card's album art, the page)
+/// blurred, under a light tint and a faint light edge. Used for tags
+/// everywhere ([GenrePills], the Home tag row). [selected] makes it solid
+/// white with dark text, for a picked filter.
+///
+/// The blur is BackdropFilter.grouped, so all pills on screen share one
+/// capture of the background (the BackdropGroup in main.dart) instead of one
+/// each, which keeps dozens of pills affordable on phones.
+class GlassPill extends StatelessWidget {
+  const GlassPill({
+    super.key,
+    required this.label,
+    this.onTap,
+    this.selected = false,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final bool selected;
+
+  /// Gaussian blur behind each pill (sigma, logical pixels).
+  static const double _blur = 8;
+
+  /// The glass: a light tint, brighter at the top-left where the light
+  /// hits, and a faint light edge.
+  static final _tintLit = Colors.white.withValues(alpha: 0.16);
+  static final _tintFar = Colors.white.withValues(alpha: 0.05);
+  static final _edge = Colors.white.withValues(alpha: 0.25);
+  static final _selectedFill = Colors.white.withValues(alpha: 0.92);
+
+  @override
+  Widget build(BuildContext context) {
+    // A plain pill rather than Material's Chip: Chip paints its own opaque
+    // background from the theme, which hid the glass.
+    Widget chip = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs + 1,
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected ? Colors.black : Colors.white,
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+        ),
       ),
     );
-    final background = Colors.white.withValues(alpha: 0.07);
-    final side = BorderSide(color: Colors.white.withValues(alpha: 0.2));
-    const padding = EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm, vertical: AppSpacing.xxs);
-    const shape = RoundedRectangleBorder(borderRadius: AppRadius.pillAll);
-
-    if (onTap == null) {
-      return Chip(
-        label: label,
-        backgroundColor: background,
-        side: side,
-        padding: padding,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
-        shape: shape,
+    if (onTap != null) {
+      // Its own tap target, so tapping a tag on a card opens the tag rather
+      // than the review.
+      chip = Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const StadiumBorder(),
+          child: chip,
+        ),
       );
     }
-    // Its own tap target, so tapping a tag on a card opens the tag rather
-    // than the review.
-    return ActionChip(
-      label: label,
-      onPressed: onTap,
-      backgroundColor: background,
-      side: side,
-      padding: padding,
-      pressElevation: 0,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
-      shape: shape,
+
+    return Semantics(
+      button: onTap != null,
+      selected: selected,
+      child: ClipRRect(
+        borderRadius: AppRadius.pillAll,
+        child: BackdropFilter.grouped(
+          filter: ImageFilter.blur(sigmaX: _blur, sigmaY: _blur),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.pillAll,
+              border: Border.all(color: selected ? _selectedFill : _edge),
+              color: selected ? _selectedFill : null,
+              gradient: selected
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [_tintLit, _tintFar],
+                    ),
+            ),
+            child: chip,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -19,7 +19,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.1.4 <4.0.0'
+  # Flutter 3.47 (see .flutter-version). An older Flutter stops here with a
+  # clear message instead of quietly downgrading packages.
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -40,9 +43,9 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   spotify: ^0.13.1
   gap: ^3.0.1
-  ionicons: ^0.2.2
+  ionicons: ^0.2.3
   intl: ^0.19.0
-  google_fonts: ^6.2.1
+  google_fonts: ^6.3.3
   firebase_core: ^3.13.1
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
@@ -73,11 +76,6 @@ dev_dependencies:
   firebase_auth_mocks: ^0.14.1
   integration_test:
     sdk: flutter
-
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
 flutter:
 
   # The following line ensures that the Material Icons font is

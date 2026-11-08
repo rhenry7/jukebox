@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_project/main.dart' as app;
 import 'package:flutter_test_project/ui/widgets/review_card.dart';
+import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:integration_test/integration_test.dart';
 
 /// End-to-end checks of the main signed-out flows, against the real app and
@@ -38,18 +39,55 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
+/// Album art on review cards has loaded: none of the thumbnails on screen is
+/// still loading (spinner) or failed (music note). Album art that went
+/// missing is the bug this guards against (see docs/image-rendering.md).
+///
+/// It can't see art drawn as a black square: re-drawing the page off screen
+/// draws the art fine even when the browser shows black, and real browser
+/// screenshots failed under flutter drive here. test/images/image_loading_guard_test
+/// blocks the cause of that instead.
+Future<void> expectAlbumArtLoaded(WidgetTester tester) async {
+  final thumbs = find.descendant(
+    of: find.byType(ReviewCardWithGenres),
+    matching: find.byType(AppCachedImage),
+  );
+  expect(thumbs, findsWidgets, reason: 'No album art on screen');
+  bool stillLoadingOrFailed() =>
+      find
+          .descendant(
+            of: thumbs,
+            matching: find.byType(CircularProgressIndicator),
+          )
+          .evaluate()
+          .isNotEmpty ||
+      find
+          .descendant(of: thumbs, matching: find.byIcon(Icons.music_note))
+          .evaluate()
+          .isNotEmpty;
+  final end = DateTime.now().add(const Duration(seconds: 20));
+  while (stillLoadingOrFailed()) {
+    if (DateTime.now().isAfter(end)) {
+      throw TestFailure('Album art still loading or failed after 20s');
+    }
+    await tester.pump(const Duration(milliseconds: 200));
+  }
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   // One journey: main() starts Firebase, which can only happen once per run.
-  testWidgets('signed-out journey: feeds, a review, search, a tag, sign-in',
-      (tester) async {
+  testWidgets('signed-out journey: feeds, a review, search, a tag, sign-in', (
+    tester,
+  ) async {
     await app.main();
 
     // ── Home: Popular loads review cards ──────────────────────────────────
     final cards = find.byType(ReviewCardWithGenres);
     await pumpUntilFound(tester, cards);
     expect(find.text('Popular'), findsOneWidget);
+    await expectAlbumArtLoaded(tester);
 
     // ── Friends and For You ask signed-out users to sign in ──────────────
     await tester.tap(find.text('Friends'));
@@ -73,6 +111,8 @@ void main() {
     await goBack(tester, find.text('Play on Spotify'));
     await pumpUntilFound(tester, cards);
     await settle(tester);
+    // Art that loaded before must still be there after coming back.
+    await expectAlbumArtLoaded(tester);
 
     // ── Search finds reviews; a tag pill opens that tag's page ────────────
     await tester.tap(find.byIcon(Icons.search));

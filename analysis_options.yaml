@@ -57,7 +57,6 @@ linter:
     prefer_spread_collections: true
     slash_for_doc_comments: true
     unawaited_futures: true
-    unnecessary_await_in_return: true
     unnecessary_brace_in_string_interps: true
     unnecessary_const: true
     unnecessary_lambdas: true

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
+import 'package:flutter_test_project/ui/widgets/home_feed_controls.dart';
 import 'package:flutter/rendering.dart';
 
 import 'community_reviews.dart';
@@ -7,10 +8,7 @@ import 'friends_reviews.dart';
 import 'recommended_reviews.dart';
 
 class CategoryTapBar extends StatefulWidget {
-  const CategoryTapBar({
-    super.key,
-    this.onChromeVisibilityChanged,
-  });
+  const CategoryTapBar({super.key, this.onChromeVisibilityChanged});
 
   final ValueChanged<bool>? onChromeVisibilityChanged;
 
@@ -44,8 +42,10 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
         labelColor: Colors.white,
         unselectedLabelColor: AppColors.onSurfaceVariant,
         labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        unselectedLabelStyle:
-            const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
         splashFactory: NoSplash.splashFactory,
         overlayColor: WidgetStateProperty.all(Colors.transparent),
         indicatorSize: TabBarIndicatorSize.label,
@@ -99,10 +99,12 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
         return false;
       }
 
-      final sameDirection = _accumulatedScrollDelta == 0.0 ||
+      final sameDirection =
+          _accumulatedScrollDelta == 0.0 ||
           (_accumulatedScrollDelta.isNegative == delta.isNegative);
-      _accumulatedScrollDelta =
-          sameDirection ? (_accumulatedScrollDelta + delta) : delta;
+      _accumulatedScrollDelta = sameDirection
+          ? (_accumulatedScrollDelta + delta)
+          : delta;
 
       if (_accumulatedScrollDelta.abs() >= _scrollToggleThreshold) {
         if (_accumulatedScrollDelta > 0) {
@@ -146,13 +148,20 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
             ClipRect(
               child: TweenAnimationBuilder<double>(
                 duration: _headerTweenDuration,
-                curve:
-                    _isTabBarVisible ? Curves.easeOutCubic : Curves.easeInCubic,
+                curve: _isTabBarVisible
+                    ? Curves.easeOutCubic
+                    : Curves.easeInCubic,
                 tween: Tween<double>(end: _isTabBarVisible ? 1.0 : 0.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildTabBarHeader(),
+                    // Tag filters and sort for all three tabs; hides with
+                    // the tabs while scrolling down.
+                    const Padding(
+                      padding: EdgeInsets.only(top: AppSpacing.md),
+                      child: HomeFeedControls(),
+                    ),
                   ],
                 ),
                 builder: (context, value, child) {
@@ -176,9 +185,9 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                 onNotification: _onScrollNotification,
                 child: const TabBarView(
                   children: [
-                    CommunityReviewsCollection(selectedGenres: {}),
-                    FriendsReviewsCollection(selectedGenres: {}),
-                    RecommendedReviewsCollection(selectedGenres: {}),
+                    CommunityReviewsCollection(),
+                    FriendsReviewsCollection(),
+                    RecommendedReviewsCollection(),
                   ],
                 ),
               ),

@@ -1,12 +1,14 @@
 #!/bin/bash
-# Source this (". scripts/use_pinned_flutter.sh") to put the Flutter version in
-# .flutter-version first on PATH, when it's installed side by side as
-# ~/development/flutter-<version> (this Mac keeps an older Flutter as the
-# default for other projects). Does nothing if that copy isn't there.
+# Source this from the project folder (". scripts/use_pinned_flutter.sh", in
+# bash or zsh) to put the Flutter version in .flutter-version first on PATH.
+# Flutter versions are managed with FVM (~/fvm/versions/<version>); this is a
+# safety net for the scripts in case a shell's PATH has an older Flutter.
 
-_pin="$(tr -d '[:space:]' < "$(dirname "${BASH_SOURCE[0]}")/../.flutter-version")"
-_sdk="$HOME/development/flutter-$_pin"
-if [ -x "$_sdk/bin/flutter" ]; then
-  export PATH="$_sdk/bin:$PATH"
+_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+if [ -f "$_root/.flutter-version" ]; then
+  _sdk="$HOME/fvm/versions/$(tr -d '[:space:]' < "$_root/.flutter-version")"
+  if [ -x "$_sdk/bin/flutter" ]; then
+    export PATH="$_sdk/bin:$PATH"
+  fi
 fi
-unset _pin _sdk
+unset _root _sdk

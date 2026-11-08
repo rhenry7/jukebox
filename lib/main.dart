@@ -78,10 +78,10 @@ Future<void> main() async {
     // Show a user-friendly error screen on all platforms.
     final String hint = kIsWeb
         ? 'Use ./scripts/flutter_with_env.sh run -d chrome, or pass '
-            '--dart-define-from-file=.env manually. For deploy, use ./deploy.sh.'
+              '--dart-define-from-file=.env manually. For deploy, use ./deploy.sh.'
         : 'Firebase failed to initialise. Check your google-services.json '
-            '(Android) or GoogleService-Info.plist (iOS) and ensure Firebase '
-            'is configured correctly.\n\nError: $e';
+              '(Android) or GoogleService-Info.plist (iOS) and ensure Firebase '
+              'is configured correctly.\n\nError: $e';
     runApp(
       MaterialApp(
         title: 'REVERB',
@@ -122,8 +122,9 @@ Future<void> main() async {
     // repeat visit reads from the device first. Native apps already do this.
     // Must run before anything else touches Firestore.
     try {
-      FirebaseFirestore.instance.settings =
-          const Settings(persistenceEnabled: true);
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+      );
     } catch (e) {
       debugPrint('Firestore web cache unavailable: $e');
     }
@@ -136,14 +137,11 @@ Future<void> main() async {
   // No need to explicitly set persistence - it's handled automatically
   if (kIsWeb) {
     debugPrint(
-        '🌐 Web platform detected - auth state will persist in localStorage');
+      '🌐 Web platform detected - auth state will persist in localStorage',
+    );
   }
 
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 void _debugLogApiConfiguration() {
@@ -212,7 +210,8 @@ class MyApp extends ConsumerWidget {
       theme: ThemeData(
         fontFamily: AppFonts.body,
         colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromRGBO(214, 40, 40, 80)),
+          seedColor: const Color.fromRGBO(214, 40, 40, 80),
+        ),
         useMaterial3: true,
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
@@ -239,8 +238,11 @@ class MyApp extends ConsumerWidget {
       ),
       // Phone-width on desktop (the app is mobile-first), and installed
       // copies pick up new deploys.
-      builder: (context, child) =>
-          MobileFrame(child: AppUpdateWatcher(child: child!)),
+      // BackdropGroup: blurs that use BackdropFilter.grouped (tag pills)
+      // share one capture of the screen behind them instead of one each.
+      builder: (context, child) => BackdropGroup(
+        child: MobileFrame(child: AppUpdateWatcher(child: child!)),
+      ),
       home: const MainNav(title: 'REVERB'),
     );
   }

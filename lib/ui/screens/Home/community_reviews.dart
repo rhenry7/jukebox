@@ -1,27 +1,25 @@
 import 'dart:math' as math;
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../models/review.dart';
 import '../../../providers/community_reviews_provider.dart';
+import '../../../providers/home_feed_controls.dart';
 import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../../../routing/MainNavigation.dart';
+
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
+import 'package:flutter_test_project/ui/widgets/home_feed_controls.dart'
+    show NoTagMatches;
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 import 'package:flutter_test_project/ui/widgets/review_options.dart';
 
 /// Popular tab: community reviews with real text and album art, in a fresh
 /// random order each time the tab is shown (or pulled to refresh), revealed
-/// a page at a time.
+/// a page at a time. The Home row's tag filter switches it to reviews with
+/// those tags (through the tag index), and its sort reorders either list.
 class CommunityReviewsCollection extends ConsumerStatefulWidget {
-  const CommunityReviewsCollection({
-    super.key,
-    this.selectedGenres = const <String>{},
-  });
-
-  final Set<String> selectedGenres;
+  const CommunityReviewsCollection({super.key});
 
   @override
   ConsumerState<CommunityReviewsCollection> createState() =>
@@ -31,9 +29,6 @@ class CommunityReviewsCollection extends ConsumerStatefulWidget {
 class _CommunityReviewsCollectionState
     extends ConsumerState<CommunityReviewsCollection> {
   static const int _pageSize = 20;
-
-  Future<List<ReviewWithDocId>>? _genreFilteredFuture;
-  String _genreRequestKey = '';
 
   /// Picks the random order. A new one each time this tab is built (the
   /// TabBarView rebuilds it whenever the tab is selected) and on refresh.
@@ -67,50 +62,46 @@ class _CommunityReviewsCollectionState
 
   @override
   Widget build(BuildContext context) {
-    final reviewsAsync = ref.watch(communityReviewsProvider);
+    final tags = ref.watch(homeTagFilterProvider);
+    final sort = ref.watch(homeSortProvider);
+    // A new filter or sort starts the list again from its first page.
+    ref.listen(homeTagFilterProvider, (_, __) => _resetPaging());
+    ref.listen(homeSortProvider, (_, __) => _resetPaging());
 
-    if (widget.selectedGenres.isNotEmpty) {
-      _ensureGenreFilteredFuture();
-
-      return FutureBuilder<List<ReviewWithDocId>>(
-        future: _genreFilteredFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const ReviewFeedSkeleton();
-          }
-
-          if (snapshot.hasError) {
-            debugPrint(
-                '❌ Error loading full community genre query: ${snapshot.error}');
-            return AppErrorState(
-              title: 'Error loading community reviews',
-              error: snapshot.error,
-              onRetry: _refreshGenreFilteredFuture,
-            );
-          }
-
-          final filteredReviews = snapshot.data ?? <ReviewWithDocId>[];
-          if (filteredReviews.isEmpty) {
-            final selectedLabels = widget.selectedGenres.join(', ');
-            return AppEmptyState(
-              icon: Icons.tune,
-              title: 'No reviews for selected genres',
-              message: selectedLabels.isEmpty
-                  ? 'Try choosing a different genre filter.'
-                  : 'Try adjusting: $selectedLabels',
-            );
-          }
-
-          return ReviewFeed(
-            storageKey: 'community_genre_reviews_list',
-            reviews: filteredReviews,
-            onRefresh: _refreshGenreFilteredFuture,
-            itemWrapper: _withReviewOptions,
+    if (tags.isNotEmpty) {
+      final key = tagFilterKey(tags);
+      return ref
+          .watch(popularTagFilterProvider(key))
+          .when(
+            skipLoadingOnReload: true,
+            data: (reviews) {
+              if (reviews.isEmpty) return const NoTagMatches();
+              return _feed(
+                'community_filtered_list',
+                applyHomeSort(reviews, sort, (r) => r.review),
+                onRefresh: () async {
+                  ref.invalidate(popularTagFilterProvider(key));
+                  try {
+                    await ref.read(popularTagFilterProvider(key).future);
+                  } catch (_) {
+                    // The tab shows the error state with its own Retry.
+                  }
+                },
+              );
+            },
+            loading: () => const ReviewFeedSkeleton(),
+            error: (error, _) {
+              debugPrint('Error filtering Popular by tags: $error');
+              return AppErrorState(
+                title: 'Error loading reviews for these tags',
+                error: error,
+                onRetry: () => ref.invalidate(popularTagFilterProvider(key)),
+              );
+            },
           );
-        },
-      );
     }
 
+    final reviewsAsync = ref.watch(communityReviewsProvider);
     return reviewsAsync.when(
       data: (reviews) {
         if (reviews.isEmpty) {
@@ -122,9 +113,9 @@ class _CommunityReviewsCollectionState
               label: 'Write a review',
               icon: Icons.add,
               onPressed: () {
-                context
-                    .findAncestorStateOfType<MainNavState>()
-                    ?.navigateToTab(MainNavState.addTab);
+                context.findAncestorStateOfType<MainNavState>()?.navigateToTab(
+                  MainNavState.addTab,
+                );
               },
             ),
           );
@@ -132,13 +123,10 @@ class _CommunityReviewsCollectionState
 
         final shuffled = keepPlacedOrder(reviews, _placedIds, _shuffleSeed);
         _placedIds = [for (final r in shuffled) r.fullReviewId ?? r.docId];
-        return ReviewFeed(
-          storageKey: 'community_reviews_list',
-          reviews: shuffled.take(_visibleCount).toList(),
-          hasMore: shuffled.length > _visibleCount,
-          onLoadMore: _loadMore,
+        return _feed(
+          'community_reviews_list',
+          applyHomeSort(shuffled, sort, (r) => r.review),
           onRefresh: _reshuffle,
-          itemWrapper: _withReviewOptions,
         );
       },
       loading: () => const ReviewFeedSkeleton(),
@@ -153,98 +141,32 @@ class _CommunityReviewsCollectionState
     );
   }
 
+  void _resetPaging() {
+    if (mounted) setState(() => _visibleCount = _pageSize);
+  }
+
+  Widget _feed(
+    String storageKey,
+    List<ReviewWithDocId> reviews, {
+    required Future<void> Function() onRefresh,
+  }) {
+    return ReviewFeed(
+      storageKey: storageKey,
+      reviews: reviews.take(_visibleCount).toList(),
+      hasMore: reviews.length > _visibleCount,
+      onLoadMore: _loadMore,
+      onRefresh: onRefresh,
+      itemWrapper: _withReviewOptions,
+    );
+  }
+
   Widget _withReviewOptions(
-          BuildContext context, ReviewWithDocId review, Widget card) =>
-      OwnReviewOptions(
-        review: review,
-        onDeleted: () => ref.invalidate(communityReviewsProvider),
-        child: card,
-      );
-
-  void _ensureGenreFilteredFuture() {
-    final key = _genresKey(widget.selectedGenres);
-    if (_genreRequestKey == key && _genreFilteredFuture != null) {
-      return;
-    }
-    _genreRequestKey = key;
-    _genreFilteredFuture = _fetchFullCommunityGenreFilteredReviews(
-      widget.selectedGenres,
-    );
-  }
-
-  Future<void> _refreshGenreFilteredFuture() async {
-    setState(() {
-      _genreRequestKey = '';
-      _genreFilteredFuture = _fetchFullCommunityGenreFilteredReviews(
-        widget.selectedGenres,
-      );
-    });
-    await _genreFilteredFuture;
-  }
-
-  String _genresKey(Set<String> selectedGenres) {
-    final sorted = selectedGenres.toList()..sort();
-    return sorted.join('|');
-  }
-
-  Future<List<ReviewWithDocId>> _fetchFullCommunityGenreFilteredReviews(
-    Set<String> selectedGenres,
-  ) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collectionGroup('reviews')
-        .orderBy('date', descending: true)
-        .get();
-
-    final reviews = <ReviewWithDocId>[];
-    for (final doc in snapshot.docs) {
-      try {
-        final review = Review.fromFirestore(doc.data());
-        reviews.add(
-          ReviewWithDocId(
-            review: review,
-            docId: doc.id,
-            fullReviewId: doc.reference.path,
-          ),
-        );
-      } catch (e) {
-        debugPrint('[COMMUNITY] Error parsing full-query review ${doc.id}: $e');
-      }
-    }
-
-    return shuffleReviews(
-      _filterReviewsByGenres(
-        reviews.where((r) => isPopularEligible(r.review)).toList(),
-        selectedGenres,
-      ),
-      _shuffleSeed,
-    );
-  }
-
-  List<ReviewWithDocId> _filterReviewsByGenres(
-    List<ReviewWithDocId> reviews,
-    Set<String> selectedGenres,
-  ) {
-    if (selectedGenres.isEmpty) return reviews;
-
-    return reviews.where((reviewWithDocId) {
-      final reviewGenres = reviewWithDocId.review.genres;
-      if (reviewGenres == null || reviewGenres.isEmpty) return false;
-
-      final normalizedReviewGenres = reviewGenres
-          .map((genre) => genre.toLowerCase().trim())
-          .where((genre) => genre.isNotEmpty)
-          .toList();
-
-      for (final selected in selectedGenres) {
-        for (final reviewGenre in normalizedReviewGenres) {
-          if (reviewGenre == selected ||
-              reviewGenre.contains(selected) ||
-              selected.contains(reviewGenre)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }).toList();
-  }
+    BuildContext context,
+    ReviewWithDocId review,
+    Widget card,
+  ) => OwnReviewOptions(
+    review: review,
+    onDeleted: () => ref.invalidate(communityReviewsProvider),
+    child: card,
+  );
 }

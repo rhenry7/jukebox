@@ -1,27 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../models/review.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
+import '../../../providers/home_feed_controls.dart';
 import '../../../providers/recommended_reviews_provider.dart';
-import '../../../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../../../services/review_recommendation_service.dart';
 import '../Profile/helpers/profileHelpers.dart' show openSignIn;
 import '../../../routing/MainNavigation.dart';
+
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
+import 'package:flutter_test_project/ui/widgets/home_feed_controls.dart'
+    show NoTagMatches;
 import 'package:flutter_test_project/ui/widgets/reason_label.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 
 /// "For You" tab — shows NLP-recommended community reviews
 /// personalized to the user's taste profile.
 class RecommendedReviewsCollection extends ConsumerStatefulWidget {
-  const RecommendedReviewsCollection({
-    super.key,
-    this.selectedGenres = const <String>{},
-  });
-
-  final Set<String> selectedGenres;
+  const RecommendedReviewsCollection({super.key});
 
   @override
   ConsumerState<RecommendedReviewsCollection> createState() =>
@@ -31,8 +27,6 @@ class RecommendedReviewsCollection extends ConsumerStatefulWidget {
 class _RecommendedReviewsCollectionState
     extends ConsumerState<RecommendedReviewsCollection> {
   bool _isRefreshingRecommendations = false;
-  Future<List<ScoredReview>>? _genreFilteredFuture;
-  String _genreRequestKey = '';
 
   // Tab-focus tracking — detects when the For You tab (index 2) is selected.
   TabController? _tabController;
@@ -104,8 +98,7 @@ class _RecommendedReviewsCollectionState
       return AppEmptyState(
         icon: Icons.person_off,
         title: 'Sign In Required',
-        message:
-            'Sign in to get personalized review recommendations based on your taste!',
+        message: 'Sign in to get personalized review recommendations based on your taste!',
         action: AppStateAction(
           label: 'Sign In!',
           icon: Icons.login,
@@ -116,52 +109,17 @@ class _RecommendedReviewsCollectionState
       );
     }
 
-    if (widget.selectedGenres.isNotEmpty) {
-      _ensureGenreFilteredFuture(userId);
-
-      return FutureBuilder<List<ScoredReview>>(
-        future: _genreFilteredFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const ReviewFeedSkeleton();
-          }
-
-          if (snapshot.hasError) {
-            debugPrint('[FOR_YOU] Genre full-query error: ${snapshot.error}');
-            return AppErrorState(
-              title: 'Error loading recommendations',
-              error: snapshot.error,
-              onRetry: () => _refreshGenreFilteredFuture(userId),
-            );
-          }
-
-          final allGenreMatchedReviews =
-              snapshot.data ?? const <ScoredReview>[];
-          if (allGenreMatchedReviews.isEmpty) {
-            return _noGenreMatches();
-          }
-
-          return _feed(
-            storageKey: 'recommended_genre_reviews_list',
-            scored: allGenreMatchedReviews,
-            displayLimit: displayLimit,
-            onRefresh: () async {
-              ref.read(recommendedReviewsDisplayLimitProvider.notifier).state =
-                  10;
-              await _refreshGenreFilteredFuture(userId);
-            },
-          );
-        },
-      );
-    }
+    final tags = ref.watch(homeTagFilterProvider);
+    final sort = ref.watch(homeSortProvider);
+    // Filtering or sorting needs the whole list, not just the loaded page.
+    final narrowing = tags.isNotEmpty || sort != HomeSort.standard;
+    ref.listen(homeTagFilterProvider, (_, __) => _backToFirstPage());
+    ref.listen(homeSortProvider, (_, __) => _backToFirstPage());
 
     return recommendedAsync.when(
       // "Load more" re-runs the provider; keep the cards on screen meanwhile.
       skipLoadingOnReload: true,
       data: (feed) {
-        final filteredByGenre =
-            _filterScoredReviewsByGenres(feed.loaded, widget.selectedGenres);
-
         if (feed.total == 0) {
           return AppEmptyState(
             icon: Icons.auto_awesome,
@@ -171,23 +129,50 @@ class _RecommendedReviewsCollectionState
               label: 'Write a review',
               icon: Icons.add,
               onPressed: () {
-                context
-                    .findAncestorStateOfType<MainNavState>()
-                    ?.navigateToTab(MainNavState.addTab);
+                context.findAncestorStateOfType<MainNavState>()?.navigateToTab(
+                  MainNavState.addTab,
+                );
               },
             ),
           );
         }
 
-        if (filteredByGenre.isEmpty) {
-          return _noGenreMatches();
+        if (!narrowing) {
+          return _feed(
+            storageKey: 'recommended_reviews_list',
+            scored: feed.loaded,
+            total: feed.total,
+            displayLimit: displayLimit,
+            onRefresh: _fetchNewRecommendations,
+          );
         }
 
+        if (displayLimit < feed.total) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ref.read(recommendedReviewsDisplayLimitProvider.notifier).state =
+                  feed.total;
+            }
+          });
+        }
+        final allLoaded =
+            feed.loaded.length >= feed.total ||
+            !recommendedAsync.isLoading && displayLimit >= feed.total;
+        final shown = applyHomeSort(
+          [
+            for (final s in feed.loaded)
+              if (matchesTagFilter(s.reviewWithDocId.review, tags)) s,
+          ],
+          sort,
+          (s) => s.reviewWithDocId.review,
+        );
+        if (shown.isEmpty) {
+          return allLoaded ? const NoTagMatches() : const ReviewFeedSkeleton();
+        }
         return _feed(
-          storageKey: 'recommended_reviews_list',
-          scored: filteredByGenre,
-          total: feed.total,
-          displayLimit: displayLimit,
+          storageKey: 'recommended_filtered_list',
+          scored: shown,
+          displayLimit: shown.length,
           onRefresh: _fetchNewRecommendations,
         );
       },
@@ -201,6 +186,16 @@ class _RecommendedReviewsCollectionState
         );
       },
     );
+  }
+
+  /// A new filter or sort starts from the top; clearing both goes back to
+  /// loading a page at a time.
+  void _backToFirstPage() {
+    final tags = ref.read(homeTagFilterProvider);
+    final sort = ref.read(homeSortProvider);
+    if (tags.isEmpty && sort == HomeSort.standard) {
+      ref.read(recommendedReviewsDisplayLimitProvider.notifier).state = 5;
+    }
   }
 
   /// Shows the first [displayLimit] of [scored]; scrolling raises the limit.
@@ -228,109 +223,5 @@ class _RecommendedReviewsCollectionState
       itemWrapper: (context, review, card) =>
           WithReason(reason: reasons[review.fullReviewId], child: card),
     );
-  }
-
-  Widget _noGenreMatches() {
-    final selectedLabels = widget.selectedGenres.join(', ');
-    return AppEmptyState(
-      icon: Icons.tune,
-      title: 'No recommendations for selected genres',
-      message: selectedLabels.isEmpty
-          ? 'Try choosing a different genre filter.'
-          : 'Try adjusting: $selectedLabels',
-    );
-  }
-
-  List<ScoredReview> _filterScoredReviewsByGenres(
-    List<ScoredReview> reviews,
-    Set<String> selectedGenres,
-  ) {
-    if (selectedGenres.isEmpty) return reviews;
-
-    return reviews.where((scoredReview) {
-      final reviewGenres = scoredReview.reviewWithDocId.review.genres;
-      if (reviewGenres == null || reviewGenres.isEmpty) return false;
-
-      final normalizedReviewGenres = reviewGenres
-          .map((genre) => genre.toLowerCase().trim())
-          .where((genre) => genre.isNotEmpty)
-          .toList();
-
-      for (final selected in selectedGenres) {
-        for (final reviewGenre in normalizedReviewGenres) {
-          if (reviewGenre == selected ||
-              reviewGenre.contains(selected) ||
-              selected.contains(reviewGenre)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }).toList();
-  }
-
-  void _ensureGenreFilteredFuture(String userId) {
-    final key = '$userId|${_genresKey(widget.selectedGenres)}';
-    if (_genreRequestKey == key && _genreFilteredFuture != null) {
-      return;
-    }
-    _genreRequestKey = key;
-    _genreFilteredFuture = _fetchFullGenreMatchedRecommendations(
-      userId,
-      widget.selectedGenres,
-    );
-  }
-
-  Future<void> _refreshGenreFilteredFuture(String userId) async {
-    setState(() {
-      _genreRequestKey = '';
-      _genreFilteredFuture = _fetchFullGenreMatchedRecommendations(
-        userId,
-        widget.selectedGenres,
-      );
-    });
-    await _genreFilteredFuture;
-  }
-
-  String _genresKey(Set<String> selectedGenres) {
-    final sorted = selectedGenres.toList()..sort();
-    return sorted.join('|');
-  }
-
-  Future<List<ScoredReview>> _fetchFullGenreMatchedRecommendations(
-    String userId,
-    Set<String> selectedGenres,
-  ) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collectionGroup('reviews')
-        .orderBy('date', descending: true)
-        .limit(400)
-        .get();
-
-    final allReviews = <ReviewWithDocId>[];
-    for (final doc in snapshot.docs) {
-      try {
-        final review = Review.fromFirestore(doc.data());
-        if (review.userId == userId) {
-          continue;
-        }
-        allReviews.add(
-          ReviewWithDocId(
-            review: review,
-            docId: doc.id,
-            fullReviewId: doc.reference.path,
-          ),
-        );
-      } catch (e) {
-        debugPrint('[FOR_YOU] Error parsing full-query review ${doc.id}: $e');
-      }
-    }
-
-    final scored = allReviews
-        .map(
-            (reviewWithDocId) => ScoredReview(reviewWithDocId: reviewWithDocId))
-        .toList();
-
-    return _filterScoredReviewsByGenres(scored, selectedGenres);
   }
 }

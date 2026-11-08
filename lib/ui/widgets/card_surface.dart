@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
@@ -87,28 +88,45 @@ class _AlbumArtBackdrop extends StatelessWidget {
   static const double _sheenFar = 0.02;
 
   Widget _blurredArt() => Image(
-        image: ResizeImage(
-          // Flutter's NetworkImage decodes the bytes itself, so the resize
-          // applies on web too. (CachedNetworkImage hands web images to an
-          // HTML <img>, which ignores it and draws the art sharp.)
-          NetworkImage(imageUrl),
-          width: _blurSourceWidth,
-          policy: ResizeImagePolicy.fit,
-        ),
-        fit: BoxFit.cover,
-        // Smooth (bicubic) upscaling is what turns the tiny image into a blur.
-        filterQuality: FilterQuality.high,
-        gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-      );
+    image: ResizeImage(
+      // Flutter's NetworkImage decodes the bytes itself, so the resize
+      // applies on web too.
+      NetworkImage(imageUrl),
+      width: _blurSourceWidth,
+      policy: ResizeImagePolicy.fit,
+    ),
+    fit: BoxFit.cover,
+    // Smooth (bicubic) upscaling is what turns the tiny image into a blur.
+    filterQuality: FilterQuality.high,
+    gaplessPlayback: true,
+    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+  );
 
-  Widget _art() => CachedNetworkImage(
-        imageUrl: imageUrl,
-        fit: BoxFit.cover,
-        // While loading or on error, the plain card surface shows through.
-        placeholder: (_, __) => const SizedBox.shrink(),
-        errorWidget: (_, __, ___) => const SizedBox.shrink(),
-      );
+  /// The faint sharp layer. On the web, Flutter's own loader (see
+  /// AppCachedImage for why not cached_network_image there), decoded at a
+  /// card's width since it's only a texture.
+  Widget _art() => kIsWeb
+      ? Image(
+          image: ResizeImage(
+            NetworkImage(imageUrl),
+            width: _sharpSourceWidth,
+            policy: ResizeImagePolicy.fit,
+          ),
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          // While loading or on error, the plain card surface shows through.
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        )
+      : CachedNetworkImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.cover,
+          // While loading or on error, the plain card surface shows through.
+          placeholder: (_, __) => const SizedBox.shrink(),
+          errorWidget: (_, __, ___) => const SizedBox.shrink(),
+        );
+
+  /// Decode width of the faint sharp layer on the web: about a card's width.
+  static const int _sharpSourceWidth = 480;
 
   @override
   Widget build(BuildContext context) {
@@ -139,10 +157,12 @@ class _AlbumArtBackdrop extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   AppColors.surfaceContainerLowest.withValues(alpha: _scrimTop),
-                  AppColors.surfaceContainerLowest
-                      .withValues(alpha: _scrimMiddle),
-                  AppColors.surfaceContainerLowest
-                      .withValues(alpha: _scrimBottom),
+                  AppColors.surfaceContainerLowest.withValues(
+                    alpha: _scrimMiddle,
+                  ),
+                  AppColors.surfaceContainerLowest.withValues(
+                    alpha: _scrimBottom,
+                  ),
                 ],
               ),
             ),

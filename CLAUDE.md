@@ -3,6 +3,9 @@ Design System
 - For the design system reference the design_system.md file in the project root
 
 
+## Images: read docs/image-rendering.md before touching any image code
+Album art is everywhere in this app, and a black or missing cover reads as a broken app. Show network images with `AppCachedImage` (`lib/utils/cached_image.dart`); card backgrounds come from `CardSurface`. **Never use `CachedNetworkImage` on the web**: its web path left album art black or missing, especially after leaving a page and coming back. `test/images/image_loading_guard_test.dart` blocks the cause; the end-to-end check in `integration_test/app_test.dart` catches art that never loads but can't see black squares. Whenever image code changes, run both and check images in a real browser (load, scroll, open a review, go back).
+
 ## Shared Widgets
 
 ### Review Card
@@ -41,6 +44,8 @@ lib/ui/widgets/review_feed.dart
 - `ReviewFeed` — owns page gutter, card gap, top/bottom spacing (incl. floating-dock clearance), pull-to-refresh, infinite scroll and the loading footer. Screens pass only `reviews`, `onRefresh`, optional `onLoadMore`/`hasMore`, a `storageKey`, a `layout` (`tab` or `pushed`) and an optional `itemWrapper` (e.g. Dismissible — must not add padding).
 - `ReviewFeedSkeleton` — the loading state, same spacing as the feed.
 - Your own review cards swipe left (or long-press) to open the glass edit / delete options: wrap the card in `OwnReviewOptions` (`lib/ui/widgets/review_options.dart`), which does nothing for other people's reviews. Used by Popular (as the `itemWrapper`) and Profile → Reviews.
+- Under the Home tabs, `HomeFeedControls` (`lib/ui/widgets/home_feed_controls.dart`) is a swipeable carousel of tags plus a sort button. Its state (`homeTagFilterProvider`, `homeSortProvider` in `lib/providers/home_feed_controls.dart`) applies to all three tabs: a tag filter keeps reviews with any picked tag (`matchesTagFilter`, normalized tags), and the sort (`applyHomeSort`) reorders. Popular filters through the tag index (`popularTagFilterProvider`), Friends filters its loaded list, and For You loads its whole list while a filter or sort is on. Tags come from the Popular pool (`homeTagChoicesProvider`), shuffled once per session.
+- Tag pills everywhere are `GlassPill` (in `genre_pills.dart`): frosted glass using `BackdropFilter.grouped`, which shares one background capture through the `BackdropGroup` in `main.dart`.
 - Tapping Home while already on Home calls `ReviewFeed.scrollToTopAndRefresh()`: the `tab`-layout feed on screen scrolls to the top and runs its `onRefresh`.
 
 Empty / error / loading-more states come from `lib/ui/widgets/app_states.dart` (`AppEmptyState`, `AppErrorState`, `AppLoadingFooter`).
@@ -111,9 +116,9 @@ The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild o
 - `flutter analyze` must report no issues: CI fails on any, including infos, and then skips the tests.
 
 ### Flutter version
-Pinned in `.flutter-version` (3.47.9); CI and `deploy.sh` check it. On this Mac it's installed beside the older default Flutter as `~/development/flutter-3.47.9`, and the project scripts put it first on PATH (`scripts/use_pinned_flutter.sh`); VS Code uses it via `.vscode/settings.json`. In a terminal, run `. scripts/use_pinned_flutter.sh` before plain `flutter` commands.
+Flutter is managed with FVM. The version is pinned in `.fvmrc` and `.flutter-version` (3.47.9; keep them the same), and CI and `deploy.sh` check it. `fvm global 3.47.9` makes it the default (`~/fvm/default/bin` is first on PATH in `~/.zshrc`; VS Code and Cursor use it too). `pubspec.yaml` requires Flutter 3.47+, so an older Flutter stops at `pub get` with a clear error. To change version: `fvm use <version>`, update `.flutter-version`, and `fvm global <version>`.
 
-The Dart MCP server (`.mcp.json`, `dart mcp-server` from that SDK) lets Claude inspect a running debug app: widget tree, runtime errors, hot reload.
+The Dart MCP server (`.mcp.json`, `dart mcp-server` from FVM's 3.47.9) lets Claude inspect a running debug app: widget tree, runtime errors, hot reload.
 
 ### Web updates (installed PWA)
 Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Browsers that still run the caching service worker from older deploys can't reach that code, so deploys also publish `scripts/legacy_sw_cleanup.js` as `flutter_service_worker.js`, which removes the old worker and its caches. Any new web deploy path must stamp the build id and copy that file the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.
