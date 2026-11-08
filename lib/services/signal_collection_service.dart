@@ -39,45 +39,6 @@ class SignalCollectionService {
 
   // ─── Public API (fire-and-forget) ────────────────────────────
 
-  /// Log a recommendation click signal.
-  static void logRecClick({
-    required String artist,
-    required String track,
-    List<String> genres = const [],
-    String sourceContext = 'discovery_tab',
-    String recommendationSource = '',
-    int positionInList = -1,
-  }) {
-    _enqueue({
-      'type': recClick,
-      'targetArtist': artist,
-      'targetTrack': track,
-      'targetGenres': genres,
-      'sourceContext': sourceContext,
-      'metadata': {
-        'recommendationSource': recommendationSource,
-        'positionInList': positionInList,
-      },
-    });
-  }
-
-  /// Log a recommendation dismissal / dislike signal.
-  static void logRecDismiss({
-    required String artist,
-    required String track,
-    List<String> genres = const [],
-    String sourceContext = 'discovery_tab',
-  }) {
-    _enqueue({
-      'type': recDismiss,
-      'targetArtist': artist,
-      'targetTrack': track,
-      'targetGenres': genres,
-      'sourceContext': sourceContext,
-      'metadata': {},
-    });
-  }
-
   /// Log a search query signal (call after debounce, only for final queries).
   static void logSearchQuery({
     required String query,
@@ -117,56 +78,7 @@ class SignalCollectionService {
     });
   }
 
-  /// Log a track/album view signal (e.g. opening a review sheet for a track).
-  static void logTrackView({
-    required String artist,
-    required String track,
-    List<String> genres = const [],
-    String sourceContext = 'community_feed',
-  }) {
-    _enqueue({
-      'type': trackView,
-      'targetArtist': artist,
-      'targetTrack': track,
-      'targetGenres': genres,
-      'sourceContext': sourceContext,
-      'metadata': {},
-    });
-  }
-
   // ─── Signal retrieval (for scoring) ──────────────────────────
-
-  /// Fetch recent signals for the current user (up to [limit]).
-  static Future<List<UserSignal>> getRecentSignals({int limit = 200}) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return [];
-
-    try {
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('signals')
-          .orderBy('timestamp', descending: true)
-          .limit(limit)
-          .get();
-
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return UserSignal(
-          type: data['type'] as String? ?? '',
-          targetArtist: data['targetArtist'] as String? ?? '',
-          targetTrack: data['targetTrack'] as String? ?? '',
-          targetGenres: List<String>.from(data['targetGenres'] ?? []),
-          sourceContext: data['sourceContext'] as String? ?? '',
-          timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
-        );
-      }).toList();
-    } catch (e) {
-      debugPrint('[SIGNALS] Error fetching signals: $e');
-      return [];
-    }
-  }
 
   // ─── Internal batching logic ─────────────────────────────────
 
@@ -216,10 +128,6 @@ class SignalCollectionService {
     });
   }
 
-  /// Force flush any remaining buffered signals (call on app pause/dispose).
-  static void forceFlush() {
-    if (_buffer.isNotEmpty) _flush();
-  }
 }
 
 /// A parsed user signal from Firestore.

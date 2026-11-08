@@ -11,62 +11,16 @@ import 'package:flutter_test_project/ui/screens/Profile/delete_account_screen.da
 import 'package:flutter_test_project/ui/screens/Profile/legal_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/notifications_page.dart';
 import 'package:flutter_test_project/ui/screens/Profile/profilePage.dart';
-import 'package:flutter_test_project/ui/screens/Profile/user_profile_summary.dart';
 import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
-import 'package:flutter_test_project/ui/screens/feed/comments.dart';
 import 'package:flutter_test_project/ui/screens/onboarding/onboarding_flow.dart';
 
-Future<Map<String, dynamic>> getCurrentUser() async {
-  final User? user = FirebaseAuth.instance.currentUser;
-
-  if (user != null) {
-    try {
-      final documentSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (documentSnapshot.exists) {
-        final Map<String, dynamic> userData = documentSnapshot.data()!;
-        debugPrint('User data: $userData');
-        return userData; // Return the user data
-        // Access specific data: userData['fieldName']
-      } else {
-        debugPrint('User document does not exist.');
-      }
-    } catch (e) {
-      debugPrint('Error getting user data: $e');
-    }
-  } else {
-    debugPrint('No user is signed in.');
-  }
-  throw Exception('Failed to get user data.');
-}
-
-Widget profileRoute(String route) {
-  final FirebaseAuth auth = FirebaseAuth.instance;
-  debugPrint(route);
-  debugPrint(auth.currentUser?.email ?? '');
-  switch (route) {
-    case 'Reviews':
-      return const CommentWidget();
-    case 'Notifications':
-      return const NotificationsPage();
-    case 'Legal':
-      return const LegalScreen();
-    case 'Delete Account':
-      return const DeleteAccountScreen();
-    default:
-      final user = auth.currentUser;
-      if (user != null) {
-        debugPrint('user signed in');
-        return const UserProfileSummary();
-      } else {
-        debugPrint('no user — showing sign-in');
-        return const SignInScreen();
-      }
-  }
-}
+/// The side-menu pages (see the `ProfileButton`s in `MainNavigation`).
+Widget profileRoute(String route) => switch (route) {
+      'Notifications' => const NotificationsPage(),
+      'Legal' => const LegalScreen(),
+      'Delete Account' => const DeleteAccountScreen(),
+      _ => throw ArgumentError.value(route, 'route', 'No such menu page'),
+    };
 
 /// Signs out of Firebase (and Google on mobile, so the next Google sign-in
 /// asks which account), and stops the demo account signing back in.
@@ -81,11 +35,6 @@ Future<void> signOut() async {
   }
   await FirebaseAuth.instance.signOut();
   debugPrint('user signed out');
-}
-
-/// Returns true only if there is a signed-in user.
-bool isRealUserSignedIn() {
-  return FirebaseAuth.instance.currentUser != null;
 }
 
 /// A reactive gate that shows [ProfilePage] for signed-in users and

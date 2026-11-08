@@ -33,32 +33,6 @@ class ForYouEntry {
 class ForYouService {
   static FirebaseFunctions get _functions => FirebaseFunctions.instance;
 
-  /// Reviews by other people the user will probably like, based on the review
-  /// they just wrote. Returns an empty list on any failure.
-  static Future<List<ReviewMatch>> matchesForReview(String reviewPath) async {
-    try {
-      final result = await _functions
-          .httpsCallable(
-        'analyzeAndMatch',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
-      )
-          .call<Map<String, dynamic>>({'reviewPath': reviewPath});
-      final matches = (result.data['matches'] as List?) ?? const [];
-      final reasons = <String, String>{
-        for (final m in matches.cast<Map>())
-          m['reviewPath'] as String: (m['reason'] as String?) ?? '',
-      };
-      final reviews = await fetchReviews(reasons.keys.toList());
-      return [
-        for (final r in reviews)
-          ReviewMatch(review: r, reason: reasons[r.fullReviewId] ?? ''),
-      ];
-    } catch (e) {
-      debugPrint('[FOR_YOU] analyzeAndMatch failed: $e');
-      return const [];
-    }
-  }
-
   /// Asks the server to rebuild the cached list (pull-to-refresh). Returns
   /// false if the function isn't reachable, so callers can fall back.
   static Future<bool> refresh() async {

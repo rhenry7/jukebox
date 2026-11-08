@@ -114,7 +114,7 @@ class RepostService {
     );
     await batch.commit();
 
-    debugPrint('[REPOST] ${reposterUserId} reposted $originalReviewId');
+    debugPrint('[REPOST] $reposterUserId reposted $originalReviewId');
     await ActivityService().recordRepost(reposterUserId, originalReviewId);
 
     // 3. Notify original author (non-fatal)
@@ -163,7 +163,7 @@ class RepostService {
     );
 
     await batch.commit();
-    debugPrint('[REPOST] ${reposterUserId} un-reposted $originalReviewId');
+    debugPrint('[REPOST] $reposterUserId un-reposted $originalReviewId');
     await ActivityService().removeRepost(reposterUserId, originalReviewId);
   }
 }

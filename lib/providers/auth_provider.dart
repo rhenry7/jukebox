@@ -18,17 +18,6 @@ final currentUserIdProvider = Provider<String?>((ref) {
   return user?.uid;
 });
 
-/// Check if user is authenticated
-final isAuthenticatedProvider = Provider<bool>((ref) {
-  final authState = ref.watch(authStateProvider);
-  return authState.value != null;
-});
-
-/// Firebase Auth instance provider (for dependency injection)
-final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
-  return FirebaseAuth.instance;
-});
-
 /// True when no user is signed in (anonymous auth is disabled).
 final isAnonymousUserProvider = Provider<bool>((ref) {
   final user = ref.watch(currentUserProvider);

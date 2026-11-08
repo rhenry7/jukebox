@@ -64,51 +64,8 @@ Stream<List<ReviewWithDocId>> _reviewsStream(String userId) {
           .toList());
 }
 
-/// Review count for current user
-final reviewCountProvider = Provider<int>((ref) {
-  final reviewsAsync = ref.watch(userReviewsProvider);
-  return reviewsAsync.value?.length ?? 0;
-});
-
-/// Get reviews for a specific user (by userId)
-final userReviewsByIdProvider =
-    StreamProvider.autoDispose.family<List<Review>, String>((ref, userId) {
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('reviews')
-      .orderBy('date', descending: true)
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) {
-            try {
-              return Review.fromFirestore(doc.data());
-            } catch (e) {
-              debugPrint('Error parsing review ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((review) => review != null)
-          .cast<Review>()
-          .toList());
-});
-
 /// Firestore instance provider (for dependency injection)
 final firestoreProvider = Provider<FirebaseFirestore>((ref) {
   return FirebaseFirestore.instance;
 });
 
-/// Provider for submitting reviews - automatically invalidates reviews provider on success
-final submitReviewProvider =
-    FutureProvider.family<void, Map<String, dynamic>>((ref, reviewData) async {
-  final userId = ref.read(currentUserIdProvider);
-  if (userId == null) {
-    throw Exception('User must be signed in to submit reviews');
-  }
-
-  // Import review_helpers function
-  // Note: This will be called from the UI, and the provider will auto-invalidate
-  // The actual submission logic stays in review_helpers.dart
-  // After submission, we invalidate the reviews provider
-  ref.invalidate(userReviewsProvider);
-});

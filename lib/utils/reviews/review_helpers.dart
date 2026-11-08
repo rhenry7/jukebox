@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,25 +7,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/providers/tag_reviews_provider.dart'
     show searchKeysFor;
 import 'package:flutter_test_project/models/enhanced_user_preferences.dart';
-import 'package:flutter_test_project/models/music_recommendation.dart';
-import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/services/genre_cache_service.dart';
 import 'package:flutter_test_project/services/review_analysis_service.dart';
 import 'package:flutter_test_project/services/review_recommendation_service.dart';
 
-Future<List<Review>> fetchUserReviews() async {
-  final snapshot = await FirebaseFirestore.instance
-      .collectionGroup('reviews')
-      .orderBy('date', descending: true)
-      .get();
-
-  return snapshot.docs.map((doc) => Review.fromFirestore(doc.data())).toList();
-}
-
 /// A fresh id for a review that hasn't been saved yet. The review form takes
 /// one when it opens and saves under it, so however many times a save is
 /// retried, it's still the same one review.
-String newReviewId() => FirebaseFirestore.instance.collection('users').doc().id;
+/// Same shape as a Firestore auto-ID (20 random letters and digits), made
+/// here so the form doesn't need Firebase to open.
+String newReviewId() {
+  const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  final random = Random.secure();
+  return String.fromCharCodes(
+      List.generate(20, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
+}
 
 /// Saves the review under `users/{uid}/reviews/{reviewId}` and returns its
 /// Firestore path, or null if no one is signed in. Throws if the save fails.
@@ -107,13 +105,6 @@ Future<String?> submitReview(String review, double score, String artist,
     debugPrint('could not place review, user not signed in');
   }
   return null;
-}
-
-void addUserReview() async {
-  final FirebaseAuth auth = FirebaseAuth.instance;
-  if (auth.currentUser != null) {
-    // Function implementation pending
-  }
 }
 
 Future<void> deleteReview(String userId, String reviewDocId) async {
@@ -227,26 +218,6 @@ Future<void> updateSavedTracks(String artist, String title) async {
   });
 }
 
-Future<void> updateDislikedTracks(String artist, String title) async {
-  final String userId = FirebaseAuth.instance.currentUser != null
-      ? FirebaseAuth.instance.currentUser!.uid
-      : '';
-  if (userId.isEmpty) {
-    debugPrint('User not logged in, cannot upload preferences.');
-    return;
-  }
-  final String disliked = 'artist: $artist, song: $title';
-
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('musicPreferences')
-      .doc('profile')
-      .update({
-    'dislikedTracks': FieldValue.arrayUnion([disliked]),
-  });
-}
-
 Future<void> updateRemovePreferences(String artist, String title) async {
   final String userId = FirebaseAuth.instance.currentUser != null
       ? FirebaseAuth.instance.currentUser!.uid
@@ -267,38 +238,8 @@ Future<void> updateRemovePreferences(String artist, String title) async {
   });
 }
 
-List<MusicRecommendation> removeDuplicatesFaster({
-  required List<MusicRecommendation> albums,
-  required List<MusicRecommendation> savedTracks,
-}) {
-  final savedSet = savedTracks
-      .map((t) =>
-          '${t.artist.toLowerCase().trim()}|${t.song.toLowerCase().trim()}')
-      .toSet();
-
-  return albums.where((album) {
-    final key =
-        '${album.artist.toLowerCase().trim()}|${album.song.toLowerCase().trim()}';
-    return !savedSet.contains(key);
-  }).toList();
-}
-
 ///  upload to firebase list of preferences
 ///  preferences included savedTracks, [arist: Eagles, song: Hotel California]
 ///  OpenAi recommendation includes: arist: Eagles, song: Hotel California,
 ///  filter recommended list, to remove song already saved, reduce duplication
 
-List<MusicRecommendation> removeDuplication(
-    List<MusicRecommendation> albums, EnhancedUserPreferences preferences) {
-  final String userId = FirebaseAuth.instance.currentUser != null
-      ? FirebaseAuth.instance.currentUser!.uid
-      : '';
-  if (userId.isEmpty) {
-    debugPrint('User not logged in, cannot upload preferences.');
-    return [];
-  }
-  final List<String> savedTracks = preferences.savedTracks;
-  albums.removeWhere((album) =>
-      savedTracks.contains('artist: ${album.artist}, song: ${album.song}'));
-  return albums;
-}

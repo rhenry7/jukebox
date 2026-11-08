@@ -3,7 +3,6 @@ Design System
 - For the design system reference the design_system.md file in the project root
 
 
-
 ## Shared Widgets
 
 ### Review Card
@@ -32,8 +31,6 @@ The card frame (inset 8 from the screen edges, 8 between cards, 12 corner radius
 
 Genre / tag pills come from `lib/ui/widgets/genre_pills.dart`: `GenrePills(tags)`. Never build tag chips inline. Tapping a pill opens that tag's page (`lib/ui/screens/tag/tag_reviews_page.dart`): reviews with the tag, then reviews with similar tags (`tagsSimilar`), then reviews whose text mentions it, plus related tags to explore. It pages through a database index, not a scan: every review carries `tagKeys` / `tagWordKeys` / `textWordKeys` (`searchKeysFor` in `lib/providers/tag_reviews_provider.dart`, written by `submitReview` and kept in sync by the `onReviewWritten` function via `syncSearchKeys`). The Dart and TypeScript (`searchKeys` in `functions/src/text.ts`) versions must match; both are tested against `functions/src/__tests__/fixtures/search_keys.json`. Backfill with `npm run backfill -- --search-keys`.
 
-`lib/ui/screens/Home/_comments.dart` contains `UserReviewsCollection` and `FriendsReviewList` (the dismissible list wrapper used by the Profile screen). It imports `ReviewCardWithGenres` from the shared widget file.
-
 ### Review Feed (list layout)
 Lists of review cards are laid out by **one widget**:
 
@@ -53,7 +50,7 @@ Empty / error / loading-more states come from `lib/ui/widgets/app_states.dart` (
 Currently using `ReviewFeed`: the three Home tabs (Popular, Friends, For You). Profile and Search still build their own lists and are next to migrate.
 
 ### For You recommendations (server-side CF-RAG)
-The For You list and the post-review "Because you just reviewed X" sheet are built in **Cloud Functions** (`functions/`, TypeScript). See `functions/README.md`.
+The For You list is built in **Cloud Functions** (`functions/`, TypeScript). See `functions/README.md`. The post-review "Because you just reviewed X" sheet matches by tags in the app (`TagMatchService`); the `analyzeAndMatch` callable in `functions/` is no longer called by the app.
 
 - Each review is analysed **once, when written** (`onReviewWritten`): an LLM reads the whole text for context-aware sentiment per aspect, then the review and each aspect are embedded into `reviewVectors` / `reviewAspects` (server-only collections).
 - For You = vector search over the whole corpus (praise↔praise, complaint↔complaint, review style, lookalike listeners) → deterministic ranking → cached at `users/{uid}/forYou/current`. Opening the tab costs no AI.
@@ -78,7 +75,6 @@ lib/ui/screens/review_detail/review_detail_page.dart
 ```
 
 `ReviewDetailPage(review: Review, reviewId: String?)` — full-screen detail view with hero album art, drop-cap review body, live like button, stats bar, a "More like this" row and the comments section. The row (`SimilarReviewsRow` in `lib/ui/widgets/similar_reviews_row.dart`) shows up to 5 `CompactReviewCard`s for reviews sharing tags, found through the tag index by `similarReviewsProvider` (`lib/providers/similar_reviews_provider.dart`). The tap is wired directly inside `ReviewCardWidget`; no screens need to handle navigation themselves.
-
 
 ### Auth Gating / Feature Gating 
 - for action buttons: like, review, submit review, comment, share, repost, add friends, preferences, notifications.. 
@@ -105,6 +101,12 @@ The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild o
 - For You shows each card as its review arrives, top-down in ranked order (one that arrives early waits for those above it).
 - Pages show cached data first, then the server's (`lib/providers/cache_first.dart`): one-time reads use `cacheThenServer` / `docCacheThenServer` (live `snapshots()` listeners already do this). Page data providers call `ref.keepAliveFor()` so going back is instant, and cards start loading the next page's data on touch (`prefetchReviewPage` in `review_card.dart`; the reviewer sheet prefetches the profile). New page data should follow the same pattern.
 - For You reads only the list document live; reviews are fetched a page at a time as the display limit grows (`recommendedReviewsProvider` returns `(loaded, total)`).
+
+### Testing
+- Screen tests (`test/screens/`) use `test/helpers/screen_harness.dart`: `pumpScreen` at phone size, plus Riverpod overrides for the signed-in user, like counts, comments and similar reviews. They never touch real Firebase, Spotify or the network; to make a screen testable, read data through a provider rather than `FirebaseFirestore.instance` / `FirebaseAuth.instance` in the widget.
+- The review form saves through `reviewSubmitterProvider`, so tests can stand in a fake save.
+- Don't use `pumpAndSettle` on screens with album art: the image placeholder keeps animating in tests. Pump fixed durations instead.
+- QA skills from the Flutter team are in `.claude/skills/` (static analysis, coverage, layout fixes, widget and integration tests).
 
 ### Web updates (installed PWA)
 Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Browsers that still run the caching service worker from older deploys can't reach that code, so deploys also publish `scripts/legacy_sw_cleanup.js` as `flutter_service_worker.js`, which removes the old worker and its caches. Any new web deploy path must stamp the build id and copy that file the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.

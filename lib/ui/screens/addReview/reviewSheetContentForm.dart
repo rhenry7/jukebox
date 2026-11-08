@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test_project/providers/auth_provider.dart'
+    show currentUserProvider;
 import 'package:flutter_test_project/providers/community_reviews_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
@@ -19,6 +20,23 @@ import 'review_matches_sheet.dart';
 import 'review_text_editor.dart';
 import '../../widgets/auth_gate_modal.dart';
 import 'package:flutter_test_project/services/spotify_client.dart';
+
+/// Saves a review; [submitReview] in the app. A provider so screen tests can
+/// stand in a fake save (no Firebase) and check the form's behaviour.
+typedef ReviewSubmitter = Future<String?> Function(
+  String review,
+  double score,
+  String artist,
+  String title,
+  bool liked,
+  String albumImageUrl,
+  List<String>? genres, {
+  required String reviewId,
+  String? spotifyUrl,
+});
+
+final reviewSubmitterProvider =
+    Provider<ReviewSubmitter>((ref) => submitReview);
 
 class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String title;
@@ -39,7 +57,6 @@ class MyReviewSheetContentForm extends ConsumerStatefulWidget {
 
 class _MyReviewSheetContentFormState
     extends ConsumerState<MyReviewSheetContentForm> {
-  final FirebaseAuth auth = FirebaseAuth.instance;
   late String currentDate;
   bool liked = false;
   double ratingScore = 0;
@@ -416,7 +433,7 @@ class _MyReviewSheetContentFormState
 
   Future<void> handleSubmit() async {
     if (_isSubmitting) return;
-    final user = auth.currentUser;
+    final user = ref.read(currentUserProvider);
     if (user == null) {
       showAuthGateModal(context);
       return;
@@ -445,7 +462,7 @@ class _MyReviewSheetContentFormState
 
     setState(() => _isSubmitting = true);
     try {
-      final reviewPath = await submitReview(
+      final reviewPath = await ref.read(reviewSubmitterProvider)(
         review,
         ratingScore,
         _selectedTrackArtist.isNotEmpty ? _selectedTrackArtist : widget.artist,
@@ -556,7 +573,7 @@ class _MyReviewSheetContentFormState
         Row(
           children: [
             Text(
-              auth.currentUser?.displayName ?? 'Stranger',
+              ref.watch(currentUserProvider)?.displayName ?? 'Stranger',
               style: const TextStyle(color: Colors.white),
             ),
             const Gap(8),
@@ -773,7 +790,7 @@ class _MyReviewSheetContentFormState
     final showError = _showRequiredError && tagsEmpty;
     final errorBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.orange, width: 2),
+      borderSide: const BorderSide(color: Colors.orange, width: 2),
     );
 
     return Column(

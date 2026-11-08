@@ -19,7 +19,3 @@ final reviewUserLikeStatusProvider = StreamProvider.autoDispose.family<bool, Str
   return service.getUserLikeStatusStream(reviewId, userId);
 });
 
-/// Provider to get full review ID from userId and docId
-final fullReviewIdProvider = Provider.family<String, ({String userId, String docId})>((ref, params) {
-  return ReviewLikesService.getFullReviewId(params.userId, params.docId);
-});

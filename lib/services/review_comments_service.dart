@@ -28,15 +28,14 @@ class ReviewCommentsService {
 
   // ── Read ────────────────────────────────────────────────────────────────────
 
+  /// A review's comments, oldest first. Errors reach the listener (rather
+  /// than being swallowed, which left the comments spinner running forever).
   Stream<List<ReviewComment>> commentsStream(String reviewId) {
     return _commentsRef(reviewId)
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map((snap) =>
-            snap.docs.map((d) => ReviewComment.fromFirestore(d)).toList())
-        .handleError((e) {
-      debugPrint('[COMMENTS] Stream error: $e');
-    });
+            snap.docs.map(ReviewComment.fromFirestore).toList());
   }
 
   Stream<bool> commentLikeStream(

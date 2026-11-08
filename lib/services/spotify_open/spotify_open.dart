@@ -27,8 +27,9 @@ Uri? spotifyAppUri(Uri webUrl) {
   final parts = webUrl.pathSegments.where((p) => p.isNotEmpty).toList();
   if (parts.length < 2) return null;
   const types = {'track', 'album', 'artist', 'playlist', 'show', 'episode'};
-  if (types.contains(parts[0]))
+  if (types.contains(parts[0])) {
     return Uri.parse('spotify:${parts[0]}:${parts[1]}');
+  }
   if (parts[0] == 'search') {
     return Uri.parse('spotify:search:${Uri.encodeComponent(parts[1])}');
   }

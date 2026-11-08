@@ -1047,7 +1047,7 @@ class _AlbumsPageState extends State<_AlbumsPage> {
                                             imageUrl: album.imageUrl!,
                                             fit: BoxFit.cover,
                                           )
-                                        : Container(
+                                        : ColoredBox(
                                             color: _placeholderColor(
                                                 album.name),
                                             child: Center(
@@ -1066,7 +1066,7 @@ class _AlbumsPageState extends State<_AlbumsPage> {
                                           const BorderRadius.vertical(
                                         top: Radius.circular(12),
                                       ),
-                                      child: Container(
+                                      child: ColoredBox(
                                         color: _primary.withOpacity(0.4),
                                         child: const Center(
                                           child: Icon(

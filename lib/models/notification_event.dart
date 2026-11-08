@@ -45,20 +45,6 @@ class NotificationEvent {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      'type': type,
-      'actorId': actorId,
-      'actorDisplayName': actorDisplayName,
-      'actorPhotoUrl': actorPhotoUrl,
-      'reviewId': reviewId,
-      'reviewTitle': reviewTitle,
-      'reviewArtist': reviewArtist,
-      'createdAt': createdAt,
-      'read': read,
-    };
-  }
-
   static DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
     if (value is Timestamp) return value.toDate();

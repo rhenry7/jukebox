@@ -145,20 +145,4 @@ class GenreCacheService {
     }
   }
 
-  /// Clear all genre caches (admin function)
-  static Future<void> clearAllCache() async {
-    try {
-      final snapshot =
-          await FirebaseFirestore.instance.collection(_collectionName).get();
-
-      final batch = FirebaseFirestore.instance.batch();
-      for (final doc in snapshot.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-      debugPrint('Cleared all genre caches');
-    } catch (e) {
-      debugPrint('Error clearing all caches: $e');
-    }
-  }
 }

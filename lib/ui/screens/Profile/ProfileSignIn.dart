@@ -441,9 +441,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             color: const Color(0xFF1C1C1C),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               Icon(Ionicons.logo_google,
                                   size: 20, color: Colors.white),
                               SizedBox(width: 12),

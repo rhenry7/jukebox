@@ -11,6 +11,7 @@ import '../../../providers/review_likes_provider.dart';
 import '../../../services/friends_service.dart';
 import '../../../services/review_likes_service.dart';
 import '../../../utils/helpers.dart';
+import '../Profile/helpers/profileHelpers.dart' show openSignIn;
 import '../../widgets/review_comments.dart';
 import '../../widgets/similar_reviews_row.dart';
 import '../../widgets/spotify_play_button.dart';
@@ -19,7 +20,6 @@ import '../../widgets/spotify_play_button.dart';
 const _bg = Color(0xFF0E0E0E);
 const _surfaceHigh = Color(0xFF201F1F);
 const _primary = Color(0xFFEE2309);
-const _secondary = Color(0xFF3FFF8B);
 
 const _heroHeight = 300.0;
 
@@ -106,9 +106,9 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
                           ),
                         ),
                       ] else
-                        Container(
+                        const ColoredBox(
                           color: _surfaceHigh,
-                          child: const Icon(Icons.music_note,
+                          child: Icon(Icons.music_note,
                               size: 80, color: Colors.white24),
                         ),
                       // Genre pills overlaid at bottom-left
@@ -616,6 +616,7 @@ class _CommentsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final signedIn = ref.watch(currentUserIdProvider) != null;
     final commentsAsync =
         reviewId != null ? ref.watch(reviewCommentsProvider(reviewId!)) : null;
 
@@ -637,12 +638,12 @@ class _CommentsSection extends ConsumerWidget {
               ),
             ),
             if (comments.isNotEmpty)
-              Row(
+              const Row(
                 children: [
-                  const Icon(Ionicons.swap_vertical_outline,
+                  Icon(Ionicons.swap_vertical_outline,
                       color: Colors.white54, size: 16),
-                  const SizedBox(width: 4),
-                  const Text(
+                  SizedBox(width: 4),
+                  Text(
                     'Newest',
                     style: TextStyle(color: Colors.white54, fontSize: 13),
                   ),
@@ -651,13 +652,44 @@ class _CommentsSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
+        // Comments are for signed-in users only.
+        if (!signedIn)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Column(
+                children: [
+                  const Text(
+                    'Sign in to read the comments.',
+                    style: TextStyle(color: Colors.white60, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => openSignIn(context),
+                    child: const Text('Sign in'),
+                  ),
+                ],
+              ),
+            ),
+          )
         // Loading state
-        if (commentsAsync != null && commentsAsync.isLoading)
+        else if (commentsAsync != null && commentsAsync.isLoading)
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: CircularProgressIndicator(
                   strokeWidth: 2, color: Colors.white24),
+            ),
+          )
+        else if (commentsAsync != null && commentsAsync.hasError)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                "Couldn't load the comments. Reopen the review to try again.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60, fontSize: 14),
+              ),
             ),
           )
         // Empty state

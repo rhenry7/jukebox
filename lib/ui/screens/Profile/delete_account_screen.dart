@@ -149,9 +149,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             const SizedBox(height: 24),
 
             // What gets deleted
-            _SectionLabel('This will permanently delete:'),
+            const _SectionLabel('This will permanently delete:'),
             const SizedBox(height: 12),
-            ..._deletionItems.map((item) => _BulletItem(item)),
+            ..._deletionItems.map(_BulletItem.new),
             const SizedBox(height: 32),
 
             // Type to confirm
@@ -166,12 +166,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'DELETE',
-                hintStyle: TextStyle(color: Colors.white24),
+                hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
                 fillColor: Colors.grey[900],
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.white24),
+                  borderSide: const BorderSide(color: Colors.white24),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),

@@ -146,10 +146,6 @@ class MainNavState extends ConsumerState<MainNav> {
     _onItemTapped(index);
   }
 
-  String _getProfileLabel() {
-    return 'Profile';
-  }
-
   @override
   void dispose() {
     _controller.dispose();
@@ -190,7 +186,7 @@ class MainNavState extends ConsumerState<MainNav> {
           ),
         ),
       ),
-      title: _NeonTitle(),
+      title: const _NeonTitle(),
       titleTextStyle: const TextStyle(color: Colors.white, fontSize: 64),
       toolbarHeight: 70.0,
       actions: [
@@ -380,7 +376,7 @@ class _GlassDock extends StatelessWidget {
                     icon: Ionicons.add_circle_outline,
                     selectedIcon: Ionicons.add_circle_outline,
                     iconSize: 34,
-                    color: Colors.greenAccent[700]!,
+                    color: Colors.greenAccent[700],
                     onTap: () => onSelected(MainNavState.addTab),
                   ),
                   const SizedBox(width: _gap),

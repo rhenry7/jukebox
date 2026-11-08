@@ -270,14 +270,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.3"
-  cupertino_icons:
-    dependency: "direct main"
-    description:
-      name: cupertino_icons
-      sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.8"
   dart_jsonwebtoken:
     dependency: transitive
     description:
@@ -350,38 +342,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
-  firebase_ai:
-    dependency: "direct main"
-    description:
-      name: firebase_ai
-      sha256: "5e67e2138dd6ef8f58e6b03aaa27243937724117cc68c684b5f5b8b9f4d49b42"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.0"
-  firebase_app_check:
-    dependency: transitive
-    description:
-      name: firebase_app_check
-      sha256: c4124632094a4062d7a1ff0a9f9c657ff54bece5d8393af4626cb191351a2aac
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.2+10"
-  firebase_app_check_platform_interface:
-    dependency: transitive
-    description:
-      name: firebase_app_check_platform_interface
-      sha256: "4ca80bcc6c5c55289514d85e7c8ba8bc354342d23ab807b01c3f82e2fc7158e4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.1+10"
-  firebase_app_check_web:
-    dependency: transitive
-    description:
-      name: firebase_app_check_web
-      sha256: b3150a78fe18c27525af05b149724ee33bd8592a5959e484fdfa5c98e25edb5f
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0+14"
   firebase_auth:
     dependency: "direct main"
     description:
@@ -438,30 +398,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.24.1"
-  firebase_database:
-    dependency: "direct main"
-    description:
-      name: firebase_database
-      sha256: "35b37c04307b99c5f746387ce03292531c3aa1de91facffbd9cff5e069a8b5fd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "11.3.10"
-  firebase_database_platform_interface:
-    dependency: transitive
-    description:
-      name: firebase_database_platform_interface
-      sha256: "095342e96d94b486b8273afc6327f777d53b63a169bd4201e5153ee3b8210c11"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.6+10"
-  firebase_database_web:
-    dependency: transitive
-    description:
-      name: firebase_database_web
-      sha256: "05f9b871d97b3ca879937947d0728ea95294395e7ddd5685583e8662be99eb16"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.6+16"
   fixnum:
     dependency: transitive
     description:
@@ -470,14 +406,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
-  fl_chart:
-    dependency: "direct main"
-    description:
-      name: fl_chart
-      sha256: d0f0d49112f2f4b192481c16d05b6418bd7820e021e265a3c22db98acf7ed7fb
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.68.0"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -629,14 +557,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
-  gtfs_realtime_bindings:
-    dependency: "direct main"
-    description:
-      name: gtfs_realtime_bindings
-      sha256: c0b73cfeaead1f225d578ff89245af5a36a81c692b6c365cfa05d0e216c5cbdc
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   http:
     dependency: "direct main"
     description:
@@ -925,22 +845,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.2"
-  popover:
-    dependency: "direct main"
-    description:
-      name: popover
-      sha256: "6a0928ccdcf12d46b407372b644a0d94400b316d0ee072a19dcef03c2bb88c3f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.9"
-  protobuf:
-    dependency: transitive
-    description:
-      name: protobuf
-      sha256: "68645b24e0716782e58948f8467fd42a880f255096a821f9e7d0ec625b00c84d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.0"
   pub_semver:
     dependency: transitive
     description:
@@ -1315,7 +1219,7 @@ packages:
     source: hosted
     version: "3.1.4"
   uuid:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: uuid
       sha256: a5be9ef6618a7ac1e964353ef476418026db906c4facdedaa299b7a2e71690ff

@@ -7,11 +7,6 @@ import '../providers/auth_provider.dart';
 import '../providers/reviews_provider.dart' show ReviewWithDocId;
 import '../services/friends_service.dart';
 
-/// Singleton service instance.
-final friendsServiceProvider = Provider<FriendsService>((ref) {
-  return FriendsService();
-});
-
 /// Streams the current user's friend IDs as a live list.
 final friendIdsProvider = StreamProvider<List<String>>((ref) {
   final userId = ref.watch(currentUserIdProvider);

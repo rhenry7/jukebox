@@ -174,8 +174,8 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
             Expanded(
               child: NotificationListener<ScrollNotification>(
                 onNotification: _onScrollNotification,
-                child: TabBarView(
-                  children: const [
+                child: const TabBarView(
+                  children: [
                     CommunityReviewsCollection(selectedGenres: {}),
                     FriendsReviewsCollection(selectedGenres: {}),
                     RecommendedReviewsCollection(selectedGenres: {}),

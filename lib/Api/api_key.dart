@@ -8,10 +8,6 @@
 // Manager (see CLAUDE.md).
 
 // Compile-time only (String.fromEnvironment cannot be used at runtime).
-const String apikey = String.fromEnvironment(
-  'MUSICBRAINZ_API_KEY',
-  defaultValue: '',
-);
 const String _clientId = String.fromEnvironment('CLIENT_ID', defaultValue: '');
 const String _spotifyClientId =
     String.fromEnvironment('SPOTIFY_CLIENT_ID', defaultValue: '');

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,7 +14,6 @@ const _bg = Color(0xFF0E0E0E);
 const _surface = Color(0xFF1A1919);
 const _surfaceHigh = Color(0xFF201F1F);
 const _primary = Color(0xFFEE2309);
-const _secondary = Color(0xFF3FFF8B);
 const _onSurfaceVariant = Color(0xFFADAAAA);
 
 // ─── Date-grouping helpers ────────────────────────────────────────────────────

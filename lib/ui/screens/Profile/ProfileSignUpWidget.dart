@@ -152,11 +152,13 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     if (v != null) userName = v;
                   },
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Username is required.';
+                    }
                     if (v.contains('@')) return 'Do not use the @ char.';
-                    if (v.trim().length < 3)
+                    if (v.trim().length < 3) {
                       return 'Must be at least 3 characters.';
+                    }
                     return null;
                   },
                 ),
@@ -179,8 +181,9 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     if (v != null) email = v;
                   },
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Email is required.';
+                    }
                     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
                         .hasMatch(v.trim())) {
                       return 'Please enter a valid email address.';
@@ -252,10 +255,12 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty)
+                    if (v == null || v.isEmpty) {
                       return 'Please confirm your password.';
-                    if (v != _passwordController.text)
+                    }
+                    if (v != _passwordController.text) {
                       return 'Passwords do not match.';
+                    }
                     return null;
                   },
                 ),
@@ -343,9 +348,9 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                               color: const Color(0xFF1C1C1C),
                               borderRadius: BorderRadius.circular(25),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Icon(Ionicons.logo_google,
                                     size: 20, color: Colors.white),
                                 SizedBox(width: 12),

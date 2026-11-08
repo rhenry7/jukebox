@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test_project/models/review.dart';
-import 'package:flutter_test_project/services/embedding_service.dart';
 import 'package:flutter_test_project/utils/scoring_utils.dart';
 
 /// Service to analyze user reviews and extract preferences for personalized recommendations
@@ -45,8 +44,6 @@ class ReviewAnalysisService {
     // Cache the profile
     await _cacheProfile(userId, profile, reviews.length);
 
-    // Trigger taste vector refresh in background (Phase 3 — embeddings)
-    _refreshTasteVectorInBackground(userId, reviews);
     
     return profile;
   }
@@ -164,18 +161,6 @@ class ReviewAnalysisService {
     UserReviewProfile cachedProfile,
     int cachedReviewCount,
   ) async {
-    // Get only new reviews (since last analysis)
-    final newReviews = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('reviews')
-        .orderBy('date', descending: true)
-        .limit(20) // Get recent reviews
-        .get()
-        .then((snapshot) => snapshot.docs
-            .map((doc) => Review.fromFirestore(doc.data()))
-            .toList());
-    
     // For incremental update, we'll do a lightweight merge
     // In a production system, you'd want more sophisticated incremental logic
     // For now, we'll do a full re-analysis but cache it
@@ -337,23 +322,6 @@ class ReviewAnalysisService {
     );
   }
   
-  /// Refresh the user's taste vector in the background (non-blocking).
-  ///
-  /// Triggered when review analysis detects new reviews. This ensures
-  /// the embedding-based taste vector stays in sync with the latest reviews.
-  static void _refreshTasteVectorInBackground(
-    String userId,
-    List<Review> reviews,
-  ) {
-    Future(() async {
-      try {
-        await EmbeddingService.getTasteVector(userId, reviews);
-        debugPrint('[EMBED] Background taste vector refresh complete');
-      } catch (e) {
-        debugPrint('[EMBED] Background taste vector refresh failed: $e');
-      }
-    });
-  }
 
   /// Clear cached profile (useful for testing or forced refresh)
   static Future<void> clearCache(String userId) async {

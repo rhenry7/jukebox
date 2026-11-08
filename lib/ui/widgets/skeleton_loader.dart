@@ -34,28 +34,28 @@ class ReviewCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     // Mirrors the real review card's surface and geometry so content
     // doesn't shift when it loads.
-    return Padding(
+    return const Padding(
       padding: AppSpacing.cardListItem,
       child: Card(
         color: AppColors.surfaceContainer,
         elevation: 0,
         margin: EdgeInsets.zero,
         // Same frame as CardSurface, so nothing shifts when cards load.
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardAll),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.cardAll),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.cardPadding),
+          padding: EdgeInsets.all(AppSpacing.cardPadding),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Album cover skeleton
-              const SkeletonLoader(
+              SkeletonLoader(
                 width: 100,
                 height: 100,
                 borderRadius: AppRadius.smAll,
               ),
-              const SizedBox(width: AppSpacing.lg),
+              SizedBox(width: AppSpacing.lg),
               // Text skeletons
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

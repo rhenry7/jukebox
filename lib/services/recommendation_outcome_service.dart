@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_test_project/services/signal_collection_service.dart';
 
 /// Service for tracking recommendation outcomes and adjusting signal weights.
 ///
@@ -34,42 +33,6 @@ class RecommendationOutcomeService {
   };
 
   // ─── Logging recommendations when shown ──────────────────────
-
-  /// Log that a set of recommendations was shown to the user.
-  ///
-  /// Call this when recommendations are displayed so we can later
-  /// check if the user interacted with them.
-  static Future<void> logRecommendationsShown({
-    required List<RecommendationRecord> recommendations,
-  }) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-
-    try {
-      final batch = _firestore.batch();
-      final outcomesRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('recommendationOutcomes');
-
-      for (final rec in recommendations) {
-        batch.set(outcomesRef.doc(), {
-          'recommendedTrack': rec.track,
-          'recommendedArtist': rec.artist,
-          'recommendationSource': rec.source,
-          'recommendedAt': FieldValue.serverTimestamp(),
-          'outcome': 'pending', // Will be updated when we detect interaction
-          'userRating': null,
-          'signalWeightsAtTime': rec.weightsSnapshot,
-        });
-      }
-
-      await batch.commit();
-      debugPrint('[OUTCOMES] Logged ${recommendations.length} shown recommendations');
-    } catch (e) {
-      debugPrint('[OUTCOMES] Error logging shown recommendations: $e');
-    }
-  }
 
   // ─── Recording outcomes ──────────────────────────────────────
 
@@ -133,63 +96,6 @@ class RecommendationOutcomeService {
     }
   }
 
-  /// Record a click-without-review outcome for recommendations the user
-  /// clicked but never reviewed (detected after a timeout period).
-  static Future<void> resolveStaleOutcomes() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-
-    try {
-      final staleThreshold =
-          DateTime.now().subtract(const Duration(days: 7));
-
-      final querySnapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('recommendationOutcomes')
-          .where('outcome', isEqualTo: 'pending')
-          .limit(50)
-          .get();
-
-      final batch = _firestore.batch();
-      int resolved = 0;
-
-      for (final doc in querySnapshot.docs) {
-        final recAt = (doc.data()['recommendedAt'] as Timestamp?)?.toDate();
-        if (recAt != null && recAt.isBefore(staleThreshold)) {
-          // Check if user clicked this recommendation (via signals)
-          final recTrack =
-              (doc.data()['recommendedTrack'] as String? ?? '').toLowerCase();
-          final recArtist =
-              (doc.data()['recommendedArtist'] as String? ?? '').toLowerCase();
-
-          // Simple heuristic: if there's a rec_click signal for this track,
-          // mark as clicked_no_review; otherwise ignored
-          final signals =
-              await SignalCollectionService.getRecentSignals(limit: 100);
-          final wasClicked = signals.any((s) =>
-              s.type == SignalCollectionService.recClick &&
-              s.targetTrack.toLowerCase().contains(recTrack) &&
-              s.targetArtist.toLowerCase().contains(recArtist));
-
-          batch.update(doc.reference, {
-            'outcome': wasClicked ? clickedNoReview : ignored,
-            'resolvedAt': FieldValue.serverTimestamp(),
-          });
-          resolved++;
-        }
-      }
-
-      if (resolved > 0) {
-        await batch.commit();
-        debugPrint('[OUTCOMES] Resolved $resolved stale outcomes');
-        await _maybeRecalibrateWeights(userId);
-      }
-    } catch (e) {
-      debugPrint('[OUTCOMES] Error resolving stale outcomes: $e');
-    }
-  }
-
   // ─── Weight Calibration (Grainger Ch. 11-13) ────────────────
 
   /// Recalibrate signal/component weights based on outcome precision.
@@ -244,7 +150,7 @@ class RecommendationOutcomeService {
         final source = data['recommendationSource'] as String? ?? 'unknown';
         final outcome = data['outcome'] as String? ?? '';
 
-        sourcePrecision.putIfAbsent(source, () => _PrecisionTracker());
+        sourcePrecision.putIfAbsent(source, _PrecisionTracker.new);
         sourcePrecision[source]!.total++;
 
         if (outcome == reviewedPositive) {
@@ -311,67 +217,8 @@ class RecommendationOutcomeService {
 
   // ─── Retrieve adjusted weights ───────────────────────────────
 
-  /// Get the current adjusted component weights for scoring.
-  ///
-  /// Returns the feedback-calibrated weights if available, otherwise
-  /// falls back to defaults.
-  static Future<Map<String, double>> getAdjustedWeights() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return Map.from(defaultComponentWeights);
-
-    try {
-      final metaDoc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('recommendationOutcomes')
-          .doc('_meta')
-          .get();
-
-      if (metaDoc.exists && metaDoc.data()?['adjustedWeights'] != null) {
-        final weights = Map<String, dynamic>.from(
-            metaDoc.data()!['adjustedWeights'] as Map);
-        return weights
-            .map((k, v) => MapEntry(k, (v as num).toDouble()));
-      }
-    } catch (e) {
-      debugPrint('[OUTCOMES] Error fetching adjusted weights: $e');
-    }
-
-    return Map.from(defaultComponentWeights);
-  }
-
   // ─── Prompt effectiveness tracking ───────────────────────────
 
-  /// Get effectiveness scores per recommendation source.
-  ///
-  /// Used to refine AI prompts: if collaborative recs consistently
-  /// get low ratings, reduce their influence in the prompt.
-  static Future<Map<String, double>> getSourceEffectiveness() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return {};
-
-    try {
-      final metaDoc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('recommendationOutcomes')
-          .doc('_meta')
-          .get();
-
-      if (metaDoc.exists && metaDoc.data()?['sourcePrecision'] != null) {
-        final precisionData = Map<String, dynamic>.from(
-            metaDoc.data()!['sourcePrecision'] as Map);
-        return precisionData.map((k, v) {
-          final data = v as Map<String, dynamic>;
-          return MapEntry(k, (data['precision'] as num?)?.toDouble() ?? 0.5);
-        });
-      }
-    } catch (e) {
-      debugPrint('[OUTCOMES] Error fetching source effectiveness: $e');
-    }
-
-    return {};
-  }
 }
 
 /// A recommendation record for logging when recommendations are shown.

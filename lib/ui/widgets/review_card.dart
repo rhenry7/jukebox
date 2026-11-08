@@ -38,7 +38,8 @@ import 'spotify_play_button.dart';
 /// for a few minutes, so a touch that doesn't become a tap costs one query.
 void prefetchReviewPage(
     ProviderContainer container, Review review, String? reviewId) {
-  container.read(similarReviewsProvider(similarReviewsKeyFor(review, reviewId)));
+  container
+      .read(similarReviewsProvider(similarReviewsKeyFor(review, reviewId)));
 }
 
 /// Cards show only the start of the review; the full text is on the detail
@@ -571,54 +572,48 @@ class _LikeButton extends ConsumerWidget {
         ? ref.watch(reviewUserLikeStatusProvider(reviewId))
         : const AsyncValue.data(false);
 
-    return likeCountAsync.when(
-      data: (likeCount) {
-        final isLiked = isLikedAsync.valueOrNull ?? false;
+    // The heart shows straight away; the count fills in when it arrives
+    // (and stays hidden if it can't be read). A spinner here sat on cards
+    // while dozens of counts loaded at once.
+    final likeCount = likeCountAsync.valueOrNull ?? 0;
+    final isLiked = isLikedAsync.valueOrNull ?? false;
 
-        return GestureDetector(
-          onTap: userId != null
-              ? () async {
-                  try {
-                    final service = ReviewLikesService();
-                    await service.toggleLike(reviewId, userId);
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
-                    }
-                  }
+    return GestureDetector(
+      onTap: userId != null
+          ? () async {
+              try {
+                final service = ReviewLikesService();
+                await service.toggleLike(reviewId, userId);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
                 }
-              : null,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? Colors.red : Colors.white70,
-                size: 22,
-              ),
-              if (likeCount > 0) ...[
-                const SizedBox(width: 4),
-                Text(
-                  _formatLikeCount(likeCount),
-                  style: TextStyle(
-                    color: isLiked ? Colors.red : Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ],
+              }
+            }
+          : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isLiked ? Icons.favorite : Icons.favorite_border,
+            color: isLiked ? Colors.red : Colors.white70,
+            size: 22,
           ),
-        );
-      },
-      loading: () => const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
+          if (likeCount > 0) ...[
+            const SizedBox(width: 4),
+            Text(
+              _formatLikeCount(likeCount),
+              style: TextStyle(
+                color: isLiked ? Colors.red : Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
       ),
-      error: (error, stack) => const SizedBox.shrink(),
     );
   }
 }
