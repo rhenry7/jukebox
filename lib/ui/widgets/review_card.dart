@@ -900,3 +900,158 @@ extension ReviewCopyWith on Review {
     );
   }
 }
+
+/// A small horizontal review card for carousels (the review page's "More like
+/// this" row): album art beside the stars, song or album, artist, and the
+/// reviewer and date, with the Spotify button at the bottom right; under them
+/// up to five of the review's tags. Tapping it opens the review.
+class CompactReviewCard extends StatelessWidget {
+  const CompactReviewCard({
+    super.key,
+    required this.review,
+    required this.reviewId,
+  });
+
+  final Review review;
+  final String? reviewId;
+
+  static const double width = 300;
+  static const double height = 140;
+  static const double _artSize = 72;
+  static const int _maxTags = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = review.date;
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Semantics(
+        button: true,
+        label: '${review.title} by ${review.artist}, '
+            'reviewed by ${review.displayName}',
+        child: CardSurface(
+          imageUrl: review.albumImageUrl,
+          child: InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    ReviewDetailPage(review: review, reviewId: reviewId),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        child: SizedBox.square(
+                          dimension: _artSize,
+                          child: review.albumImageUrl?.isNotEmpty == true
+                              ? AppCachedImage(
+                                  imageUrl: review.albumImageUrl!,
+                                  width: _artSize,
+                                  height: _artSize,
+                                )
+                              : const ColoredBox(
+                                  color: AppColors.surfaceContainerHigh,
+                                  child: Icon(Icons.music_note,
+                                      color: Colors.white24),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RatingBar(
+                              minRating: 0,
+                              maxRating: 5,
+                              allowHalfRating: true,
+                              initialRating: review.score,
+                              itemSize: 14,
+                              itemPadding: const EdgeInsets.only(right: 1),
+                              ratingWidget: RatingWidget(
+                                full: const Icon(Icons.star,
+                                    color: AppColors.rating),
+                                empty:
+                                    const Icon(Icons.star, color: Colors.grey),
+                                half: const Icon(Icons.star_half,
+                                    color: AppColors.rating),
+                              ),
+                              ignoreGestures: true,
+                              onRatingUpdate: (_) {},
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              review.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.onSurface,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              review.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text.rich(
+                              TextSpan(children: [
+                                TextSpan(
+                                  text: review.displayName,
+                                  style: const TextStyle(
+                                    color: AppColors.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (date != null)
+                                  TextSpan(
+                                    text: ' · ${formatRelativeTime(date)}',
+                                    style: const TextStyle(
+                                        color: AppColors.onSurfaceVariant),
+                                  ),
+                              ]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SpotifyPlayButton(
+                        title: review.title,
+                        artist: review.artist,
+                        compact: true,
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: GenrePills(
+                      tags: splitGenreTags(review.genres),
+                      maxTags: _maxTags,
+                      topPadding: AppSpacing.sm,
+                      singleLine: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

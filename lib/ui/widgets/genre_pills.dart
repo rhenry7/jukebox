@@ -44,6 +44,8 @@ List<String> rankTags(Iterable<List<String>?> tagLists) {
 /// that shows genres looks and spaces them the same way. With
 /// [showOverflowCount], a last "N+" pill says how many were left out.
 /// Tapping a tag opens its page ([TagReviewsPage]) unless [tappable] is off.
+/// With [singleLine], only the pills that fit on the first line show (whole,
+/// never cut off), for fixed-height cards; give it a bounded height.
 class GenrePills extends StatelessWidget {
   const GenrePills({
     super.key,
@@ -52,6 +54,7 @@ class GenrePills extends StatelessWidget {
     this.showOverflowCount = false,
     this.topPadding = AppSpacing.lg,
     this.tappable = true,
+    this.singleLine = false,
   });
 
   final List<String> tags;
@@ -59,6 +62,10 @@ class GenrePills extends StatelessWidget {
   final bool showOverflowCount;
   final double topPadding;
   final bool tappable;
+  final bool singleLine;
+
+  /// Pushes any second line far enough down to be clipped away entirely.
+  static const double _hiddenRunSpacing = 1000;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +75,8 @@ class GenrePills extends StatelessWidget {
       padding: EdgeInsets.only(top: topPadding),
       child: Wrap(
         spacing: AppSpacing.sm,
-        runSpacing: AppSpacing.sm,
+        runSpacing: singleLine ? _hiddenRunSpacing : AppSpacing.sm,
+        clipBehavior: singleLine ? Clip.hardEdge : Clip.none,
         children: [
           for (final tag in tags.take(maxTags))
             _pill(tag,

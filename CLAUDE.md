@@ -17,6 +17,7 @@ This file contains:
 - `ReviewCardWithGenres` — the widget all screens should use (handles async genre loading)
 - `ReviewCardWidget` — the core card UI (used internally by ReviewCardWithGenres)
 - `ReviewCopyWith` extension on `Review`
+- `CompactReviewCard` — a small horizontal card (art; stars, song, artist, reviewer + date; Spotify; one line of up to 5 tags) for carousels
 
 **Rule:** Never duplicate or inline review card UI in a screen file. All screens that display review cards must import from `lib/ui/widgets/review_card.dart`.
 
@@ -76,7 +77,7 @@ Tapping anywhere on a review card (outside the bottom action row) navigates to:
 lib/ui/screens/review_detail/review_detail_page.dart
 ```
 
-`ReviewDetailPage(review: Review, reviewId: String?)` — full-screen detail view with hero album art, drop-cap review body, live like button, stats bar, and comments section. The tap is wired directly inside `ReviewCardWidget`; no screens need to handle navigation themselves.
+`ReviewDetailPage(review: Review, reviewId: String?)` — full-screen detail view with hero album art, drop-cap review body, live like button, stats bar, a "More like this" row and the comments section. The row (`SimilarReviewsRow` in `lib/ui/widgets/similar_reviews_row.dart`) shows up to 5 `CompactReviewCard`s for reviews sharing tags, found through the tag index by `similarReviewsProvider` (`lib/providers/similar_reviews_provider.dart`). The tap is wired directly inside `ReviewCardWidget`; no screens need to handle navigation themselves.
 
 
 ### Auth Gating / Feature Gating 
@@ -96,4 +97,4 @@ The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild o
 - Sign out with `await signOut()`, then `popUntil(isFirst)`.
 
 ### Web updates (installed PWA)
-Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Any new web deploy path must stamp the build id the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.
+Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Browsers that still run the caching service worker from older deploys can't reach that code, so deploys also publish `scripts/legacy_sw_cleanup.js` as `flutter_service_worker.js`, which removes the old worker and its caches. Any new web deploy path must stamp the build id and copy that file the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.

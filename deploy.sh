@@ -79,6 +79,8 @@ if ! flutter build web --release --pwa-strategy=none --dart-define=BUILD_ID="$BU
     exit 1
 fi
 printf '{"buildId":"%s"}\n' "$BUILD_ID" > build/web/app_version.json
+# Replaces the empty worker: clears the old caching one from returning browsers.
+cp scripts/legacy_sw_cleanup.js build/web/flutter_service_worker.js
 echo "   Build id: $BUILD_ID"
 
 echo ""

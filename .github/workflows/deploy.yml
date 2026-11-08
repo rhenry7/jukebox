@@ -166,6 +166,8 @@ jobs:
           BUILD_ID=$(bash ./scripts/build_id.sh)
           flutter build web --release --pwa-strategy=none --dart-define=BUILD_ID="$BUILD_ID" "${DART_DEFINES[@]}"
           printf '{"buildId":"%s"}\n' "$BUILD_ID" > build/web/app_version.json
+          # Replaces the empty worker: clears the old caching one from returning browsers.
+          cp scripts/legacy_sw_cleanup.js build/web/flutter_service_worker.js
           echo "Build id: $BUILD_ID"
 
       - name: Deploy to Firebase Hosting
