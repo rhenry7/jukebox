@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
@@ -143,6 +145,68 @@ class _ActionButton extends StatelessWidget {
       style: style,
       icon: Icon(action.icon),
       label: label,
+    );
+  }
+}
+
+/// A quiet "something is coming" line: [text] followed by dots that cycle
+/// ".", "..", "..." (e.g. "Finding suggested tags..."). The dots sit in a
+/// fixed-width slot, so the text doesn't shift as they change.
+class AppLoadingText extends StatefulWidget {
+  const AppLoadingText(this.text, {super.key, this.style});
+
+  final String text;
+  final TextStyle? style;
+
+  /// How long each step (".", "..", "...") shows.
+  static const Duration step = Duration(milliseconds: 400);
+
+  @override
+  State<AppLoadingText> createState() => _AppLoadingTextState();
+}
+
+class _AppLoadingTextState extends State<AppLoadingText> {
+  Timer? _timer;
+  int _dots = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(AppLoadingText.step, (_) {
+      if (mounted) setState(() => _dots = _dots % 3 + 1);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style =
+        widget.style ??
+        const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12);
+    return Semantics(
+      label: widget.text,
+      liveRegion: true,
+      child: ExcludeSemantics(
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: widget.text),
+              TextSpan(text: '.' * _dots),
+              // Invisible dots keep the width the same at every step.
+              TextSpan(
+                text: '.' * (3 - _dots),
+                style: const TextStyle(color: Colors.transparent),
+              ),
+            ],
+          ),
+          style: style,
+        ),
+      ),
     );
   }
 }

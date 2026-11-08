@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +6,7 @@ import '../../providers/tag_reviews_provider.dart' show normalizeTag;
 import '../theme/tokens.dart';
 import 'app_states.dart';
 import 'genre_pills.dart';
+import 'glass.dart';
 
 /// The row under the Home tabs: a swipeable carousel of tags (most of the
 /// width) that filters the feeds, and a sort button on the right that opens
@@ -111,7 +110,8 @@ class _SortButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Tooltip(
       message: 'Sort reviews',
-      child: _Glass(
+      child: GlassSurface(
+        level: GlassLevel.pill,
         borderRadius: AppRadius.cardAll,
         child: Material(
           type: MaterialType.transparency,
@@ -188,9 +188,9 @@ class _SortMenu extends ConsumerWidget {
     final hasTags = ref.watch(homeTagFilterProvider).isNotEmpty;
     return SizedBox(
       width: 240,
-      child: _Glass(
+      child: GlassSurface(
         borderRadius: AppRadius.cardAll,
-        strong: true,
+        shadow: true,
         child: Material(
           type: MaterialType.transparency,
           child: Padding(
@@ -287,56 +287,6 @@ class _MenuRow extends StatelessWidget {
             else if (icon != null)
               Icon(icon, size: 18, color: AppColors.onSurfaceVariant),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Frosted glass like the pills and the nav dock: the screen behind,
-/// blurred, under a light tint with a faint light edge. [strong] is the
-/// heavier frost for a dropdown that sits over the feed.
-class _Glass extends StatelessWidget {
-  const _Glass({
-    required this.child,
-    required this.borderRadius,
-    this.strong = false,
-  });
-
-  final Widget child;
-  final BorderRadius borderRadius;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final blur = strong ? 24.0 : 8.0;
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        // The dropdown also darkens what's behind, so its text stays
-        // readable over bright album art.
-        child: ColoredBox(
-          color: strong
-              ? Colors.black.withValues(alpha: 0.35)
-              : Colors.transparent,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: borderRadius,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: strong ? 0.18 : 0.25),
-              ),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.16),
-                  Colors.white.withValues(alpha: strong ? 0.06 : 0.05),
-                ],
-              ),
-            ),
-            child: child,
-          ),
         ),
       ),
     );

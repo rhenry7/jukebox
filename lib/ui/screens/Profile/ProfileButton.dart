@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 
 class ProfileButton extends StatelessWidget {
@@ -45,9 +46,7 @@ class ProfileButton extends StatelessWidget {
                 // screens rebuild for the signed-out state by themselves.
                 navigator.popUntil((route) => route.isFirst);
                 scaffold?.closeDrawer();
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('You have signed out')),
-                );
+                messenger.showAppToast('You have signed out');
               },
               child: const Text(
                 'Yes',

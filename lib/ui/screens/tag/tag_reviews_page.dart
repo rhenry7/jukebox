@@ -12,13 +12,28 @@ import '../../widgets/review_feed.dart';
 /// doesn't push the same page again.
 String tagRouteName(String tag) => '/tag/${normalizeTag(tag)}';
 
+/// The tag in a route name made by [tagRouteName] (e.g. the web URL
+/// `/tag/darkwave` after a reload), or null for any other route.
+String? tagFromRouteName(String? name) {
+  const prefix = '/tag/';
+  if (name == null || !name.startsWith(prefix)) return null;
+  var tag = name.substring(prefix.length);
+  try {
+    tag = Uri.decodeComponent(tag);
+  } catch (_) {}
+  return tag.trim().isEmpty ? null : tag;
+}
+
+/// The route for [tag]'s page.
+Route<void> tagPageRoute(String tag) => MaterialPageRoute(
+  settings: RouteSettings(name: tagRouteName(tag)),
+  builder: (_) => TagReviewsPage(tag: tag),
+);
+
 /// Opens the page for [tag].
 void openTagPage(BuildContext context, String tag) {
   if (ModalRoute.of(context)?.settings.name == tagRouteName(tag)) return;
-  Navigator.of(context).push(MaterialPageRoute(
-    settings: RouteSettings(name: tagRouteName(tag)),
-    builder: (_) => TagReviewsPage(tag: tag),
-  ));
+  Navigator.of(context).push(tagPageRoute(tag));
 }
 
 /// Reviews tagged [tag], then reviews with similar tags, then reviews whose

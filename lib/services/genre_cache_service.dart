@@ -29,6 +29,11 @@ class GenreCacheService {
     return key.replaceAll(RegExp(r'[/\\]'), '_');
   }
 
+  /// The `trackGenres` document id for a track (shared with
+  /// TagSuggestionService, which stores its suggestions in the same doc).
+  static String cacheKey(String title, String artist) =>
+      _generateCacheKey(title, artist);
+
   /// Get cached genres for a track
   static Future<List<String>?> getCachedGenres(
       String title, String artist) async {

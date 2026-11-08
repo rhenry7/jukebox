@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/services/account_deletion_service.dart';
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 class DeleteAccountScreen extends StatefulWidget {
   const DeleteAccountScreen({super.key});
@@ -67,12 +68,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).popUntil((route) => route.isFirst);
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Your account has been deleted.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger.showAppToast('Your account has been deleted.', tone: ToastTone.success);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() => _isDeleting = false);
@@ -91,9 +87,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    showAppToast(context, message, tone: ToastTone.error);
   }
 
   void _showReauthPrompt() {

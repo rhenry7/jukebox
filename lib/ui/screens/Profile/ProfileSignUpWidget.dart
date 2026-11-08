@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 class ProfileSignUp extends StatefulWidget {
   const ProfileSignUp({super.key});
@@ -74,13 +75,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
 
   void _showError(Object e) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(e.toString().replaceFirst('Exception: ', '')),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    showAppToast(context, e.toString().replaceFirst('Exception: ', ''), tone: ToastTone.error, duration: const Duration(seconds: 4));
   }
 
   @override

@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -32,6 +30,8 @@ import 'friend_toggle.dart';
 import 'genre_pills.dart';
 import 'review_comments.dart';
 import 'spotify_play_button.dart';
+import 'app_toast.dart';
+import 'glass.dart';
 
 /// Starts loading what the review page shows beyond the review itself (the
 /// "More like this" row), ahead of the tap that opens it. The data is kept
@@ -339,12 +339,7 @@ class ReviewCardWidget extends ConsumerWidget {
 
     // Don't show for the user's own reviews
     if (review.userId == currentUserId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This is your review!'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      showAppToast(context, 'This is your review!', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -362,29 +357,12 @@ class ReviewCardWidget extends ConsumerWidget {
       barrierColor: Colors.black26,
       shape: const RoundedRectangleBorder(borderRadius: radius),
       builder: (sheetContext) {
-        return ClipRRect(
+        return GlassSurface(
           borderRadius: radius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.12),
-                    Colors.white.withValues(alpha: 0.04),
-                  ],
-                ),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-              ),
-              child: _UserProfileSheet(
-                reviewUserId: review.userId,
-                reviewDisplayName: review.displayName,
-              ),
-            ),
-          ),
+          child: _UserProfileSheet(
+            reviewUserId: review.userId,
+            reviewDisplayName: review.displayName,
+),
         );
       },
     );
@@ -586,9 +564,8 @@ class _LikeButton extends ConsumerWidget {
                 await service.toggleLike(reviewId, userId);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
+                  debugPrint('Like failed: $e');
+                  showAppToast(context, "Couldn't update the like. Try again.", tone: ToastTone.error);
                 }
               }
             }
@@ -677,12 +654,7 @@ class _RepostButton extends ConsumerWidget {
         if (currentUserId == null) return;
         // Prevent reposting your own review
         if (review.userId == currentUserId) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You can\'t repost your own review.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          showAppToast(context, 'You can\'t repost your own review.', duration: const Duration(seconds: 2));
           return;
         }
         try {
@@ -696,9 +668,8 @@ class _RepostButton extends ConsumerWidget {
           );
         } catch (e) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: $e')),
-            );
+            debugPrint('Repost failed: $e');
+              showAppToast(context, "Couldn't repost. Try again.", tone: ToastTone.error);
           }
         }
       },
@@ -755,9 +726,8 @@ class _BookmarkButton extends ConsumerWidget {
           );
         } catch (e) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Could not update bookmark: $e')),
-            );
+            debugPrint('Bookmark failed: $e');
+            showAppToast(context, "Couldn't update the bookmark. Try again.", tone: ToastTone.error);
           }
         }
       },

@@ -26,6 +26,7 @@ import 'package:flutter_test_project/ui/widgets/review_card.dart'
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/ui/widgets/skeleton_loader.dart';
 import 'package:flutter_test_project/utils/helpers.dart';
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 /// A user's profile: header, then their reviews.
 ///
@@ -266,12 +267,7 @@ class _ProfileHeader extends StatelessWidget {
               SizedBox.square(
                 dimension: _buttonHeight,
                 child: OutlinedButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Share profile — coming soon'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  ),
+                  onPressed: () => showAppToast(context, 'Share profile — coming soon', duration: const Duration(seconds: 2)),
                   style: _outlinedStyle.copyWith(
                       padding: const WidgetStatePropertyAll(EdgeInsets.zero)),
                   child: const Icon(Ionicons.shareOutline, size: 20),
@@ -528,9 +524,7 @@ class _ArtistPhoto extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final opened = await openOnSpotify(artist.spotifyUrl);
     if (!opened) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Couldn't open Spotify")),
-      );
+      messenger.showAppToast("Couldn't open Spotify", tone: ToastTone.error);
     }
   }
 }
@@ -1041,9 +1035,7 @@ class _ActivityRow extends ConsumerWidget {
     try {
       final data = (await FirebaseFirestore.instance.doc(path).get()).data();
       if (data == null) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('This review has been deleted')),
-        );
+        messenger.showAppToast('This review has been deleted');
         return;
       }
       navigator.push(MaterialPageRoute(
@@ -1053,9 +1045,7 @@ class _ActivityRow extends ConsumerWidget {
         ),
       ));
     } catch (e) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Couldn't open this review")),
-      );
+      messenger.showAppToast("Couldn't open this review", tone: ToastTone.error);
     }
   }
 }

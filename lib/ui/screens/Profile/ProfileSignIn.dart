@@ -9,6 +9,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'helpers/profileHelpers.dart'
     show signInWithGoogle, signInWithApple, completeSignIn, openSignUp;
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -58,12 +59,7 @@ class _SignInScreenState extends State<SignInScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter both email and password'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      showAppToast(context, 'Please enter both email and password', tone: ToastTone.warning);
       return;
     }
 
@@ -80,13 +76,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   void _showError(Object e) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(e.toString().replaceFirst('Exception: ', '')),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    showAppToast(context, e.toString().replaceFirst('Exception: ', ''), tone: ToastTone.error, duration: const Duration(seconds: 4));
   }
 
   /// Signs in with Apple, then [completeSignIn]. Cancelling does nothing.
@@ -160,33 +150,20 @@ class _SignInScreenState extends State<SignInScreen> {
 
     final email = emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email address.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      showAppToast(context, 'Please enter your email address.', tone: ToastTone.warning);
       return;
     }
 
     try {
       await _auth.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Password reset email sent to $email'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showAppToast(context, 'Password reset email sent to $email', tone: ToastTone.success, duration: const Duration(seconds: 4));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       final message = e.code == 'user-not-found'
           ? 'No account found with that email address.'
           : 'Failed to send reset email. Please try again.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
+      showAppToast(context, message, tone: ToastTone.error);
     }
   }
 

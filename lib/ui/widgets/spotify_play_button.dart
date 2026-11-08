@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../services/spotify_link_service.dart';
 import '../../services/spotify_open/spotify_open.dart';
 import '../theme/tokens.dart';
+import 'app_toast.dart';
 
 /// "Play on Spotify" button for a reviewed song or album: a full-width pill
 /// with a label (review detail page), or with [compact] just the logo
@@ -67,9 +68,7 @@ class _SpotifyPlayButtonState extends State<SpotifyPlayButton> {
         _link ?? SpotifyLinkService.searchUrl(widget.title, widget.artist);
     final opened = await openOnSpotify(url);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't open Spotify")),
-      );
+      showAppToast(context, "Couldn't open Spotify", tone: ToastTone.error);
     }
   }
 

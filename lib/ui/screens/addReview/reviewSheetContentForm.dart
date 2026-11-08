@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +20,20 @@ import 'package:spotify/spotify.dart' as spotify;
 import 'review_matches_sheet.dart';
 import 'review_text_editor.dart';
 import '../../widgets/auth_gate_modal.dart';
+
 import 'package:flutter_test_project/services/spotify_client.dart';
+import 'package:flutter_test_project/providers/tag_suggestions_provider.dart';
+import 'package:flutter_test_project/providers/tag_reviews_provider.dart'
+    show normalizeTag;
+import 'package:flutter_test_project/services/tag_suggestion_service.dart'
+    show mergeSuggestions;
+import 'package:flutter_test_project/ui/theme/tokens.dart' show AppColors;
+import 'package:flutter_test_project/ui/widgets/app_states.dart'
+    show AppLoadingText;
+import 'package:flutter_test_project/ui/widgets/genre_pills.dart'
+    show GlassPill;
+
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 /// Saves a review; [submitReview] in the app. A provider so screen tests can
 /// stand in a fake save (no Firebase) and check the form's behaviour.
@@ -35,8 +49,9 @@ typedef ReviewSubmitter = Future<String?> Function(
   String? spotifyUrl,
 });
 
-final reviewSubmitterProvider =
-    Provider<ReviewSubmitter>((ref) => submitReview);
+final reviewSubmitterProvider = Provider<ReviewSubmitter>(
+  (ref) => submitReview,
+);
 
 class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String title;
@@ -112,6 +127,8 @@ class _MyReviewSheetContentFormState
 
     reviewController.addListener(clearRequiredError);
     _tagsController.addListener(clearRequiredError);
+    // Suggested tags hide the ones already typed.
+    _tagsController.addListener(_onTagsChanged);
   }
 
   @override
@@ -121,6 +138,84 @@ class _MyReviewSheetContentFormState
     searchParams.dispose();
     _tagsController.dispose();
     super.dispose();
+  }
+
+  void _onTagsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Adds a suggested tag to the Tags field.
+  void _addTag(String tag) {
+    final text = _tagsController.text.trimRight();
+    final next = text.isEmpty
+        ? tag
+        : text.endsWith(',')
+        ? '$text $tag'
+        : '$text, $tag';
+    _tagsController.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+  }
+
+  /// Up to 5 tags for the picked song that aren't typed in yet, as tappable
+  /// glass pills under the Tags field. Nothing while they load or if there
+  /// are none, so the form never waits for them.
+  Widget _buildTagSuggestions() {
+    final title = _selectedTrackTitle.isNotEmpty
+        ? _selectedTrackTitle
+        : widget.title;
+    final artist = _selectedTrackArtist.isNotEmpty
+        ? _selectedTrackArtist
+        : widget.artist;
+    if (title.trim().isEmpty || artist.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final async = ref.watch(
+      tagSuggestionsProvider((title: title, artist: artist)),
+    );
+    if (async.isLoading && !async.hasValue) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 10),
+        child: AppLoadingText('Finding suggested tags'),
+      );
+    }
+    final suggestions = async.valueOrNull ?? const <String>[];
+    if (suggestions.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 10),
+        child: Text(
+          "Couldn't find any suggested tags for this song",
+          style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12),
+        ),
+      );
+    }
+    final shown = mergeSuggestions(
+      [suggestions],
+      exclude: {for (final t in _tagsFromController) normalizeTag(t)},
+    );
+    if (shown.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Suggested tags',
+            style: TextStyle(color: Colors.white60, fontSize: 12),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final tag in shown)
+                GlassPill(label: '+ $tag', onTap: () => _addTag(tag)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   List<String> get _tagsFromController => _tagsController.text
@@ -135,11 +230,13 @@ class _MyReviewSheetContentFormState
 
     final query = searchParams.text.trim();
     debugPrint(
-        '⌨️  [INPUT] Search input changed: "$query" (length: ${query.length})');
+      '⌨️  [INPUT] Search input changed: "$query" (length: ${query.length})',
+    );
 
     if (query.length >= 2) {
       debugPrint(
-          '   ✅ Query length sufficient, starting debounce timer (500ms)');
+        '   ✅ Query length sufficient, starting debounce timer (500ms)',
+      );
       // Debounce search by 500ms
       _searchDebounce = Timer(const Duration(milliseconds: 500), () {
         debugPrint('   ⏰ Debounce timer completed, executing search');
@@ -214,11 +311,13 @@ class _MyReviewSheetContentFormState
             if (item is spotify.Track) {
               tracks.add(item);
               debugPrint(
-                  '   🎵 Track found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+                '   🎵 Track found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}',
+              );
             } else if (item is spotify.Album) {
               albums.add(item);
               debugPrint(
-                  '   💿 Album found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+                '   💿 Album found: "${item.name}" by ${item.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}',
+              );
             } else if (item is spotify.AlbumSimple) {
               // Handle AlbumSimple - it has the same properties we need
               albums.add(item);
@@ -226,7 +325,8 @@ class _MyReviewSheetContentFormState
                   ? item.artists!.map((a) => a.name ?? 'Unknown').join(', ')
                   : 'Unknown';
               debugPrint(
-                  '   💿 AlbumSimple found: "${item.name}" by $artistNames');
+                '   💿 AlbumSimple found: "${item.name}" by $artistNames',
+              );
             } else {
               debugPrint('   ⚠️  Unknown item type: ${item.runtimeType}');
             }
@@ -245,7 +345,8 @@ class _MyReviewSheetContentFormState
         debugPrint('   🎵 Tracks:');
         for (final track in tracks.take(5)) {
           debugPrint(
-              '      - "${track.name}" by ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+            '      - "${track.name}" by ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}',
+          );
         }
         if (tracks.length > 5) {
           debugPrint('      ... and ${tracks.length - 5} more tracks');
@@ -256,7 +357,8 @@ class _MyReviewSheetContentFormState
         debugPrint('   💿 Albums:');
         for (final album in albums.take(5)) {
           debugPrint(
-              '      - "${album.name}" by ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+            '      - "${album.name}" by ${album.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}',
+          );
         }
         if (albums.length > 5) {
           debugPrint('      ... and ${albums.length - 5} more albums');
@@ -309,10 +411,12 @@ class _MyReviewSheetContentFormState
     debugPrint('🎵 [SELECT] Track selected:');
     debugPrint('   Title: "${track.name}"');
     debugPrint(
-        '   Artist: ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}');
+      '   Artist: ${track.artists?.map((a) => a.name).join(', ') ?? 'Unknown'}',
+    );
     debugPrint('   Album: ${track.album?.name ?? 'Unknown'}');
     debugPrint(
-        '   Image URL: ${track.album?.images?.isNotEmpty == true ? track.album!.images!.first.url ?? 'None' : 'None'}');
+      '   Image URL: ${track.album?.images?.isNotEmpty == true ? track.album!.images!.first.url ?? 'None' : 'None'}',
+    );
 
     setState(() {
       _selectedTrackTitle = track.name ?? '';
@@ -339,16 +443,18 @@ class _MyReviewSheetContentFormState
       id = album.id;
       name = album.name ?? '';
       artistStr = album.artists?.map((a) => a.name).join(', ') ?? '';
-      imageUrl =
-          album.images?.isNotEmpty == true ? album.images!.first.url ?? '' : '';
+      imageUrl = album.images?.isNotEmpty == true
+          ? album.images!.first.url ?? ''
+          : '';
       debugPrint('💿 [SELECT] Album selected: ${album.name}');
     } else if (album is spotify.AlbumSimple) {
       id = album.id;
       name = album.name ?? '';
       artistStr =
           album.artists?.map((a) => a.name ?? 'Unknown').join(', ') ?? '';
-      imageUrl =
-          album.images?.isNotEmpty == true ? album.images!.first.url ?? '' : '';
+      imageUrl = album.images?.isNotEmpty == true
+          ? album.images!.first.url ?? ''
+          : '';
       debugPrint('💿 [SELECT] AlbumSimple selected: ${album.name}');
     } else {
       debugPrint('   ⚠️ Unknown album type: ${album.runtimeType}');
@@ -379,7 +485,8 @@ class _MyReviewSheetContentFormState
     return GestureDetector(
       onTap: () {
         debugPrint(
-            '🏷️  [FILTER] Changed filter from "$_searchFilter" to "$filter"');
+          '🏷️  [FILTER] Changed filter from "$_searchFilter" to "$filter"',
+        );
         setState(() {
           _searchFilter = filter;
           // Trigger new search if there's a query
@@ -388,7 +495,8 @@ class _MyReviewSheetContentFormState
             _performSearch(searchParams.text.trim());
           } else {
             debugPrint(
-                '   No active query, filter changed but no search triggered');
+              '   No active query, filter changed but no search triggered',
+            );
           }
         });
       },
@@ -445,17 +553,14 @@ class _MyReviewSheetContentFormState
     // Required: write your review and at least one tag
     if (review.isEmpty || tags.isEmpty) {
       setState(() => _showRequiredError = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            review.isEmpty && tags.isEmpty
-                ? 'Please write your review and add at least one tag'
-                : review.isEmpty
-                    ? 'Please write your review before submitting'
-                    : 'Please add at least one tag (e.g. rock, indie)',
-          ),
-          backgroundColor: Colors.orange,
-        ),
+      showAppToast(
+        context,
+        review.isEmpty && tags.isEmpty
+            ? 'Please write your review and add at least one tag'
+            : review.isEmpty
+            ? 'Please write your review before submitting'
+            : 'Please add at least one tag (e.g. rock, indie)',
+        tone: ToastTone.warning,
       );
       return;
     }
@@ -488,8 +593,9 @@ class _MyReviewSheetContentFormState
       final submittedArtist = _selectedTrackArtist.isNotEmpty
           ? _selectedTrackArtist
           : widget.artist;
-      final submittedTrack =
-          _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title;
+      final submittedTrack = _selectedTrackTitle.isNotEmpty
+          ? _selectedTrackTitle
+          : widget.title;
       SignalCollectionService.logReviewSubmit(
         artist: submittedArtist,
         track: submittedTrack,
@@ -498,11 +604,13 @@ class _MyReviewSheetContentFormState
       );
 
       // Check if this review matches a pending recommendation (Phase 4)
-      unawaited(RecommendationOutcomeService.checkAndRecordOutcome(
-        artist: submittedArtist,
-        track: submittedTrack,
-        rating: ratingScore,
-      ));
+      unawaited(
+        RecommendationOutcomeService.checkAndRecordOutcome(
+          artist: submittedArtist,
+          track: submittedTrack,
+          rating: ratingScore,
+        ),
+      );
 
       // Invalidate reviews provider to refresh all screens automatically
       ref.invalidate(userReviewsProvider);
@@ -510,51 +618,53 @@ class _MyReviewSheetContentFormState
       ref.invalidate(communityReviewsProvider);
       // Background preference updates; the review is already saved.
       if (liked) {
-        unawaited(updateSavedTracks(
-          _selectedTrackArtist.isNotEmpty
-              ? _selectedTrackArtist
-              : widget.artist,
-          _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
-        ));
-      } else {
-        unawaited(updateRemovePreferences(
-          _selectedTrackArtist.isNotEmpty
-              ? _selectedTrackArtist
-              : widget.artist,
-          _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
-        ));
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Review Posted!'),
-            backgroundColor: Colors.green,
+        unawaited(
+          updateSavedTracks(
+            _selectedTrackArtist.isNotEmpty
+                ? _selectedTrackArtist
+                : widget.artist,
+            _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
           ),
         );
+      } else {
+        unawaited(
+          updateRemovePreferences(
+            _selectedTrackArtist.isNotEmpty
+                ? _selectedTrackArtist
+                : widget.artist,
+            _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
+          ),
+        );
+      }
+      if (mounted) {
+        showAppToast(context, 'Review Posted!', tone: ToastTone.success);
         // The navigator outlives this form, so the sheet can open after the pop.
-        final navigatorContext =
-            Navigator.of(context, rootNavigator: true).context;
+        final navigatorContext = Navigator.of(
+          context,
+          rootNavigator: true,
+        ).context;
         Navigator.pop(context);
         if (navigatorContext.mounted) {
-          unawaited(showReviewMatchesSheet(
-            navigatorContext,
-            reviewPath: reviewPath,
-            reviewedTitle: submittedTrack,
-            reviewedArtist: submittedArtist,
-            tags: tags,
-          ));
+          unawaited(
+            showReviewMatchesSheet(
+              navigatorContext,
+              reviewPath: reviewPath,
+              reviewedTitle: submittedTrack,
+              reviewedArtist: submittedArtist,
+              tags: tags,
+            ),
+          );
         }
       }
     } catch (e) {
       debugPrint('Could not submit review: $e');
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Couldn't save your review. Check your connection "
-                'and try again.'),
-            backgroundColor: Colors.red,
-          ),
+        showAppToast(
+          context,
+          "Couldn't save your review. Check your connection "
+          'and try again.',
+          tone: ToastTone.error,
         );
       }
     }
@@ -578,10 +688,7 @@ class _MyReviewSheetContentFormState
               style: const TextStyle(color: Colors.white),
             ),
             const Gap(8),
-            const Icon(
-              Ionicons.personCircleOutline,
-              color: Colors.white,
-            ),
+            const Icon(Ionicons.personCircleOutline, color: Colors.white),
           ],
         ),
       ],
@@ -851,6 +958,7 @@ class _MyReviewSheetContentFormState
             ),
           ),
         ),
+        _buildTagSuggestions(),
       ],
     );
   }
@@ -876,7 +984,9 @@ class _MyReviewSheetContentFormState
                 height: 22,
                 width: 22,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2.5, color: Colors.white),
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
               )
             : const Text(
                 'Save Review',
@@ -910,10 +1020,12 @@ class _MyReviewSheetContentFormState
                           child: Icon(Icons.search_rounded),
                         ),
                         hintText: 'Search for a song, artist, or album...',
-                        backgroundColor:
-                            WidgetStateProperty.all(Colors.white10),
+                        backgroundColor: WidgetStateProperty.all(
+                          Colors.white10,
+                        ),
                         padding: WidgetStateProperty.all(
-                            const EdgeInsets.symmetric(horizontal: 16.0)),
+                          const EdgeInsets.symmetric(horizontal: 16.0),
+                        ),
                         trailing: _isSearching
                             ? [
                                 const Padding(
@@ -924,26 +1036,27 @@ class _MyReviewSheetContentFormState
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.0,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                        Colors.white,
+                                      ),
                                     ),
                                   ),
-                                )
+                                ),
                               ]
                             : searchParams.text.isNotEmpty
-                                ? [
-                                    IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: () {
-                                        searchParams.clear();
-                                        setState(() {
-                                          _trackResults = [];
-                                          _albumResults = [];
-                                          _searchError = null;
-                                        });
-                                      },
-                                    )
-                                  ]
-                                : null,
+                            ? [
+                                IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    searchParams.clear();
+                                    setState(() {
+                                      _trackResults = [];
+                                      _albumResults = [];
+                                      _searchError = null;
+                                    });
+                                  },
+                                ),
+                              ]
+                            : null,
                       ),
                       const Gap(12),
                       // Filter pills: All, Song, Album
@@ -972,7 +1085,8 @@ class _MyReviewSheetContentFormState
                                 final imageUrl = albumImages?.isNotEmpty == true
                                     ? albumImages!.first.url
                                     : null;
-                                final artistNames = track.artists
+                                final artistNames =
+                                    track.artists
                                         ?.map((a) => a.name)
                                         .join(', ') ??
                                     'Unknown Artist';
@@ -981,15 +1095,18 @@ class _MyReviewSheetContentFormState
                                   key: ValueKey('track_${track.id ?? index}'),
                                   color: Colors.grey[900],
                                   margin: const EdgeInsets.symmetric(
-                                      vertical: 4, horizontal: 0),
+                                    vertical: 4,
+                                    horizontal: 0,
+                                  ),
                                   child: ListTile(
                                     leading: imageUrl != null
                                         ? AppCachedImage(
                                             imageUrl: imageUrl,
                                             width: 56,
                                             height: 56,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           )
                                         : Container(
                                             width: 56,
@@ -1010,7 +1127,8 @@ class _MyReviewSheetContentFormState
                                           child: Text(
                                             track.name ?? 'Unknown Track',
                                             style: const TextStyle(
-                                                color: Colors.white),
+                                              color: Colors.white,
+                                            ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -1028,7 +1146,8 @@ class _MyReviewSheetContentFormState
                                     subtitle: Text(
                                       artistNames,
                                       style: const TextStyle(
-                                          color: Colors.white70),
+                                        color: Colors.white70,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -1051,14 +1170,15 @@ class _MyReviewSheetContentFormState
                                   imageUrl = album.images?.isNotEmpty == true
                                       ? album.images!.first.url
                                       : null;
-                                  artistNames = album.artists
+                                  artistNames =
+                                      album.artists
                                           ?.map((a) => a.name)
                                           .join(', ') ??
                                       'Unknown Artist';
                                   // Extract year from releaseDate
                                   if (album.releaseDate != null) {
-                                    final dateStr =
-                                        album.releaseDate.toString();
+                                    final dateStr = album.releaseDate
+                                        .toString();
                                     if (dateStr.length >= 4) {
                                       releaseYear = dateStr.substring(0, 4);
                                     }
@@ -1068,14 +1188,15 @@ class _MyReviewSheetContentFormState
                                   imageUrl = album.images?.isNotEmpty == true
                                       ? album.images!.first.url
                                       : null;
-                                  artistNames = album.artists
+                                  artistNames =
+                                      album.artists
                                           ?.map((a) => a.name ?? 'Unknown')
                                           .join(', ') ??
                                       'Unknown Artist';
                                   // Extract year from releaseDate
                                   if (album.releaseDate != null) {
-                                    final dateStr =
-                                        album.releaseDate.toString();
+                                    final dateStr = album.releaseDate
+                                        .toString();
                                     if (dateStr.length >= 4) {
                                       releaseYear = dateStr.substring(0, 4);
                                     }
@@ -1094,15 +1215,17 @@ class _MyReviewSheetContentFormState
                                   if (album.artists != null) {
                                     if (album.artists is List) {
                                       artistNames = (album.artists as List)
-                                          .map((a) =>
-                                              a.name?.toString() ?? 'Unknown')
+                                          .map(
+                                            (a) =>
+                                                a.name?.toString() ?? 'Unknown',
+                                          )
                                           .join(', ');
                                     }
                                   }
                                   // Try to extract year from releaseDate
                                   if (album.releaseDate != null) {
-                                    final dateStr =
-                                        album.releaseDate.toString();
+                                    final dateStr = album.releaseDate
+                                        .toString();
                                     if (dateStr.length >= 4) {
                                       releaseYear = dateStr.substring(0, 4);
                                     }
@@ -1113,15 +1236,18 @@ class _MyReviewSheetContentFormState
                                   key: ValueKey('album_${album.id ?? index}'),
                                   color: Colors.grey[900],
                                   margin: const EdgeInsets.symmetric(
-                                      vertical: 4, horizontal: 0),
+                                    vertical: 4,
+                                    horizontal: 0,
+                                  ),
                                   child: ListTile(
                                     leading: imageUrl != null
                                         ? AppCachedImage(
                                             imageUrl: imageUrl,
                                             width: 56,
                                             height: 56,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           )
                                         : Container(
                                             width: 56,
@@ -1142,7 +1268,8 @@ class _MyReviewSheetContentFormState
                                           child: Text(
                                             albumName,
                                             style: const TextStyle(
-                                                color: Colors.white),
+                                              color: Colors.white,
+                                            ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -1162,7 +1289,8 @@ class _MyReviewSheetContentFormState
                                           ? '$artistNames • $releaseYear'
                                           : artistNames,
                                       style: const TextStyle(
-                                          color: Colors.white70),
+                                        color: Colors.white70,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -1208,15 +1336,22 @@ class _MyReviewSheetContentFormState
                               maxRating: 5,
                               allowHalfRating: true,
                               itemSize: 32,
-                              itemPadding:
-                                  const EdgeInsets.symmetric(horizontal: 4.0),
+                              itemPadding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
+                              ),
                               ratingWidget: RatingWidget(
-                                full:
-                                    const Icon(Icons.star, color: Colors.amber),
-                                empty: const Icon(Icons.star_border,
-                                    color: Colors.grey),
-                                half: const Icon(Icons.star_half,
-                                    color: Colors.amber),
+                                full: const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                ),
+                                empty: const Icon(
+                                  Icons.star_border,
+                                  color: Colors.grey,
+                                ),
+                                half: const Icon(
+                                  Icons.star_half,
+                                  color: Colors.amber,
+                                ),
                               ),
                               onRatingUpdate: (rating) {
                                 setState(() {

@@ -12,6 +12,7 @@ import 'package:flutter_test_project/services/review_recommendation_service.dart
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/utils/spotify_retry.dart';
 import 'package:flutter_test_project/services/spotify_client.dart';
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -162,12 +163,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   void _next() {
     if (_currentPage == 0 && _selectedGenres.length < _minGenres) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Select at least 3 genres to continue.'),
-          backgroundColor: Color(0xFF1A1919),
-        ),
-      );
+      showAppToast(context, 'Select at least 3 genres to continue.', tone: ToastTone.warning);
       return;
     }
     if (_currentPage < 2) {
@@ -233,9 +229,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     } catch (e) {
       debugPrint('[Onboarding] Save error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Couldn't save your picks. You can add them later."),
-        ));
+        showAppToast(context, "Couldn't save your picks. You can add them later.", tone: ToastTone.warning);
       }
     }
     _goHome();

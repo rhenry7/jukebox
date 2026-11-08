@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
+import 'package:flutter_test_project/ui/widgets/glass.dart';
 
 class MainNav extends ConsumerStatefulWidget {
   const MainNav({super.key, required this.title});
@@ -322,42 +322,10 @@ class _GlassDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      // Outside the clip, so the shadow lifts the dock off the feed.
-      decoration: const BoxDecoration(
-        borderRadius: _shape,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x66000000),
-            blurRadius: 24,
-            offset: Offset(0, 12),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: _shape,
-        child: BackdropFilter(
-          // Blur plus a little extra saturation, so colours behind the glass
-          // glow through instead of turning grey.
-          filter: ImageFilter.compose(
-            outer: const ColorFilter.matrix(_saturate),
-            inner: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: _shape,
-              // Tinted glass, lighter at the top where light catches it.
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.surfaceContainerHighest.withValues(alpha: 0.62),
-                  AppColors.surfaceContainerHighest.withValues(alpha: 0.48),
-                ],
-              ),
-              border: Border.all(color: AppColors.ghostBorder),
-            ),
-            child: Padding(
+    return GlassSurface(
+      borderRadius: _shape,
+      shadow: true,
+      child: Padding(
               padding: const EdgeInsets.all(_inset),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -390,19 +358,8 @@ class _GlassDock extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
-
-  /// Saturation 1.3 (standard luminance weights).
-  static const List<double> _saturate = [
-    1.2364, -0.2145, -0.0219, 0, 0, //
-    -0.0636, 1.0855, -0.0219, 0, 0,
-    -0.0636, -0.2145, 1.2781, 0, 0,
-    0, 0, 0, 1, 0,
-  ];
 }
 
 class _DockButton extends StatelessWidget {
@@ -479,27 +436,9 @@ class _AppDrawer extends ConsumerWidget {
       shape: const RoundedRectangleBorder(borderRadius: shape),
       clipBehavior: Clip.antiAlias,
       width: MediaQuery.of(context).size.width * 0.82,
-      child: BackdropFilter(
-        filter: ImageFilter.compose(
-          outer: const ColorFilter.matrix(_GlassDock._saturate),
-          inner: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: shape,
-            // Tinted glass, lit from the top-left.
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.alphaBlend(Colors.white.withValues(alpha: 0.08),
-                    AppColors.surfaceContainerHighest.withValues(alpha: 0.62)),
-                AppColors.surfaceContainerHighest.withValues(alpha: 0.48),
-              ],
-            ),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-          ),
-          child: SafeArea(
+      child: GlassSurface(
+        borderRadius: shape,
+        child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
               child: Column(
@@ -574,7 +513,6 @@ class _AppDrawer extends ConsumerWidget {
               ),
             ),
           ),
-        ),
       ),
     );
   }

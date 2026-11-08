@@ -159,7 +159,10 @@ class _CategoryTapBarState extends State<CategoryTapBar> {
                     // Tag filters and sort for all three tabs; hides with
                     // the tabs while scrolling down.
                     const Padding(
-                      padding: EdgeInsets.only(top: AppSpacing.md),
+                      padding: EdgeInsets.only(
+                        top: AppSpacing.lg,
+                        bottom: AppSpacing.md,
+                      ),
                       child: HomeFeedControls(),
                     ),
                   ],

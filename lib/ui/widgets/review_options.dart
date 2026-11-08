@@ -6,6 +6,7 @@ import '../../providers/reviews_provider.dart'
     show ReviewWithDocId, firestoreProvider;
 import '../theme/tokens.dart';
 import 'glass_dialog.dart';
+import 'app_toast.dart';
 
 /// Swipe left or long-press your own review to open its options (edit,
 /// delete). Other people's reviews have no options, so they don't swipe and
@@ -101,18 +102,13 @@ class OwnReviewOptions extends ConsumerWidget {
 
   void _editReview(BuildContext context) {
     // Navigate to edit review screen or show edit dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit review: ${review.docId}')),
-    );
+    showAppToast(context, 'Edit review: ${review.docId}');
   }
 
   void _deleteReview(BuildContext context, WidgetRef ref) {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('You must be signed in to delete reviews')),
-      );
+      showAppToast(context, 'You must be signed in to delete reviews', tone: ToastTone.warning);
       return;
     }
     final db = ref.read(firestoreProvider);
@@ -142,15 +138,10 @@ class OwnReviewOptions extends ConsumerWidget {
                     .doc(review.docId)
                     .delete();
                 onDeleted?.call();
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Review deleted')),
-                );
+                messenger.showAppToast('Review deleted', tone: ToastTone.success);
               } catch (e) {
                 debugPrint('Could not delete review: $e');
-                messenger.showSnackBar(
-                  const SnackBar(
-                      content: Text("Couldn't delete the review. Try again.")),
-                );
+                messenger.showAppToast("Couldn't delete the review. Try again.", tone: ToastTone.error);
               }
             },
             child:

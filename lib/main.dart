@@ -11,6 +11,7 @@ import 'package:flutter_test_project/routing/MainNavigation.dart';
 import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
 import 'package:flutter_test_project/utils/env_config.dart';
 import 'package:flutter_test_project/utils/firebase_options.dart';
+import 'package:flutter_test_project/ui/screens/tag/tag_reviews_page.dart';
 import 'package:flutter_test_project/ui/widgets/app_update_watcher.dart';
 import 'package:flutter_test_project/ui/widgets/mobile_frame.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
@@ -244,6 +245,14 @@ class MyApp extends ConsumerWidget {
         child: MobileFrame(child: AppUpdateWatcher(child: child!)),
       ),
       home: const MainNav(title: 'REVERB'),
+      // On the web, pushed pages put their route name in the URL, so a
+      // reload starts at e.g. `/tag/darkwave`: Flutter builds Home and then
+      // this tag page on top. Other names (`/tag`, `/auth`) return null, so
+      // they're skipped and the app starts at Home.
+      onGenerateRoute: (settings) => switch (tagFromRouteName(settings.name)) {
+        final tag? => tagPageRoute(tag),
+        null => null,
+      },
     );
   }
 }

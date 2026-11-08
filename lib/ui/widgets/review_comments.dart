@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ionicons/ionicons.dart';
@@ -13,6 +11,8 @@ import '../../services/review_comments_service.dart';
 import '../../utils/helpers.dart';
 import '../theme/tokens.dart';
 import 'auth_gate_modal.dart';
+import 'app_toast.dart';
+import 'glass.dart';
 
 /// Shared comment UI for a review: the list, a single comment, the input,
 /// and the bottom sheet opened from the comment button on review cards.
@@ -43,37 +43,19 @@ Future<void> showReviewCommentsSheet(
   );
 }
 
-/// Frosted-glass sheet background: the screen behind is heavily blurred and
-/// only faintly shows through a mostly opaque tint, so white text stays crisp.
+/// Frosted-glass sheet background: a [GlassSurface] panel with the sheet's
+/// rounded top.
 class _GlassSheetSurface extends StatelessWidget {
   const _GlassSheetSurface({required this.child});
 
   final Widget child;
-
-  static const double _blurSigma = 24;
-  static const double _tintOpacity = 0.53;
 
   static const _radius =
       BorderRadius.vertical(top: Radius.circular(AppRadius.xl));
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: _radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: _blurSigma, sigmaY: _blurSigma),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow.withValues(alpha: _tintOpacity),
-            borderRadius: _radius,
-            border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-          ),
-          child: child,
-        ),
-      ),
-    );
+    return GlassSurface(borderRadius: _radius, child: child);
   }
 }
 
@@ -237,9 +219,8 @@ class _CommentComposerState extends ConsumerState<CommentComposer> {
       _controller.clear();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error posting comment: $e')),
-        );
+        debugPrint('Comment failed: $e');
+        showAppToast(context, "Couldn't post your comment. Try again.", tone: ToastTone.error);
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -367,9 +348,8 @@ class CommentTileState extends ConsumerState<CommentTile> {
       if (mounted) setState(() => _isEditing = false);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not save edit: $e')),
-        );
+        debugPrint('Comment edit failed: $e');
+        showAppToast(context, "Couldn't save your edit. Try again.", tone: ToastTone.error);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

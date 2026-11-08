@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 class LegalScreen extends StatelessWidget {
   const LegalScreen({super.key});
@@ -8,9 +9,7 @@ class LegalScreen extends StatelessWidget {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open link')),
-        );
+        showAppToast(context, "Couldn't open the link", tone: ToastTone.error);
       }
     }
   }

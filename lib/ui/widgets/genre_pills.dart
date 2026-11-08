@@ -1,9 +1,9 @@
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
 import '../screens/tag/tag_reviews_page.dart';
 import '../theme/tokens.dart';
+import 'glass.dart';
 
 /// Splits "/"-joined genre strings (e.g. "jazz/funk/rap" from Discogs or
 /// MusicBrainz) into single tags, deduped case-insensitively.
@@ -117,14 +117,6 @@ class GlassPill extends StatelessWidget {
   final VoidCallback? onTap;
   final bool selected;
 
-  /// Gaussian blur behind each pill (sigma, logical pixels).
-  static const double _blur = 8;
-
-  /// The glass: a light tint, brighter at the top-left where the light
-  /// hits, and a faint light edge.
-  static final _tintLit = Colors.white.withValues(alpha: 0.16);
-  static final _tintFar = Colors.white.withValues(alpha: 0.05);
-  static final _edge = Colors.white.withValues(alpha: 0.25);
   static final _selectedFill = Colors.white.withValues(alpha: 0.92);
 
   @override
@@ -161,27 +153,21 @@ class GlassPill extends StatelessWidget {
     return Semantics(
       button: onTap != null,
       selected: selected,
-      child: ClipRRect(
-        borderRadius: AppRadius.pillAll,
-        child: BackdropFilter.grouped(
-          filter: ImageFilter.blur(sigmaX: _blur, sigmaY: _blur),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
+      child: selected
+          // A picked filter is solid white, not glass.
+          ? DecoratedBox(
+              decoration: BoxDecoration(
+                color: _selectedFill,
+                borderRadius: AppRadius.pillAll,
+              ),
+              child: chip,
+            )
+          : GlassSurface(
+              level: GlassLevel.pill,
               borderRadius: AppRadius.pillAll,
-              border: Border.all(color: selected ? _selectedFill : _edge),
-              color: selected ? _selectedFill : null,
-              gradient: selected
-                  ? null
-                  : LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [_tintLit, _tintFar],
-                    ),
+              grouped: true,
+              child: chip,
             ),
-            child: chip,
-          ),
-        ),
-      ),
     );
   }
 }

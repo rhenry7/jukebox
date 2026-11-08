@@ -1,8 +1,7 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
+import 'glass.dart';
 
 /// Shows [GlassDialog] over a lightly dimmed screen, so the frosted glass
 /// has the feed behind it to blur.
@@ -17,8 +16,7 @@ Future<T?> showGlassDialog<T>({
   );
 }
 
-/// A frosted-glass dialog, styled like the nav dock: blurred, tinted glass,
-/// lighter where the light hits the top, with a faint light edge.
+/// A frosted-glass dialog: a [GlassSurface] panel, like the nav dock.
 class GlassDialog extends StatelessWidget {
   const GlassDialog({
     super.key,
@@ -41,38 +39,10 @@ class GlassDialog extends StatelessWidget {
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          borderRadius: _shape,
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x66000000),
-              blurRadius: 24,
-              offset: Offset(0, 12),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: _shape,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: _shape,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color.alphaBlend(
-                        Colors.white.withValues(alpha: 0.10),
-                        AppColors.surfaceContainerHighest
-                            .withValues(alpha: 0.70)),
-                    AppColors.surfaceContainerHighest.withValues(alpha: 0.55),
-                  ],
-                ),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
-              ),
-              child: Padding(
+      child: GlassSurface(
+        borderRadius: _shape,
+        shadow: true,
+        child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.md),
                 child: Column(
@@ -103,9 +73,6 @@ class GlassDialog extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }

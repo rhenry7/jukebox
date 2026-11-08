@@ -47,8 +47,10 @@ abstract final class AppSpacing {
 
   /// Padding around each card in a vertical card list: [cardGap] in from the
   /// screen edges and [cardGap] between cards.
-  static const EdgeInsets cardListItem =
-      EdgeInsets.symmetric(horizontal: cardGap, vertical: cardGap / 2);
+  static const EdgeInsets cardListItem = EdgeInsets.symmetric(
+    horizontal: cardGap,
+    vertical: cardGap / 2,
+  );
 }
 
 /// Corner radius scale.
@@ -123,13 +125,44 @@ abstract final class AppColors {
 /// elements (modals, primary buttons).
 abstract final class AppShadows {
   static const List<BoxShadow> ambient = [
-    BoxShadow(
-      offset: Offset(0, 12),
-      blurRadius: 24,
-      color: Color(0x66000000),
-    ),
+    BoxShadow(offset: Offset(0, 12), blurRadius: 24, color: Color(0x66000000)),
   ];
 
-  /// Backdrop blur sigma for glass surfaces (dock, Now Playing).
-  static const double glassBlur = 24;
+  /// Backdrop blur sigma for glass panels. Same as [AppGlass.panelBlur].
+  static const double glassBlur = AppGlass.panelBlur;
+}
+
+/// Glassmorphism: the numbers behind every frosted surface. See
+/// docs/glassmorphism.md for the rules; build glass with `GlassSurface`
+/// (lib/ui/widgets/glass.dart), never by hand.
+abstract final class AppGlass {
+  /// Pills and small controls: a light blur and a clear white tint, so the
+  /// album art or page behind them shows through.
+  static const double pillBlur = 8;
+  static const Color pillTintLit = Color(0x29FFFFFF); // white 16%
+  static const Color pillTintFar = Color(0x0DFFFFFF); // white 5%
+  static const Color pillEdge = Color(0x40FFFFFF); // white 25%
+
+  /// Panels (dock, drawer, sheets, dialogs, menus, toasts): a heavy blur and
+  /// a dark tint, so text on them stays readable over anything.
+  static const double panelBlur = 24;
+
+  /// The panel tint, lighter at the top-left where the light hits.
+  static const Color panelTintLit = Color(
+    0xB3363636,
+  ); // ≈ highest 62% + white 8%
+  static const Color panelTintFar = Color(0x7A262626); // highest 48%
+  static const Color panelEdge = Color(0x2EFFFFFF); // white 18%
+
+  /// How much an accent (a toast's success / error color) tints the edge.
+  static const double accentEdgeOpacity = 0.55;
+
+  /// Saturation 1.3 behind panels, so colors glow through the blur instead
+  /// of turning grey.
+  static const List<double> saturate = [
+    1.2364, -0.2145, -0.0219, 0, 0, //
+    -0.0636, 1.0855, -0.0219, 0, 0,
+    -0.0636, -0.2145, 1.2781, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
 }
