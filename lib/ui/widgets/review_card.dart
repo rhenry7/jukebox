@@ -304,7 +304,7 @@ class ReviewCardWidget extends ConsumerWidget {
                               reviewId: reviewId!,
                             ),
                     child: const Icon(
-                      Ionicons.chatbubble_outline,
+                      Ionicons.chatbubbleOutline,
                       color: Colors.white70,
                       size: 22,
                     ),
@@ -765,7 +765,7 @@ class _BookmarkButton extends ConsumerWidget {
         button: true,
         label: isSaved ? 'Remove bookmark' : 'Bookmark',
         child: Icon(
-          isSaved ? Ionicons.bookmark : Ionicons.bookmark_outline,
+          isSaved ? Ionicons.bookmark : Ionicons.bookmarkOutline,
           size: 22,
           color: isSaved ? AppColors.secondary : Colors.white70,
         ),

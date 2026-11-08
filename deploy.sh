@@ -2,6 +2,8 @@
 
 set -e
 
+. "$(dirname "$0")/scripts/use_pinned_flutter.sh"
+
 echo "🚀 Starting deployment process..."
 echo ""
 

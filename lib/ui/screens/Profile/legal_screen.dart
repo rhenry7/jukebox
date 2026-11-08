@@ -35,7 +35,7 @@ class LegalScreen extends StatelessWidget {
               'https://juxeboxd.web.app/privacy-policy.html',
             ),
           ),
-          Divider(color: Colors.white.withOpacity(0.08), height: 1),
+          Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
           _LegalTile(
             icon: Icons.description_outlined,
             title: 'Terms of Service',
@@ -45,7 +45,7 @@ class LegalScreen extends StatelessWidget {
               'https://YOUR_TERMS_OF_SERVICE_URL_HERE',
             ),
           ),
-          Divider(color: Colors.white.withOpacity(0.08), height: 1),
+          Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
           const Padding(
             padding: EdgeInsets.all(24.0),
             child: Text(

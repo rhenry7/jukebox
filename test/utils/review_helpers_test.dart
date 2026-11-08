@@ -350,7 +350,7 @@ void main() {
     test('saved track format is correct', () {
       const artist = 'Eagles';
       const title = 'Hotel California';
-      final saved = 'artist: $artist, song: $title';
+      const saved = 'artist: $artist, song: $title';
       expect(saved, 'artist: Eagles, song: Hotel California');
       expect(saved, contains('artist:'));
       expect(saved, isNot(contains('arist:')));

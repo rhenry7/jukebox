@@ -100,7 +100,8 @@ final recommendedReviewsProvider = StreamProvider<ForYouFeed>((ref) async* {
   final arrivals = StreamController<void>();
   var pending = missing.length;
   for (final path in missing) {
-    ForYouService.fetchReview(path, db: db, preferCache: preferCache).then(
+    unawaited(
+        ForYouService.fetchReview(path, db: db, preferCache: preferCache).then(
       (review) => cache[path] = review,
       onError: (Object e) {
         // Skip it rather than hold up the cards below it.
@@ -110,7 +111,7 @@ final recommendedReviewsProvider = StreamProvider<ForYouFeed>((ref) async* {
     ).whenComplete(() {
       if (!arrivals.isClosed) arrivals.add(null);
       if (--pending == 0) arrivals.close();
-    });
+    }));
   }
   ref.onDispose(arrivals.close);
 

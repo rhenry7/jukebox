@@ -354,7 +354,7 @@ class ReviewAnalysisService {
     // Calculate overall average
     final totalRating = reviews.fold<double>(
       0.0,
-      (sum, review) => sum + review.score,
+      (total, review) => total + review.score,
     );
     final averageRating = totalRating / reviews.length;
     
@@ -362,7 +362,7 @@ class ReviewAnalysisService {
     final recentReviews = reviews.take(10).toList();
     final recentAverage = recentReviews.isEmpty
         ? averageRating
-        : recentReviews.fold<double>(0.0, (sum, r) => sum + r.score) /
+        : recentReviews.fold<double>(0.0, (total, r) => total + r.score) /
             recentReviews.length;
     
     // Rating distribution
@@ -375,7 +375,7 @@ class ReviewAnalysisService {
     // Rating volatility (standard deviation)
     final variance = reviews.fold<double>(
       0.0,
-      (sum, review) => sum + (review.score - averageRating) * (review.score - averageRating),
+      (total, review) => total + (review.score - averageRating) * (review.score - averageRating),
     ) / reviews.length;
     final volatility = variance > 0 ? variance : 0.0;
     
@@ -389,7 +389,7 @@ class ReviewAnalysisService {
     final lowRated = <String>[];
     
     artistRatings.forEach((artist, ratings) {
-      final avg = ratings.fold<double>(0.0, (sum, r) => sum + r) / ratings.length;
+      final avg = ratings.fold<double>(0.0, (total, r) => total + r) / ratings.length;
       if (avg >= 4.5 && ratings.length >= 2) {
         highlyRated.add(artist);
       } else if (avg <= 2.5 && ratings.length >= 2) {
@@ -463,7 +463,7 @@ class ReviewAnalysisService {
       final favoriteArtists = artistRatings.entries
           .where((e) {
             final avg =
-                e.value.fold<double>(0.0, (sum, r) => sum + r) / e.value.length;
+                e.value.fold<double>(0.0, (total, r) => total + r) / e.value.length;
             return avg >= 4.0;
           })
           .map((e) => e.key)
@@ -516,10 +516,10 @@ class ReviewAnalysisService {
       // Calculate consistency (lower std dev = more consistent)
       final ratings = artistReviews.map((r) => r.score).toList();
       final rawAvg =
-          ratings.fold<double>(0.0, (sum, r) => sum + r) / ratings.length;
+          ratings.fold<double>(0.0, (total, r) => total + r) / ratings.length;
       final variance = ratings.fold<double>(
             0.0,
-            (sum, r) => sum + (r - rawAvg) * (r - rawAvg),
+            (total, r) => total + (r - rawAvg) * (r - rawAvg),
           ) /
           ratings.length;
       final consistency = 1.0 - (variance / 5.0).clamp(0.0, 1.0);
@@ -649,7 +649,7 @@ class ReviewAnalysisService {
     // Calculate average ratings by period
     final recentAvg = last30Days.isEmpty
         ? 0.0
-        : last30Days.fold<double>(0.0, (sum, r) => sum + r.score) / 
+        : last30Days.fold<double>(0.0, (total, r) => total + r.score) / 
           last30Days.length;
     
     final olderReviews = reviews.length > last90Days.length
@@ -660,7 +660,7 @@ class ReviewAnalysisService {
         ? 0.0
         : olderReviews.fold<double>(
             0.0,
-            (sum, r) => sum + r.score,
+            (total, r) => total + r.score,
           ) / olderReviews.length;
     
     // Genre trends

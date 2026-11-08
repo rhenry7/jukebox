@@ -312,7 +312,7 @@ class _CommentComposerState extends ConsumerState<CommentComposer> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : const Icon(Ionicons.arrow_up,
+                    : const Icon(Ionicons.arrowUp,
                         color: Colors.white, size: 20),
               ),
             ),

@@ -200,9 +200,7 @@ void main() {
 
       // Listen to auth state changes
       final states = <User?>[];
-      mockAuth.authStateChanges().listen((user) {
-        states.add(user);
-      });
+      mockAuth.authStateChanges().listen(states.add);
 
       // Sign in
       await mockAuth.signInWithEmailAndPassword(

@@ -223,7 +223,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
         // Clear the recommendations cache so the For You tab generates fresh
         // results using the new preferences immediately.
-        ReviewRecommendationService.clearRecommendationsCache(uid);
+        unawaited(ReviewRecommendationService.clearRecommendationsCache(uid));
 
         debugPrint('[Onboarding] Saved '
             '${_selectedGenres.length} genres, '
@@ -423,7 +423,7 @@ class _BottomBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
                 boxShadow: [
                   BoxShadow(
-                    color: _secondary.withOpacity(0.35),
+                    color: _secondary.withValues(alpha: 0.35),
                     blurRadius: 20,
                     spreadRadius: 1,
                   ),
@@ -510,19 +510,19 @@ class _GenresPage extends StatelessWidget {
                       horizontal: 18, vertical: 12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? _primary.withOpacity(0.14)
+                        ? _primary.withValues(alpha: 0.14)
                         : _surfaceHigh,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
                           ? _primary
-                          : _outlineVariant.withOpacity(0.35),
+                          : _outlineVariant.withValues(alpha: 0.35),
                       width: isSelected ? 1.5 : 1,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: _primary.withOpacity(0.22),
+                              color: _primary.withValues(alpha: 0.22),
                               blurRadius: 14,
                             )
                           ]
@@ -761,7 +761,7 @@ class _ArtistsPageState extends State<_ArtistsPage> {
                                   boxShadow: isSelected
                                       ? [
                                           BoxShadow(
-                                            color: _primary.withOpacity(0.4),
+                                            color: _primary.withValues(alpha: 0.4),
                                             blurRadius: 14,
                                           )
                                         ]
@@ -1020,7 +1020,7 @@ class _AlbumsPageState extends State<_AlbumsPage> {
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: _primary.withOpacity(0.25),
+                                    color: _primary.withValues(alpha: 0.25),
                                     blurRadius: 14,
                                   )
                                 ]
@@ -1054,7 +1054,7 @@ class _AlbumsPageState extends State<_AlbumsPage> {
                                               child: Icon(
                                                 Icons.album_rounded,
                                                 color: Colors.white
-                                                    .withOpacity(0.25),
+                                                    .withValues(alpha: 0.25),
                                                 size: 40,
                                               ),
                                             ),
@@ -1067,7 +1067,7 @@ class _AlbumsPageState extends State<_AlbumsPage> {
                                         top: Radius.circular(12),
                                       ),
                                       child: ColoredBox(
-                                        color: _primary.withOpacity(0.4),
+                                        color: _primary.withValues(alpha: 0.4),
                                         child: const Center(
                                           child: Icon(
                                             Icons.check_circle_rounded,

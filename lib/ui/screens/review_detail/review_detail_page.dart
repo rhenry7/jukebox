@@ -124,7 +124,7 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                         color: Colors.white12, width: 1),
@@ -292,7 +292,7 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                 ),
                 child: const Icon(Icons.arrow_back_ios_new_rounded,
                     size: 16, color: Colors.white),
@@ -532,8 +532,8 @@ class _StatsBar extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.07)),
-          bottom: BorderSide(color: Colors.white.withOpacity(0.07)),
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
         ),
       ),
       child: Row(
@@ -570,7 +570,7 @@ class _StatsBar extends ConsumerWidget {
           // Comments count
           Row(
             children: [
-              const Icon(Ionicons.chatbubble_outline,
+              const Icon(Ionicons.chatbubbleOutline,
                   color: Colors.white60, size: 20),
               const SizedBox(width: 6),
               Text(
@@ -601,7 +601,7 @@ class _StatsBar extends ConsumerWidget {
           ),
           const Spacer(),
           // Share
-          const Icon(Ionicons.share_outline, color: Colors.white60, size: 22),
+          const Icon(Ionicons.shareOutline, color: Colors.white60, size: 22),
         ],
       ),
     );
@@ -640,7 +640,7 @@ class _CommentsSection extends ConsumerWidget {
             if (comments.isNotEmpty)
               const Row(
                 children: [
-                  Icon(Ionicons.swap_vertical_outline,
+                  Icon(Ionicons.swapVerticalOutline,
                       color: Colors.white54, size: 16),
                   SizedBox(width: 4),
                   Text(
@@ -666,6 +666,7 @@ class _CommentsSection extends ConsumerWidget {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => openSignIn(context),
+                    style: TextButton.styleFrom(foregroundColor: _primary),
                     child: const Text('Sign in'),
                   ),
                 ],
@@ -710,7 +711,7 @@ class _CommentsSection extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: comments.length,
             separatorBuilder: (_, __) => Divider(
-              color: Colors.white.withOpacity(0.06),
+              color: Colors.white.withValues(alpha: 0.06),
               height: 1,
             ),
             itemBuilder: (context, i) => CommentTile(

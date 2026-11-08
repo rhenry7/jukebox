@@ -134,11 +134,12 @@ class _ReviewFeedState extends State<ReviewFeed> {
       color: AppColors.primary,
       child: ListView.builder(
         key: PageStorageKey(widget.storageKey),
+        // Cache more items to prevent scroll jumps.
+        scrollCacheExtent: const ScrollCacheExtent.pixels(500),
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: reviewFeedPadding(widget.layout),
         itemCount: reviews.length + (_isLoadingMore ? 1 : 0),
-        cacheExtent: 500, // Cache more items to prevent scroll jumps
         itemBuilder: (context, index) {
           if (index == reviews.length) return const AppLoadingFooter();
 

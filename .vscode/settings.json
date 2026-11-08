@@ -3,5 +3,6 @@
     "dart.flutterHotReloadOnSave": "all",
     "cSpell.words": [
         "Ionicons"
-    ]
+    ],
+    "dart.flutterSdkPath": "~/development/flutter-3.47.9"
 }

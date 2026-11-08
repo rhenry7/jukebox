@@ -188,7 +188,7 @@ class TagFeedNotifier extends AutoDisposeFamilyAsyncNotifier<TagFeed, String> {
       if (_exact.isEmpty) {
         // A pill's own tag always has reviews; none means the index isn't
         // built yet (or a query failed), so search the newest reviews.
-        return _legacy();
+        return await _legacy();
       }
       final c = await counts;
       _exactCount = c[0];

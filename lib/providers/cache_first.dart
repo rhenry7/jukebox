@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// fetched ahead of a tap that never came), so going back is instant.
 const Duration pageDataKeepAlive = Duration(minutes: 5);
 
-extension KeepAliveFor on AutoDisposeRef<Object?> {
+extension KeepAliveFor on Ref<Object?> {
   /// Keeps this provider's data for [duration] once nothing is using it.
   /// Also covers a provider only read ahead of time ([ProviderContainer.read]
   /// with no listener yet), which would otherwise be dropped straight away.

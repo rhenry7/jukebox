@@ -278,7 +278,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         borderRadius: BorderRadius.circular(999),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF39FF6A).withOpacity(0.35),
+                            color: const Color(0xFF39FF6A).withValues(alpha: 0.35),
                             blurRadius: 22,
                             spreadRadius: 1,
                           ),
@@ -351,7 +351,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Ionicons.logo_google,
+                                Icon(Ionicons.logoGoogle,
                                     size: 20, color: Colors.white),
                                 SizedBox(width: 12),
                                 Text(

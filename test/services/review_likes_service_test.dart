@@ -69,9 +69,9 @@ class TestableReviewLikesService {
   Future<bool> toggleLike(String reviewId, String userId) async {
     final isLiked = await isReviewLikedByUser(reviewId, userId);
     if (isLiked) {
-      return await unlikeReview(reviewId, userId);
+      return unlikeReview(reviewId, userId);
     } else {
-      return await likeReview(reviewId, userId);
+      return likeReview(reviewId, userId);
     }
   }
 

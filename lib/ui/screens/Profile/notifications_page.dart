@@ -134,7 +134,7 @@ class NotificationsPage extends ConsumerWidget {
 
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            itemCount: sections.fold<int>(0, (sum, s) => sum + 1 + s.events.length),
+            itemCount: sections.fold<int>(0, (total, s) => total + 1 + s.events.length),
             itemBuilder: (context, idx) {
               // Flatten sections into a single list: header + items
               int cursor = 0;
@@ -426,7 +426,7 @@ class _ActionButton extends StatelessWidget {
           boxShadow: filled
               ? [
                   BoxShadow(
-                    color: _primary.withOpacity(0.3),
+                    color: _primary.withValues(alpha: 0.3),
                     blurRadius: 12,
                     spreadRadius: 0,
                   )

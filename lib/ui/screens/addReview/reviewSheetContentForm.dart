@@ -498,30 +498,31 @@ class _MyReviewSheetContentFormState
       );
 
       // Check if this review matches a pending recommendation (Phase 4)
-      RecommendationOutcomeService.checkAndRecordOutcome(
+      unawaited(RecommendationOutcomeService.checkAndRecordOutcome(
         artist: submittedArtist,
         track: submittedTrack,
         rating: ratingScore,
-      );
+      ));
 
       // Invalidate reviews provider to refresh all screens automatically
       ref.invalidate(userReviewsProvider);
       // Popular is read once, not live, so re-read it to include this review.
       ref.invalidate(communityReviewsProvider);
+      // Background preference updates; the review is already saved.
       if (liked) {
-        updateSavedTracks(
+        unawaited(updateSavedTracks(
           _selectedTrackArtist.isNotEmpty
               ? _selectedTrackArtist
               : widget.artist,
           _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
-        );
-      } else if (!liked) {
-        updateRemovePreferences(
+        ));
+      } else {
+        unawaited(updateRemovePreferences(
           _selectedTrackArtist.isNotEmpty
               ? _selectedTrackArtist
               : widget.artist,
           _selectedTrackTitle.isNotEmpty ? _selectedTrackTitle : widget.title,
-        );
+        ));
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -578,7 +579,7 @@ class _MyReviewSheetContentFormState
             ),
             const Gap(8),
             const Icon(
-              Ionicons.person_circle_outline,
+              Ionicons.personCircleOutline,
               color: Colors.white,
             ),
           ],
@@ -720,7 +721,7 @@ class _MyReviewSheetContentFormState
             boxShadow: showError
                 ? [
                     BoxShadow(
-                      color: Colors.orange.withOpacity(0.4),
+                      color: Colors.orange.withValues(alpha: 0.4),
                       blurRadius: 12,
                       spreadRadius: 1,
                     ),
@@ -815,7 +816,7 @@ class _MyReviewSheetContentFormState
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.orange.withOpacity(0.4),
+                      color: Colors.orange.withValues(alpha: 0.4),
                       blurRadius: 12,
                       spreadRadius: 1,
                     ),
@@ -1228,7 +1229,7 @@ class _MyReviewSheetContentFormState
                             IconButton(
                               onPressed: toggleHeart,
                               icon: Icon(
-                                liked ? Ionicons.heart : Ionicons.heart_outline,
+                                liked ? Ionicons.heart : Ionicons.heartOutline,
                                 color: liked ? Colors.red : Colors.grey,
                                 size: 28,
                               ),

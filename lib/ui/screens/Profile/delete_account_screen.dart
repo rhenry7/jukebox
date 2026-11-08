@@ -189,7 +189,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     (_confirmEnabled && !_isDeleting) ? _handleDelete : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
-                  disabledBackgroundColor: Colors.red.withOpacity(0.3),
+                  disabledBackgroundColor: Colors.red.withValues(alpha: 0.3),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

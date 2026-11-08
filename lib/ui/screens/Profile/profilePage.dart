@@ -274,7 +274,7 @@ class _ProfileHeader extends StatelessWidget {
                   ),
                   style: _outlinedStyle.copyWith(
                       padding: const WidgetStatePropertyAll(EdgeInsets.zero)),
-                  child: const Icon(Ionicons.share_outline, size: 20),
+                  child: const Icon(Ionicons.shareOutline, size: 20),
                 ),
               ),
             ],

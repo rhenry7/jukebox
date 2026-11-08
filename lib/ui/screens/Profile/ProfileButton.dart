@@ -5,7 +5,7 @@ import 'package:ionicons/ionicons.dart';
 
 class ProfileButton extends StatelessWidget {
   final String name;
-  final IoniconsData icon;
+  final IconData icon;
   const ProfileButton({super.key, required this.name, required this.icon});
 
   Future<void> showSignOutConfirmationDialog(BuildContext context) {
@@ -96,7 +96,7 @@ class ProfileButton extends StatelessWidget {
                                 profileRoute(name)))
                     : showSignOutConfirmationDialog(context);
               },
-              icon: const Icon(Ionicons.chevron_forward_outline)),
+              icon: const Icon(Ionicons.chevronForwardOutline)),
         ]));
   }
 }

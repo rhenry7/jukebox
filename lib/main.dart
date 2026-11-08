@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/Api/api_key.dart';
@@ -14,7 +15,7 @@ import 'package:flutter_test_project/ui/widgets/app_update_watcher.dart';
 import 'package:flutter_test_project/ui/widgets/mobile_frame.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Environment values are injected at build time via --dart-define.

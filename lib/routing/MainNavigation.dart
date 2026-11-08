@@ -365,7 +365,7 @@ class _GlassDock extends StatelessWidget {
                   _DockButton(
                     tooltip: 'Home',
                     selected: selectedIndex == MainNavState.homeTab,
-                    icon: Ionicons.home_outline,
+                    icon: Ionicons.homeOutline,
                     selectedIcon: Ionicons.home,
                     onTap: () => onSelected(MainNavState.homeTab),
                   ),
@@ -373,8 +373,8 @@ class _GlassDock extends StatelessWidget {
                   _DockButton(
                     tooltip: 'New review',
                     selected: false, // An action, never a tab.
-                    icon: Ionicons.add_circle_outline,
-                    selectedIcon: Ionicons.add_circle_outline,
+                    icon: Ionicons.addCircleOutline,
+                    selectedIcon: Ionicons.addCircleOutline,
                     iconSize: 34,
                     color: Colors.greenAccent[700],
                     onTap: () => onSelected(MainNavState.addTab),
@@ -383,8 +383,8 @@ class _GlassDock extends StatelessWidget {
                   _DockButton(
                     tooltip: 'Profile',
                     selected: selectedIndex == MainNavState.profileTab,
-                    icon: Ionicons.person_circle_outline,
-                    selectedIcon: Ionicons.person_circle,
+                    icon: Ionicons.personCircleOutline,
+                    selectedIcon: Ionicons.personCircle,
                     onTap: () => onSelected(MainNavState.profileTab),
                   ),
                 ],
@@ -527,26 +527,26 @@ class _AppDrawer extends ConsumerWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(
-                          color: Colors.white.withOpacity(0.1), width: 1),
+                          color: Colors.white.withValues(alpha: 0.1), width: 1),
                     ),
                     child: Column(
                       children: [
                         const ProfileButton(
                           name: 'Notifications',
-                          icon: Ionicons.notifications_outline,
+                          icon: Ionicons.notificationsOutline,
                         ),
                         Divider(
-                            color: Colors.white.withOpacity(0.05), height: 1),
+                            color: Colors.white.withValues(alpha: 0.05), height: 1),
                         const ProfileButton(
                           name: 'Legal',
-                          icon: Ionicons.document_text_outline,
+                          icon: Ionicons.documentTextOutline,
                         ),
                         if (signedIn) ...[
                           Divider(
-                              color: Colors.white.withOpacity(0.05), height: 1),
+                              color: Colors.white.withValues(alpha: 0.05), height: 1),
                           const ProfileButton(
                             name: 'LogOut',
-                            icon: Ionicons.exit_outline,
+                            icon: Ionicons.exitOutline,
                           ),
                         ],
                       ],
@@ -557,17 +557,17 @@ class _AppDrawer extends ConsumerWidget {
                   // Danger zone
                   if (canDeleteAccount)
                     Card(
-                      color: Colors.red.withOpacity(0.08),
+                      color: Colors.red.withValues(alpha: 0.08),
                       elevation: 0,
                       margin: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                            color: Colors.red.withOpacity(0.25), width: 1),
+                            color: Colors.red.withValues(alpha: 0.25), width: 1),
                       ),
                       child: const ProfileButton(
                         name: 'Delete Account',
-                        icon: Ionicons.trash_outline,
+                        icon: Ionicons.trashOutline,
                       ),
                     ),
                 ],

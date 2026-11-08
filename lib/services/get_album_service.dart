@@ -71,7 +71,7 @@ class MusicBrainzService {
     final completer = Completer<void>();
     _requestQueue.add(completer);
     if (!_processing) {
-      _processQueue();
+      unawaited(_processQueue());
     }
     return completer.future;
   }

@@ -5,6 +5,8 @@
 
 set -e  # Exit on error
 
+. "$(dirname "$0")/use_pinned_flutter.sh"
+
 echo "🧪 Running Flutter tests..."
 echo ""
 

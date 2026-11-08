@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dart": {
+      "command": "${HOME}/development/flutter-3.47.9/bin/dart",
+      "args": ["mcp-server"]
+    }
+  }
+}

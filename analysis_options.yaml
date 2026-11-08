@@ -10,6 +10,12 @@ analyzer:
     - "**/*.freezed.dart"
     - "build/**"
     - "**/generated/**"
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
   errors:
     missing_return: error
     invalid_assignment: error
@@ -19,6 +25,10 @@ analyzer:
 
 linter:
   rules:
+    # Older screens use CamelCase file names (profilePage.dart, ...). Renaming
+    # them would only churn imports and docs, so new files use snake_case
+    # and these stay.
+    file_names: false
     prefer_single_quotes: true
     sort_child_properties_last: true
     use_super_parameters: true

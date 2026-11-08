@@ -107,6 +107,13 @@ The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild o
 - The review form saves through `reviewSubmitterProvider`, so tests can stand in a fake save.
 - Don't use `pumpAndSettle` on screens with album art: the image placeholder keeps animating in tests. Pump fixed durations instead.
 - QA skills from the Flutter team are in `.claude/skills/` (static analysis, coverage, layout fixes, widget and integration tests).
+- End-to-end tests (`integration_test/app_test.dart`) walk the main signed-out flows in Chrome against live data, read-only: `./scripts/run_integration_tests.sh` (needs ChromeDriver matching your Chrome; see the script). They never sign in or write.
+- `flutter analyze` must report no issues: CI fails on any, including infos, and then skips the tests.
+
+### Flutter version
+Pinned in `.flutter-version` (3.47.9); CI and `deploy.sh` check it. On this Mac it's installed beside the older default Flutter as `~/development/flutter-3.47.9`, and the project scripts put it first on PATH (`scripts/use_pinned_flutter.sh`); VS Code uses it via `.vscode/settings.json`. In a terminal, run `. scripts/use_pinned_flutter.sh` before plain `flutter` commands.
+
+The Dart MCP server (`.mcp.json`, `dart mcp-server` from that SDK) lets Claude inspect a running debug app: widget tree, runtime errors, hot reload.
 
 ### Web updates (installed PWA)
 Deploys (`deploy.sh` and `.github/workflows/deploy.yml`) build with `--pwa-strategy=none` and a `--dart-define=BUILD_ID` from `scripts/build_id.sh`, and publish the same id as `build/web/app_version.json`. `AppUpdateWatcher` (`lib/ui/widgets/app_update_watcher.dart`, in `MaterialApp.builder`) compares the two: a newer version reloads the app on launch, or shows an "Update" pill when the user returns to it. Browsers that still run the caching service worker from older deploys can't reach that code, so deploys also publish `scripts/legacy_sw_cleanup.js` as `flutter_service_worker.js`, which removes the old worker and its caches. Any new web deploy path must stamp the build id and copy that file the same way. `firebase.json` serves html/js/json with `Cache-Control: no-cache`.
