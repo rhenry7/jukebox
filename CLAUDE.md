@@ -69,6 +69,9 @@ The For You list is built in **Cloud Functions** (`functions/`, TypeScript). See
 
 **Rule:** Never call OpenAI (or any paid AI API) from the Flutter app, and never add AI keys to `deploy.sh` — anything in a `--dart-define` ships in the public web bundle. AI work goes in `functions/` with keys in Secret Manager.
 
+### Similar artists (MusicBrainz + ListenBrainz)
+`onReviewWritten` stores each review's MusicBrainz IDs (`recordingMbid`, `artistMbids`; server-owned, read by `Review.fromFirestore`, never written by the app) and caches each artist's ListenBrainz similar artists in `similarArtists/{artistMbid}` (public read, server write). Code: `functions/src/musicbrainz.ts`; backfill with `npm run backfill -- --mbids`. Three things use it: "More like this" (`findSimilarReviews` scores similar-artist reviews alongside shared tags, through the `artistMbids` + `date` index), For You (a similar-artist candidate source and `artistSim` weight in `functions/src/forYou.ts` / `scoring.ts`), and onboarding (picking an artist slides in up to 3 similar ones via `SimilarArtistsService`, `lib/services/similar_artists_service.dart`). Parsing rules are duplicated in Dart and TypeScript; keep them in step. Free, keyless APIs: MusicBrainz allows about one request a second.
+
 ### Other users' profiles
 `ProfilePage(userId:, displayName:)` shows any user's profile with the same header, filled from their reviews (`reviewsByUserProvider`, `topArtistsForUserProvider`) and `users/{uid}` (`userProfileInfoProvider`). It opens from "View profile" in the reviewer sheet on review cards. Another user's profile has Add Friend in place of Edit Profile, and only their reviews: their bookmarks and activity stay private. Add/remove friend goes through `toggleFriend` in `lib/ui/widgets/friend_toggle.dart`.
 
@@ -85,7 +88,7 @@ Tapping anywhere on a review card (outside the bottom action row) navigates to:
 lib/ui/screens/review_detail/review_detail_page.dart
 ```
 
-`ReviewDetailPage(review: Review, reviewId: String?)` — full-screen detail view with hero album art, drop-cap review body, live like button, stats bar, a "More like this" row and the comments section. The row (`SimilarReviewsRow` in `lib/ui/widgets/similar_reviews_row.dart`) shows up to 5 `CompactReviewCard`s for reviews sharing tags, found through the tag index by `similarReviewsProvider` (`lib/providers/similar_reviews_provider.dart`). The tap is wired directly inside `ReviewCardWidget`; no screens need to handle navigation themselves.
+`ReviewDetailPage(review: Review, reviewId: String?)` — full-screen detail view with hero album art, drop-cap review body, live like button, stats bar, a "More like this" row and the comments section. The row (`SimilarReviewsRow` in `lib/ui/widgets/similar_reviews_row.dart`) shows up to 5 `CompactReviewCard`s for reviews sharing tags or by similar-sounding artists, found through the tag index and `artistMbids` by `similarReviewsProvider` (`lib/providers/similar_reviews_provider.dart`). The tap is wired directly inside `ReviewCardWidget`; no screens need to handle navigation themselves.
 
 ### Auth Gating / Feature Gating 
 - for action buttons: like, review, submit review, comment, share, repost, add friends, preferences, notifications.. 

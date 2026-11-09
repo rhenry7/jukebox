@@ -1,11 +1,12 @@
 /**
- * For You (plan phases 4–6): retrieve ~300 candidates from three sources over
+ * For You (plan phases 4–6): retrieve ~300 candidates from four sources over
  * the whole corpus, score them deterministically, optionally rerank the top
  * 30 with the LLM, diversify, and cache the result for the app to read.
  */
 import { FieldValue, Firestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { COLLECTIONS, RANKING } from "./config";
+import { SimilarArtist, similarArtistsFor } from "./musicbrainz";
 import { buildProfile, Profile, tasteCentroid } from "./profile";
 import { rerank } from "./rerank";
 import {
@@ -63,6 +64,55 @@ async function collaborativeSignal(db: Firestore, userId: string): Promise<Map<s
   return byTrack;
 }
 
+/** A similar artist's strength for this user, and which loved artist it came from. */
+export interface ArtistMatch {
+  strength: number;
+  lovedArtist: string;
+}
+
+/**
+ * Artists that sound like ones the user loved: for each of their reviews
+ * with affinity ≥ `artistMinAffinity`, that review's artists' ListenBrainz
+ * similar artists (cached in `similarArtists`), weighted by affinity ×
+ * similarity. The user's own artists are left out (other channels cover
+ * them); the point is discovery.
+ */
+export async function similarArtistSignal(
+  db: Firestore,
+  profile: Pick<Profile, "positiveReviews">,
+): Promise<Map<string, ArtistMatch>> {
+  const loved = profile.positiveReviews.filter((r) => r.affinity >= RANKING.artistMinAffinity);
+  if (loved.length === 0) return new Map();
+  const docs = await db.getAll(...loved.map((r) => db.doc(r.reviewPath)), { fieldMask: ["artistMbids"] });
+  // Each loved artist's best affinity, and a display name for the reason line.
+  const own = new Map<string, { affinity: number; name: string }>();
+  docs.forEach((d, i) => {
+    for (const id of (d.get("artistMbids") as string[] | undefined) ?? []) {
+      const prev = own.get(id);
+      if (!prev || loved[i].affinity > prev.affinity) {
+        own.set(id, { affinity: loved[i].affinity, name: loved[i].artist.split(",")[0].trim() });
+      }
+    }
+  });
+  return combineSimilarArtists(own, await similarArtistsFor(db, [...own.keys()]));
+}
+
+/** Pure part of [similarArtistSignal] (unit-tested). */
+export function combineSimilarArtists(
+  own: Map<string, { affinity: number; name: string }>,
+  similarByArtist: Map<string, SimilarArtist[]>,
+): Map<string, ArtistMatch> {
+  const out = new Map<string, ArtistMatch>();
+  for (const [ownId, { affinity, name }] of own) {
+    for (const s of similarByArtist.get(ownId) ?? []) {
+      if (own.has(s.mbid)) continue;
+      const strength = affinity * s.score;
+      if (strength > (out.get(s.mbid)?.strength ?? 0)) out.set(s.mbid, { strength, lovedArtist: name });
+    }
+  }
+  return out;
+}
+
 export async function retrieveCandidates(
   db: Firestore,
   profile: Profile,
@@ -78,7 +128,7 @@ export async function retrieveCandidates(
   const interests = profile.interests.slice(0, RANKING.maxInterests);
   const styleQueries = profile.positiveReviews.slice(0, RANKING.styleQueries);
 
-  const [aspectHits, styleHits, cfByTrack] = await Promise.all([
+  const [aspectHits, styleHits, cfByTrack, artistSignal] = await Promise.all([
     Promise.all([
       // Praise ↔ praise: other reviews celebrating what this user celebrates.
       ...interests.map((i) => nearestAspects(db, i.centroid, "pos", RANKING.aspectHitsPerInterest)),
@@ -91,6 +141,10 @@ export async function retrieveCandidates(
       (lists) => lists.flat(),
     ),
     opts.disableCf ? Promise.resolve(new Map<string, number>()) : collaborativeSignal(db, profile.userId),
+    similarArtistSignal(db, profile).catch((e) => {
+      logger.warn("Similar-artist signal failed", { userId: profile.userId, error: String(e) });
+      return new Map<string, ArtistMatch>();
+    }),
   ]);
 
   aspectHits.forEach((h: AspectHit) => tag(h.reviewPath, "aspect"));
@@ -105,6 +159,36 @@ export async function retrieveCandidates(
       .select("reviewPath")
       .get();
     snap.docs.forEach((d) => tag(d.get("reviewPath"), "cf"));
+  }
+
+  // Similar artists: reviews by the artists that sound most like the user's
+  // loved ones. Each review keeps its best match for scoring and the reason.
+  const artistByPath = new Map<string, ArtistMatch>();
+  const topArtists = [...artistSignal.entries()]
+    .sort((a, b) => b[1].strength - a[1].strength)
+    .slice(0, RANKING.similarArtistQuery);
+  if (topArtists.length > 0) {
+    const snap = await db
+      .collectionGroup("reviews")
+      .where(
+        "artistMbids",
+        "array-contains-any",
+        topArtists.map(([id]) => id),
+      )
+      .orderBy("date", "desc")
+      .limit(RANKING.artistHits)
+      .select("artistMbids")
+      .get();
+    for (const d of snap.docs) {
+      let best: ArtistMatch | undefined;
+      for (const id of (d.get("artistMbids") as string[] | undefined) ?? []) {
+        const m = artistSignal.get(id);
+        if (m && m.strength > (best?.strength ?? 0)) best = m;
+      }
+      if (!best) continue;
+      artistByPath.set(d.ref.path, best);
+      tag(d.ref.path, "artist");
+    }
   }
 
   const known = new Map<string, ReviewVector>(styleHits.map((r) => [r.reviewPath, r]));
@@ -145,6 +229,8 @@ export async function retrieveCandidates(
       styleSim,
       styleMatchTitle,
       cf: cfByTrack.get(r.trackKey) ?? 0,
+      artistSim: artistByPath.get(r.reviewPath)?.strength ?? 0,
+      artistMatch: artistByPath.get(r.reviewPath)?.lovedArtist,
       sources: sources.get(r.reviewPath)!,
     };
   });

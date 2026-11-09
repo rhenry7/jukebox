@@ -11,6 +11,7 @@ Future<void> _add(
   required List<String> genres,
   int day = 1,
   bool isRepost = false,
+  List<String> artistMbids = const [],
 }) =>
     db.doc(path).set({
       'title': title,
@@ -25,12 +26,19 @@ Future<void> _add(
       'genres': genres,
       'date': Timestamp.fromDate(DateTime(2026, 1, day)),
       if (isRepost) 'isRepost': true,
+      if (artistMbids.isNotEmpty) 'artistMbids': artistMbids,
       ...searchKeysFor(genres: genres, isRepost: isRepost),
     });
 
 SimilarReviewsKey _key(List<String> tags,
-        {String? path, String title = 'Me'}) =>
-    (path: path, title: title, artist: 'Artist $title', tags: tags.join('\n'));
+        {String? path, String title = 'Me', List<String> artists = const []}) =>
+    (
+      path: path,
+      title: title,
+      artist: 'Artist $title',
+      tags: tags.join('\n'),
+      artistMbids: artists.join('\n'),
+    );
 
 List<String?> _titles(List results) =>
     [for (final r in results) r.review.title as String?];
@@ -83,5 +91,119 @@ void main() {
   test('a review with no tags has no similar reviews', () async {
     await _add(db, 'users/b/reviews/1', title: 'Any', genres: ['rock']);
     expect(await findSimilarReviews(db, _key([])), isEmpty);
+  });
+
+  group('similar artists (ListenBrainz cache)', () {
+    Future<void> cacheSimilar(String artist, Map<String, double> similar) =>
+        db.collection('similarArtists').doc(artist).set({
+          'similar': [
+            for (final e in similar.entries)
+              {'mbid': e.key, 'name': e.key, 'score': e.value},
+          ],
+        });
+
+    test(
+      'adds reviews of similar artists, closest first, even without tags',
+      () async {
+        await cacheSimilar('masego', {'paak': 1.0, 'misch': 0.5});
+        await _add(
+          db,
+          'users/b/reviews/1',
+          title: 'Paak',
+          genres: ['funk'],
+          artistMbids: ['paak'],
+        );
+        await _add(
+          db,
+          'users/c/reviews/2',
+          title: 'Misch',
+          genres: ['jazz'],
+          artistMbids: ['misch'],
+          day: 9,
+        );
+        await _add(
+          db,
+          'users/d/reviews/3',
+          title: 'Stranger',
+          genres: ['metal'],
+          artistMbids: ['other'],
+        );
+
+        final results = await findSimilarReviews(
+          db,
+          _key(const [], title: 'Tadow', artists: ['masego']),
+        );
+
+        expect(_titles(results), ['Paak', 'Misch']);
+      },
+    );
+
+    test('a very similar artist outranks a single shared tag', () async {
+      await cacheSimilar('masego', {'paak': 1.0});
+      await _add(
+        db,
+        'users/b/reviews/1',
+        title: 'OneTag',
+        genres: ['soul'],
+        day: 9,
+      );
+      await _add(
+        db,
+        'users/c/reviews/2',
+        title: 'Paak',
+        genres: ['funk'],
+        artistMbids: ['paak'],
+      );
+
+      final results = await findSimilarReviews(
+        db,
+        _key(['soul'], title: 'Tadow', artists: ['masego']),
+      );
+
+      expect(_titles(results), ['Paak', 'OneTag']);
+    });
+
+    test('other songs by the same artist count too', () async {
+      await cacheSimilar('masego', {'paak': 0.4});
+      await _add(
+        db,
+        'users/b/reviews/1',
+        title: 'Lavish Lullaby',
+        genres: ['jazz'],
+        artistMbids: ['masego'],
+      );
+      await _add(
+        db,
+        'users/c/reviews/2',
+        title: 'Paak',
+        genres: ['funk'],
+        artistMbids: ['paak'],
+      );
+
+      final results = await findSimilarReviews(
+        db,
+        _key(const [], title: 'Tadow', artists: ['masego']),
+      );
+
+      expect(_titles(results), ['Lavish Lullaby', 'Paak']);
+    });
+
+    test('nothing cached: tags only, as before', () async {
+      await _add(
+        db,
+        'users/b/reviews/1',
+        title: 'Same',
+        genres: ['x'],
+        artistMbids: ['masego'],
+      );
+      await _add(db, 'users/c/reviews/2', title: 'Tagged', genres: ['soul']);
+
+      final results = await findSimilarReviews(
+        db,
+        _key(['soul'], title: 'Tadow', artists: ['masego']),
+      );
+
+      expect(_titles(results), ['Tagged']);
+    });
   });
 }

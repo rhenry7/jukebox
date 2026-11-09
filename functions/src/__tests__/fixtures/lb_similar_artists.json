@@ -1,0 +1,74 @@
+[
+ {
+  "artist_mbid": "d02dd67e-f655-4600-bc47-f789f59e7367",
+  "name": "Anderson .Paak",
+  "comment": "American rapper and producer",
+  "type": "Person",
+  "gender": "Male",
+  "score": 717,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ },
+ {
+  "artist_mbid": "776dbbce-25aa-411e-b344-ac9067d39f17",
+  "name": "SiR",
+  "comment": "US rapper",
+  "type": "Person",
+  "gender": "Male",
+  "score": 679,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ },
+ {
+  "artist_mbid": "fc3e8983-1f51-4c80-b2b5-146bf2162dc2",
+  "name": "Tom Misch",
+  "comment": "",
+  "type": "Person",
+  "gender": "Male",
+  "score": 650,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ },
+ {
+  "artist_mbid": "7cb6e306-a75b-48b4-be00-2c4aa6bbe3a8",
+  "name": "GoldLink",
+  "comment": "",
+  "type": "Person",
+  "gender": "Male",
+  "score": 641,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ },
+ {
+  "artist_mbid": "8ef74994-73f6-459c-a10c-56a16e07b362",
+  "name": "FKJ",
+  "comment": "French Kiwi Juice",
+  "type": "Person",
+  "gender": "Male",
+  "score": 564,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ },
+ {
+  "artist_mbid": "d0c7656d-8169-4f77-9dbe-b8f24e40105d",
+  "name": "Kali Uchis",
+  "comment": "",
+  "type": "Person",
+  "gender": "Female",
+  "score": 549,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ },
+ {
+  "artist_mbid": "e56aee57-d90e-40cf-a70d-beb70f6f3c69",
+  "name": "KAYTRANADA",
+  "comment": "",
+  "type": "Person",
+  "gender": "Male",
+  "score": 533,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ },
+ {
+  "artist_mbid": "e520459c-dff4-491d-a6e4-c97be35e0044",
+  "name": "Frank Ocean",
+  "comment": "",
+  "type": "Person",
+  "gender": "Male",
+  "score": 496,
+  "reference_mbid": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1"
+ }
+]

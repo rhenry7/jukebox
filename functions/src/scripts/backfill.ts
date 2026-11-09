@@ -7,6 +7,11 @@
  *   … npm run backfill -- --for-you    # then build every user's For You
  *   … npm run backfill -- --for-you --user=<uid>   # … or just one user's
  *
+ * MusicBrainz IDs and ListenBrainz similar artists (no OpenAI key; about
+ * one review a second, as MusicBrainz asks):
+ *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --mbids --dry-run
+ *   … npm run backfill -- --mbids
+ *
  * Tag-page index fields only (no OpenAI key needed, no analysis):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --search-keys --dry-run
  *   … npm run backfill -- --search-keys
@@ -18,6 +23,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { analyzeText, syncReview } from "../analysis";
 import { computeForYou } from "../forYou";
+import { ensureSimilarArtists, syncMbIds } from "../musicbrainz";
 import { syncSearchKeys } from "../search";
 import { mergedTags, normalizeReview, ReviewDoc, searchKeys } from "../text";
 
@@ -25,7 +31,7 @@ const args = new Set(process.argv.slice(2));
 // --user=<uid>: build For You for that one user instead of everyone.
 const onlyUser = process.argv.find((a) => a.startsWith("--user="))?.slice("--user=".length);
 const apiKey = process.env.OPENAI_API_KEY ?? "";
-if (!apiKey && !args.has("--search-keys")) {
+if (!apiKey && !args.has("--search-keys") && !args.has("--mbids")) {
   console.error("Set OPENAI_API_KEY (server key, never the old client one).");
   process.exit(1);
 }
@@ -62,8 +68,40 @@ async function backfillSearchKeys() {
   console.log(`\nSearch keys ${dryRun ? "that would change" : "done"}:`, counts);
 }
 
+/**
+ * Looks up MusicBrainz IDs for every review that lacks them (or whose song
+ * changed), then caches similar artists for every artist found. One review
+ * at a time: MusicBrainz allows about a request a second.
+ */
+async function backfillMbIds() {
+  const reviews = (await db.collectionGroup("reviews").get()).docs.filter(
+    (d) => d.ref.path.split("/").length === 4 && d.ref.path.startsWith("users/") && !d.get("isRepost"),
+  );
+  const dryRun = args.has("--dry-run");
+  console.log(`${reviews.length} original reviews${dryRun ? " (dry run: nothing written)" : ""}`);
+  const counts: Record<string, number> = {};
+  let i = 0;
+  for (const doc of reviews) {
+    const outcome = await syncMbIds(db, doc.ref.path, { dryRun });
+    counts[outcome] = (counts[outcome] ?? 0) + 1;
+    if (++i % 25 === 0) console.log(`  ${i}/${reviews.length}`, counts);
+  }
+  console.log("MusicBrainz IDs:", counts);
+  if (dryRun) return;
+
+  const artists = new Set<string>();
+  let resolved = 0;
+  for (const doc of (await db.collectionGroup("reviews").select("artistMbids", "recordingMbid").get()).docs) {
+    if (doc.get("recordingMbid")) resolved++;
+    for (const id of (doc.get("artistMbids") as string[] | undefined) ?? []) artists.add(id);
+  }
+  console.log(`${resolved} reviews matched to a MusicBrainz song; ${artists.size} distinct artists`);
+  console.log(`Similar-artist lists fetched: ${await ensureSimilarArtists(db, [...artists])}`);
+}
+
 async function main() {
   if (args.has("--search-keys")) return backfillSearchKeys();
+  if (args.has("--mbids")) return backfillMbIds();
   const reviews = await db.collectionGroup("reviews").get();
   const originals = reviews.docs.filter((d) => !d.get("isRepost") && d.ref.path.split("/").length === 4);
   console.log(`${reviews.size} review docs, ${originals.length} originals (reposts skipped)`);

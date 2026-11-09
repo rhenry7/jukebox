@@ -1,0 +1,63 @@
+{
+ "recordings": [
+  {
+   "id": "2de8a036-52c2-446b-b152-9d0c4f25fe60",
+   "score": 100,
+   "title": "Tadow",
+   "artist-credit": [
+    {
+     "joinphrase": " & ",
+     "name": "FKJ",
+     "artist": {
+      "id": "8ef74994-73f6-459c-a10c-56a16e07b362",
+      "name": "FKJ",
+      "sort-name": "FKJ",
+      "disambiguation": "French Kiwi Juice",
+      "aliases": [
+       {
+        "sort-name": "Fenton, Vincent",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "Vincent Fenton",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       },
+       {
+        "sort-name": "French Kiwi Juice",
+        "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+        "name": "French Kiwi Juice",
+        "locale": null,
+        "type": "Artist name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    },
+    {
+     "name": "Masego",
+     "artist": {
+      "id": "bca63b5d-a28c-4937-a8f4-e3f2d95426e1",
+      "name": "Masego",
+      "sort-name": "Masego",
+      "aliases": [
+       {
+        "sort-name": "Davis, Micah",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "Micah Davis",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

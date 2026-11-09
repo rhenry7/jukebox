@@ -28,6 +28,8 @@ export const RANKING = {
     cf: 0.2,
     affinity: 0.1,
     tagOverlap: 0.05,
+    /** Reviews of artists that sound like ones the user loved (ListenBrainz). */
+    artistSim: 0.15,
     quality: 0.05,
     recency: 0.05,
     /** Longer, more descriptive reviews rank higher; under `minReviewLength` is penalised. */
@@ -44,6 +46,12 @@ export const RANKING = {
   styleHitsPerQuery: 100,
   neighbors: 20,
   neighborMinAffinity: 0.6,
+  /** A review counts as "loved" for similar-artist matching at this affinity. */
+  artistMinAffinity: 0.6,
+  /** Similar artists queried (Firestore allows 30 values per query). */
+  similarArtistQuery: 30,
+  /** Reviews read for the similar-artist channel. */
+  artistHits: 100,
   mmrLambda: 0.7,
   artistCapTopN: 10,
   recencyHalfLifeDays: 180,

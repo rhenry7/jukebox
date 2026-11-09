@@ -241,6 +241,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Similar artists per MusicBrainz artist ID, cached from ListenBrainz by
+    // Cloud Functions. Public music data: anyone can read, only the server
+    // writes.
+    match /similarArtists/{artistMbid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Review likes collection (top-level)
     match /reviewLikes/{reviewId} {
       // Like counts are public — visible on review cards without signing in.

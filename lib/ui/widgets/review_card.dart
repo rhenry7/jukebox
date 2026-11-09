@@ -887,6 +887,8 @@ extension ReviewCopyWith on Review {
     String? repostedByUserId,
     String? originalReviewId,
     String? spotifyUrl,
+    String? recordingMbid,
+    List<String>? artistMbids,
   }) {
     return Review(
       displayName: displayName ?? this.displayName,
@@ -908,6 +910,8 @@ extension ReviewCopyWith on Review {
       repostedByUserId: repostedByUserId ?? this.repostedByUserId,
       originalReviewId: originalReviewId ?? this.originalReviewId,
       spotifyUrl: spotifyUrl ?? this.spotifyUrl,
+      recordingMbid: recordingMbid ?? this.recordingMbid,
+      artistMbids: artistMbids ?? this.artistMbids,
     );
   }
 }

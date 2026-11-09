@@ -5,6 +5,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { syncReview } from "./analysis";
+import { ensureSimilarArtists, syncMbIds } from "./musicbrainz";
 import { syncSearchKeys } from "./search";
 import { ANALYSIS_VERSION, COLLECTIONS, OPENAI_API_KEY, RERANK_ENABLED } from "./config";
 import { computeForYou } from "./forYou";
@@ -25,8 +26,9 @@ function requireRealUser(req: CallableRequest): string {
 }
 
 /**
- * Every review create/edit/delete: analyse once, then refresh the author's
- * For You. This is the only place the LLM runs on the write path.
+ * Every review create/edit/delete: index fields and MusicBrainz IDs first,
+ * then analyse once and refresh the author's For You. This is the only
+ * place the LLM runs on the write path.
  */
 export const onReviewWritten = onDocumentWritten(
   { document: "users/{uid}/reviews/{rid}", secrets: [OPENAI_API_KEY], timeoutSeconds: 120 },
@@ -36,6 +38,14 @@ export const onReviewWritten = onDocumentWritten(
     // run (keys now unchanged) does the analysis — so it happens only once.
     if ((await syncSearchKeys(db, reviewPath)) === "updated") {
       logger.info("Search keys updated", { reviewPath });
+      return;
+    }
+    // MusicBrainz IDs for the song, then its artists' similar artists. Same
+    // pattern: writing the IDs re-runs this trigger, which goes on to analyse.
+    if ((await syncMbIds(db, reviewPath)) === "updated") {
+      const artistMbids = ((await db.doc(reviewPath).get()).get("artistMbids") as string[] | undefined) ?? [];
+      const fetched = await ensureSimilarArtists(db, artistMbids);
+      logger.info("MusicBrainz IDs updated", { reviewPath, artistMbids, similarFetched: fetched });
       return;
     }
     const outcome = await syncReview(db, OPENAI_API_KEY.value(), reviewPath);

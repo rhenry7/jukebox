@@ -76,6 +76,12 @@ class Review {
   /// form, so cards can link to it without searching. Older reviews have none.
   final String? spotifyUrl;
 
+  /// The song's and its artists' MusicBrainz IDs, looked up by Cloud
+  /// Functions when the review is written (`syncMbIds`). Used for
+  /// similar-artist suggestions. Server-owned: never written by the app.
+  final String? recordingMbid;
+  final List<String> artistMbids;
+
   Review({
     required this.displayName,
     required this.userId,
@@ -95,6 +101,8 @@ class Review {
     this.repostedByUserId,
     this.originalReviewId,
     this.spotifyUrl,
+    this.recordingMbid,
+    this.artistMbids = const [],
   });
 
   // Factory method to create a Review from Firestore document data
@@ -119,6 +127,11 @@ class Review {
       repostedByUserId: data['repostedByUserId'],
       originalReviewId: data['originalReviewId'],
       spotifyUrl: data['spotifyUrl'] as String?,
+      recordingMbid: data['recordingMbid'] as String?,
+      artistMbids: [
+        for (final id in (data['artistMbids'] as List? ?? const []))
+          if (id is String) id,
+      ],
     );
   }
 

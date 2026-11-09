@@ -18,7 +18,7 @@ export interface UserAspect extends Aspect {
   reviewTitle: string;
 }
 
-export type Source = "aspect" | "style" | "cf";
+export type Source = "aspect" | "style" | "cf" | "artist";
 
 export interface Candidate {
   reviewPath: string;
@@ -40,6 +40,13 @@ export interface Candidate {
   styleMatchTitle?: string;
   /** 0–1: how strongly the user's neighbours vouch for this review's track. */
   cf: number;
+  /**
+   * 0–1: how much this review's artist sounds like an artist the user loved
+   * (ListenBrainz similar artists × the user's affinity). 0 if not found that way.
+   */
+  artistSim?: number;
+  /** The user's loved artist that `artistSim` came from, for the reason line. */
+  artistMatch?: string;
   sources: Set<Source>;
 }
 
@@ -134,6 +141,7 @@ export function scoreCandidate(
     w.aspectFit * fit +
     w.styleSim * c.styleSim +
     w.cf * c.cf +
+    w.artistSim * (c.artistSim ?? 0) +
     w.affinity * c.affinity +
     w.tagOverlap * jaccard(c.tags, userTags) +
     w.quality * quality(c.stars, c.likes) +
@@ -153,6 +161,10 @@ export function reasonFor(c: Candidate, bestPair: AspectPair | null, fit: number
     return candidate.polarity > 0
       ? `Also praises ${candidate.statement}, like your review of ${user.reviewTitle}`
       : `Also calls out ${candidate.statement}, like you did on ${user.reviewTitle}`;
+  }
+  const artistSim = c.artistSim ?? 0;
+  if (c.artistMatch && artistSim >= 0.5 && artistSim >= c.styleSim && artistSim >= c.cf) {
+    return `Sounds like ${c.artistMatch}, which you rated highly`;
   }
   if (c.styleMatchTitle && c.styleSim >= c.cf) {
     return `Reads a lot like your review of ${c.styleMatchTitle}`;

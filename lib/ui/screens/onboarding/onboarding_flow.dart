@@ -12,6 +12,7 @@ import 'package:flutter_test_project/services/review_recommendation_service.dart
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:flutter_test_project/utils/spotify_retry.dart';
 import 'package:flutter_test_project/services/spotify_client.dart';
+import 'package:flutter_test_project/services/similar_artists_service.dart';
 import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -29,7 +30,10 @@ const _outlineVariant = Color(0xFF494847);
 class _ArtistItem {
   final String name;
   final String? imageUrl;
-  const _ArtistItem({required this.name, this.imageUrl});
+
+  /// Set when this tile was suggested after picking [similarTo].
+  final String? similarTo;
+  const _ArtistItem({required this.name, this.imageUrl, this.similarTo});
 }
 
 class _AlbumItem {
@@ -576,6 +580,13 @@ class _ArtistsPageState extends State<_ArtistsPage> {
   List<_ArtistItem> _items = const [];
   bool _loading = true; // starts loading while we fetch real images
 
+  /// Bumped whenever the grid is replaced (new search), so suggestions that
+  /// arrive late for an old grid are dropped.
+  int _generation = 0;
+
+  /// How many similar artists are suggested after each pick.
+  static const int _suggestionsPerPick = 3;
+
   // Curated names — images are fetched from Spotify on initState
   static const _kCuratedNames = [
     'Kendrick Lamar', 'Frank Ocean', 'Radiohead',
@@ -591,6 +602,7 @@ class _ArtistsPageState extends State<_ArtistsPage> {
   }
 
   Future<void> _loadCuratedArtists() async {
+    _generation++;
     try {
       final api = _buildSpotifyApi();
       final imageUrls = await Future.wait(
@@ -628,6 +640,7 @@ class _ArtistsPageState extends State<_ArtistsPage> {
       return;
     }
     setState(() => _loading = true);
+    _generation++;
     _debounce = Timer(const Duration(milliseconds: 600), () async {
       final found = await _searchArtistsSpotify(value.trim());
       if (mounted) {
@@ -638,6 +651,43 @@ class _ArtistsPageState extends State<_ArtistsPage> {
           _loading = false;
         });
       }
+    });
+  }
+
+  void _onTap(_ArtistItem artist) {
+    final picking = !widget.selected.contains(artist.name);
+    widget.onToggle(artist.name);
+    if (picking) _suggestAfter(artist.name);
+  }
+
+  /// After a pick, slides up to [_suggestionsPerPick] artists that sound like
+  /// it (ListenBrainz, via [SimilarArtistsService]) into the grid right
+  /// after it. Skips artists already on screen; does nothing if none are
+  /// found.
+  Future<void> _suggestAfter(String name) async {
+    final generation = _generation;
+    final similar = await SimilarArtistsService.similarTo(name, limit: 12);
+    if (!mounted || generation != _generation) return;
+    String norm(String n) => SimilarArtistsService.normName(n);
+    final onScreen = {for (final i in _items) norm(i.name)};
+    final picks = [
+      for (final s in similar)
+        if (!onScreen.contains(norm(s.name))) s.name,
+    ].take(_suggestionsPerPick).toList();
+    if (picks.isEmpty) return;
+    final api = _buildSpotifyApi();
+    final images =
+        await Future.wait(picks.map((n) => _fetchArtistImageUrl(api, n)));
+    if (!mounted || generation != _generation) return;
+    setState(() {
+      final at = _items.indexWhere((i) => i.name == name);
+      final shown = {for (final i in _items) norm(i.name)};
+      final added = [
+        for (var i = 0; i < picks.length; i++)
+          if (!shown.contains(norm(picks[i])))
+            _ArtistItem(name: picks[i], imageUrl: images[i], similarTo: name),
+      ];
+      _items = [..._items]..insertAll(at < 0 ? 0 : at + 1, added);
     });
   }
 
@@ -734,7 +784,7 @@ class _ArtistsPageState extends State<_ArtistsPage> {
                     final isSelected =
                         widget.selected.contains(artist.name);
                     return GestureDetector(
-                      onTap: () => widget.onToggle(artist.name),
+                      onTap: () => _onTap(artist),
                       child: Column(
                         children: [
                           Stack(
@@ -813,9 +863,20 @@ class _ArtistsPageState extends State<_ArtistsPage> {
                                   : FontWeight.w400,
                             ),
                             textAlign: TextAlign.center,
-                            maxLines: 2,
+                            maxLines: artist.similarTo == null ? 2 : 1,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          if (artist.similarTo != null)
+                            Text(
+                              'like ${artist.similarTo}',
+                              style: const TextStyle(
+                                color: _secondary,
+                                fontSize: 10,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                         ],
                       ),
                     );
