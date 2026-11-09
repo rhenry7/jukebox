@@ -13,6 +13,7 @@
 import { FieldValue, Firestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { COLLECTIONS } from "./config";
+import { metaTagsFor, yearFrom } from "./era";
 import { normalizeTag, reviewDocId, trackKey } from "./text";
 
 const MB_BASE = "https://musicbrainz.org/ws/2";
@@ -43,6 +44,8 @@ const MIN_MATCH_SCORE = 90;
 export interface MbIds {
   recordingMbid: string | null;
   artistMbids: string[];
+  /** The song's first release year (earliest of its matching recordings). */
+  releaseYear?: number | null;
 }
 
 export interface SimilarArtist {
@@ -77,6 +80,7 @@ interface MbRecording {
   id: string;
   score?: number;
   title?: string;
+  "first-release-date"?: string;
   "artist-credit"?: { name?: string; artist?: { id?: string; name?: string } }[];
 }
 
@@ -98,7 +102,11 @@ export function pickRecording(results: MbRecording[], title: string, artist: str
   const artistMbids = [
     ...new Set((best["artist-credit"] ?? []).map((c) => c.artist?.id).filter((id): id is string => !!id)),
   ];
-  return { recordingMbid: best.id, artistMbids };
+  // A song often has several recordings (remasters, singles, album cuts):
+  // its era is the earliest release among same-titled matches.
+  const sameTitle = fits.filter((r) => normName(r.title ?? "") === normName(best.title ?? ""));
+  const years = sameTitle.map((r) => yearFrom(r["first-release-date"])).filter((y): y is number => y !== null);
+  return { recordingMbid: best.id, artistMbids, releaseYear: years.length ? Math.min(...years) : null };
 }
 
 interface MbArtist {
@@ -267,12 +275,36 @@ export async function lookupMbIds(title: string, artist: string): Promise<MbIds 
   if (!title.trim() || !mainArtist) return null;
   const search = (await mbGet("recording", {
     query: `recording:"${quote(title)}" AND artist:"${quote(mainArtist)}"`,
-    limit: "10",
+    // Enough results to include the original release, not just remasters.
+    limit: "25",
   })) as { recordings?: MbRecording[] };
   const found = pickRecording(search.recordings ?? [], title, artist);
   if (found) return found;
   const id = await lookupArtistMbid(mainArtist);
   return id ? { recordingMbid: null, artistMbids: [id] } : null;
+}
+
+/**
+ * The song's first release year: the earliest exact-title recording by any
+ * of its artists (searched by artist ID, up to 100 results, so originals
+ * aren't crowded out by live versions and remasters). Null if none.
+ */
+export async function lookupReleaseYear(title: string, artistMbids: string[]): Promise<number | null> {
+  const wanted = normName(title);
+  if (!wanted || artistMbids.length === 0) return null;
+  const arids = artistMbids
+    .slice(0, 3)
+    .map((id) => `arid:${id}`)
+    .join(" OR ");
+  const body = (await mbGet("recording", {
+    query: `recording:"${quote(title)}" AND (${arids})`,
+    limit: "100",
+  })) as { recordings?: MbRecording[] };
+  const years = (body.recordings ?? [])
+    .filter((r) => (r.score ?? 0) >= MIN_MATCH_SCORE && normName(r.title ?? "") === wanted)
+    .map((r) => yearFrom(r["first-release-date"]))
+    .filter((y): y is number => y !== null);
+  return years.length ? Math.min(...years) : null;
 }
 
 /** An artist's MBID by exact name (confident matches only), or null. */
@@ -390,7 +422,13 @@ export async function mbTagsFor(ids: MbIds | null): Promise<string[]> {
 async function mirrorToVector(
   db: Firestore,
   reviewPath: string,
-  fields: { artistMbids: string[]; recordingMbid: string | null; mbTags: string[] },
+  fields: Partial<{
+    artistMbids: string[];
+    recordingMbid: string | null;
+    mbTags: string[];
+    releaseYear: number | null;
+    metaTags: string[];
+  }>,
 ) {
   const ref = db.collection(COLLECTIONS.reviewVectors).doc(reviewDocId(reviewPath));
   if ((await ref.get()).exists) await ref.set(fields, { merge: true });
@@ -433,6 +471,14 @@ export async function syncMbIds(
     logger.warn("MusicBrainz lookup failed", { reviewPath, error: String(e) });
     return "failed";
   }
+  if (ids?.recordingMbid) {
+    try {
+      const year = await lookupReleaseYear(String(data.title ?? ""), ids.artistMbids);
+      if (year !== null) ids.releaseYear = Math.min(year, ids.releaseYear ?? year);
+    } catch (e) {
+      logger.warn("Release year lookup failed", { reviewPath, error: String(e) });
+    }
+  }
   let mbTags: string[] = [];
   try {
     mbTags = await mbTagsFor(ids);
@@ -441,7 +487,14 @@ export async function syncMbIds(
     logger.warn("ListenBrainz tags failed", { reviewPath, error: String(e) });
   }
   if (!opts.dryRun) {
-    const fields = { artistMbids: ids?.artistMbids ?? [], recordingMbid: ids?.recordingMbid ?? null, mbTags };
+    const releaseYear = ids?.releaseYear ?? null;
+    const fields = {
+      artistMbids: ids?.artistMbids ?? [],
+      recordingMbid: ids?.recordingMbid ?? null,
+      mbTags,
+      releaseYear,
+      metaTags: metaTagsFor(releaseYear),
+    };
     await ref.update({ ...fields, mbKey: key });
     await mirrorToVector(db, reviewPath, fields);
   }
@@ -481,6 +534,60 @@ export async function backfillMbTags(db: Firestore, opts: { dryRun?: boolean; fo
     written++;
   }
   return written;
+}
+
+/**
+ * Fills in `releaseYear` + `metaTags` via [lookupReleaseYear] (one search
+ * per song, ~1 a second), so a remaster's date doesn't stand in for the
+ * original's. Only reviews without a year, or all
+ * of them with [force]. Reviews matched to no song get an empty year.
+ */
+export async function backfillYears(
+  db: Firestore,
+  opts: { dryRun?: boolean; force?: boolean; sample?: number } = {},
+): Promise<Record<string, number>> {
+  const docs = (
+    await db
+      .collectionGroup("reviews")
+      .select("title", "artist", "recordingMbid", "artistMbids", "releaseYear", "isRepost")
+      .get()
+  ).docs.filter(
+    (d) =>
+      d.ref.path.startsWith("users/") &&
+      !d.get("isRepost") &&
+      (opts.force || d.get("releaseYear") === undefined),
+  );
+  const counts: Record<string, number> = {};
+  const yearOf = new Map<string, number | null>();
+  let shown = 0;
+  for (const d of docs) {
+    let year: number | null = null;
+    if (d.get("recordingMbid")) {
+      const key = trackKey(String(d.get("artist") ?? ""), String(d.get("title") ?? ""));
+      if (!yearOf.has(key)) {
+        try {
+          yearOf.set(
+            key,
+            await lookupReleaseYear(String(d.get("title") ?? ""), (d.get("artistMbids") as string[] | undefined) ?? []),
+          );
+        } catch (e) {
+          counts.failed = (counts.failed ?? 0) + 1;
+          continue; // retry next run
+        }
+      }
+      year = yearOf.get(key) ?? null;
+    }
+    const bucket = year === null ? "no year" : `${Math.floor(year / 10) * 10}s`;
+    counts[bucket] = (counts[bucket] ?? 0) + 1;
+    if (opts.dryRun) {
+      if (shown++ < (opts.sample ?? 10)) console.log(`  ${year ?? "—"}  ${d.get("title")} – ${d.get("artist")}`);
+      continue;
+    }
+    const fields = { releaseYear: year, metaTags: metaTagsFor(year) };
+    await d.ref.update(fields);
+    await mirrorToVector(db, d.ref.path, fields);
+  }
+  return counts;
 }
 
 /** Fetches and caches similar artists for any of [artistMbids] not cached recently. */

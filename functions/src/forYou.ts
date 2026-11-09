@@ -6,6 +6,7 @@
 import { FieldValue, Firestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { COLLECTIONS, RANKING } from "./config";
+import { eraFit } from "./era";
 import { SimilarArtist, similarArtistsFor, similarRecordingsFor } from "./musicbrainz";
 import { buildProfile, Profile, tasteCentroid } from "./profile";
 import { rerank } from "./rerank";
@@ -17,6 +18,8 @@ import {
   Candidate,
   diversify,
   rescaleSim,
+  MatchVia,
+  reasonFor,
   ScoredCandidate,
   scoreCandidate,
   Source,
@@ -71,12 +74,14 @@ async function collaborativeSignal(db: Firestore, userId: string): Promise<Map<s
 export interface ArtistMatch {
   strength: number;
   lovedArtist: string;
+  via: MatchVia;
 }
 
 /** A review that tells us what the user likes, and how much (0–1). */
 interface Loved {
   review: ReviewVector;
   affinity: number;
+  via: MatchVia;
 }
 
 /**
@@ -88,8 +93,8 @@ export function lovedReviews(profile: Pick<Profile, "positiveReviews" | "liked">
   return [
     ...profile.positiveReviews
       .filter((r) => r.affinity >= RANKING.artistMinAffinity)
-      .map((review) => ({ review, affinity: review.affinity })),
-    ...profile.liked.map((l) => ({ review: l.review, affinity: l.weight })),
+      .map((review) => ({ review, affinity: review.affinity, via: "review" as const })),
+    ...profile.liked.map((l) => ({ review: l.review, affinity: l.weight, via: "liked" as const })),
   ];
 }
 
@@ -139,15 +144,17 @@ export async function similarArtistSignal(
     favoriteArtists(db, profile.userId),
   ]);
   // Each loved artist's best affinity, and a display name for the reason line.
-  const own = new Map<string, { affinity: number; name: string }>();
-  const consider = (id: string, affinity: number, name: string) => {
+  const own = new Map<string, OwnArtist>();
+  const consider = (id: string, affinity: number, name: string, via: MatchVia) => {
     const prev = own.get(id);
-    if (!prev || affinity > prev.affinity) own.set(id, { affinity, name });
+    if (!prev || affinity > prev.affinity) own.set(id, { affinity, name, via });
   };
-  for (const { review, affinity } of loved) {
-    for (const id of mbids.get(review.reviewPath) ?? []) consider(id, affinity, review.artist.split(",")[0].trim());
+  for (const { review, affinity, via } of loved) {
+    for (const id of mbids.get(review.reviewPath) ?? []) {
+      consider(id, affinity, review.artist.split(",")[0].trim(), via);
+    }
   }
-  for (const f of favorites) consider(f.mbid, FAVORITE_ARTIST_AFFINITY, f.name);
+  for (const f of favorites) consider(f.mbid, FAVORITE_ARTIST_AFFINITY, f.name, "favorite");
   if (own.size === 0) return new Map();
   return combineSimilarArtists(own, await similarArtistsFor(db, [...own.keys()]));
 }
@@ -156,6 +163,7 @@ export async function similarArtistSignal(
 export interface SongMatch {
   strength: number;
   lovedTitle: string;
+  via: MatchVia;
 }
 
 /**
@@ -171,11 +179,11 @@ export async function similarSongSignal(
   const similar = await similarRecordingsFor(db, [...new Set(loved.map((l) => l.review.recordingMbid!))]);
   const own = new Set(loved.map((l) => l.review.recordingMbid!));
   const out = new Map<string, SongMatch>();
-  for (const { review, affinity } of loved) {
+  for (const { review, affinity, via } of loved) {
     similar.get(review.recordingMbid!)?.forEach((score, id) => {
       if (own.has(id)) return;
       const strength = affinity * score;
-      if (strength > (out.get(id)?.strength ?? 0)) out.set(id, { strength, lovedTitle: review.title });
+      if (strength > (out.get(id)?.strength ?? 0)) out.set(id, { strength, lovedTitle: review.title, via });
     });
   }
   return out;
@@ -196,17 +204,26 @@ export async function dislikeSignal(db: Firestore, profile: Pick<Profile, "disli
   return out;
 }
 
+/** One of the user's loved artists. */
+export interface OwnArtist {
+  affinity: number;
+  name: string;
+  via?: MatchVia;
+}
+
 /** Pure part of [similarArtistSignal] (unit-tested). */
 export function combineSimilarArtists(
-  own: Map<string, { affinity: number; name: string }>,
+  own: Map<string, OwnArtist>,
   similarByArtist: Map<string, SimilarArtist[]>,
 ): Map<string, ArtistMatch> {
   const out = new Map<string, ArtistMatch>();
-  for (const [ownId, { affinity, name }] of own) {
+  for (const [ownId, { affinity, name, via }] of own) {
     for (const s of similarByArtist.get(ownId) ?? []) {
       if (own.has(s.mbid)) continue;
       const strength = affinity * s.score;
-      if (strength > (out.get(s.mbid)?.strength ?? 0)) out.set(s.mbid, { strength, lovedArtist: name });
+      if (strength > (out.get(s.mbid)?.strength ?? 0)) {
+        out.set(s.mbid, { strength, lovedArtist: name, via: via ?? "review" });
+      }
     }
   }
   return out;
@@ -357,9 +374,12 @@ export async function retrieveCandidates(
       cf: cfByTrack.get(r.trackKey) ?? 0,
       artistSim: artistByPath.get(r.reviewPath)?.strength ?? 0,
       artistMatch: artistByPath.get(r.reviewPath)?.lovedArtist,
+      artistVia: artistByPath.get(r.reviewPath)?.via,
       songSim: songByPath.get(r.reviewPath)?.strength ?? 0,
       songMatch: songByPath.get(r.reviewPath)?.lovedTitle,
+      songVia: songByPath.get(r.reviewPath)?.via,
       dislike: Math.max(0, ...r.artistMbids.map((id) => dislikes.get(id) ?? 0)),
+      eraFit: eraFit(r.releaseYear, profile.lovedYears),
       sources: sources.get(r.reviewPath)!,
     };
   });
@@ -368,12 +388,16 @@ export async function retrieveCandidates(
 /** Scores retrieved candidates and keeps the best review per track (no I/O). */
 export function scoreAndGroup(
   candidates: Candidate[],
-  profile: Pick<Profile, "aspects" | "tags" | "knownTrackKeys">,
+  profile: Pick<Profile, "aspects" | "tags" | "knownTrackKeys"> & Partial<Pick<Profile, "basis">>,
   idf: TagIdf,
   weights: Weights = RANKING.weights,
 ): ScoredCandidate[] {
   const now = new Date();
-  const scored = candidates.map((c) => scoreCandidate(c, profile.aspects, profile.tags, now, idf, weights));
+  const basis = profile.basis ?? "reviews";
+  const scored = candidates.map((c) => {
+    const s = scoreCandidate(c, profile.aspects, profile.tags, now, idf, weights);
+    return basis === "reviews" ? s : { ...s, reason: reasonFor(c, s.bestPair, s.aspectFit, basis) };
+  });
   return bestPerTrack(scored, profile.knownTrackKeys);
 }
 

@@ -3,11 +3,12 @@
  * per review in `similarReviews/{reviewDocId}` (public read) so the app reads
  * one document.
  *
- * Every other review is scored against the anchor on four signals, each 0–1:
+ * Every other review is scored against the anchor on these signals, each 0–1:
  *   artist  same artist, or how similar-sounding (ListenBrainz `similarArtists`)
  *   song    how similar the songs are (ListenBrainz `similarRecordings`)
  *   tags    shared tags, weighted by rarity (author tags + filled-in `mbTags`)
  *   text    how alike the two reviews read (their embeddings)
+ *   era     how close the release years are (only on top of another signal)
  * plus a little for review quality and length. One review per song, at most
  * `MAX_PER_AUTHOR` per author, top `KEEP`. Each item keeps its strongest
  * signal as the reason the app shows ("Similar artist", "Reads alike"…).
@@ -20,6 +21,7 @@ import { logger } from "firebase-functions";
 import { COLLECTIONS } from "./config";
 import { similarRecordingsFor } from "./musicbrainz";
 import { artistSimilarity, idfOverlap, ItemInfo, sameArtist, SimilarArtistIndex, TagIdf } from "./relevance";
+import { yearSimilarity } from "./era";
 import { depth, quality, rescaleSim } from "./scoring";
 import { toVec } from "./store";
 import { loadTagIdf } from "./tagStats";
@@ -32,16 +34,22 @@ export const KEEP = 10;
 /** At most this many from one author, so one prolific account can't fill the row. */
 export const MAX_PER_AUTHOR = 2;
 
+/**
+ * Tuned with `npm run eval -- --similar --tune` (Nov 2026, 87 test cases):
+ * nDCG@5 0.549 → 0.669, strict 0.215 → 0.256. Era is a small tie-breaker:
+ * on its own it didn't improve matches. Re-tune as reviews grow.
+ */
 export const WEIGHTS = {
-  artist: 0.3,
+  artist: 0.45,
   song: 0.25,
-  tags: 0.25,
-  text: 0.3,
+  tags: 0.125,
+  text: 0.15,
+  era: 0.05,
   quality: 0.05,
-  depth: 0.05,
+  depth: 0,
 };
 
-export type SimilarReason = "artist" | "song" | "tags" | "text";
+export type SimilarReason = "artist" | "song" | "tags" | "text" | "era";
 
 export interface SimilarItem {
   reviewPath: string;
@@ -54,6 +62,8 @@ export interface CorpusItem extends ItemInfo {
   userId: string;
   recordingMbid: string | null;
   embedding: Vec | null;
+  /** First release year (hidden metadata, era.ts). */
+  releaseYear: number | null;
   stars: number;
   likes: number;
   textLength: number;
@@ -81,6 +91,7 @@ export function signals(anchor: CorpusItem, c: CorpusItem, corpus: SimilarCorpus
     song,
     tags: idfOverlap(anchor.tags, c.tags, corpus.idf),
     text: anchor.embedding && c.embedding ? rescaleSim(cosine(anchor.embedding, c.embedding)) : 0,
+    era: yearSimilarity(anchor.releaseYear, c.releaseYear),
   };
 }
 
@@ -102,9 +113,13 @@ export function rankSimilar(
       song: w.song * s.song,
       tags: w.tags * s.tags,
       text: w.text * s.text,
+      era: w.era * s.era,
     };
-    const relevance = weighted.artist + weighted.song + weighted.tags + weighted.text;
-    if (relevance <= 0) continue;
+    // Era alone isn't a match (half of everything is "the 2010s"): it only
+    // adds to other signals.
+    const musical = weighted.artist + weighted.song + weighted.tags + weighted.text;
+    if (musical <= 0) continue;
+    const relevance = musical + weighted.era;
     const reason = (Object.keys(weighted) as SimilarReason[]).reduce((a, b) => (weighted[b] > weighted[a] ? b : a));
     const score = relevance + w.quality * quality(c.stars, c.likes) + w.depth * depth(c.textLength);
     scored.push({ reviewPath: c.reviewPath, score: Number(score.toFixed(4)), reason });
@@ -132,7 +147,7 @@ export async function loadSimilarCorpus(db: Firestore): Promise<SimilarCorpus> {
       .collectionGroup("reviews")
       .select(
         "userId", "artist", "title", "genres", "tags", "mbTags", "artistMbids", "recordingMbid",
-        "score", "likes", "review", "isRepost",
+        "score", "likes", "review", "isRepost", "releaseYear",
       )
       .get(),
     db.collection(COLLECTIONS.reviewVectors).select("reviewPath", "embedding").get(),
@@ -156,6 +171,7 @@ export async function loadSimilarCorpus(db: Firestore): Promise<SimilarCorpus> {
       recordingMbid: data.recordingMbid ?? null,
       tags: [...mergedTags(data), ...((data.mbTags as string[] | undefined) ?? [])],
       embedding: embeddings.get(path) ?? null,
+      releaseYear: typeof data.releaseYear === "number" ? data.releaseYear : null,
       stars: typeof data.score === "number" ? data.score : 0,
       likes: data.likes ?? 0,
       textLength: String(data.review ?? "").trim().length,

@@ -176,6 +176,8 @@ export async function syncReview(
     artistMbids: data.artistMbids ?? [],
     recordingMbid: data.recordingMbid ?? null,
     mbTags: data.mbTags ?? [],
+    releaseYear: data.releaseYear ?? null,
+    metaTags: data.metaTags ?? [],
     stars,
     likes: data.likes ?? 0,
     textLength: data.review.trim().length,

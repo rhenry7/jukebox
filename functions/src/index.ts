@@ -87,6 +87,11 @@ export const onPreferencesWritten = onDocumentWritten(
   async (event) => {
     if (!event.data?.after.exists) return;
     const uid = event.params.uid;
+    // Counts as activity, so the nightly refresh keeps new users' lists fresh.
+    await db
+      .collection(COLLECTIONS.userVectors)
+      .doc(uid)
+      .set({ lastActiveAt: FieldValue.serverTimestamp() }, { merge: true });
     if ((await syncFavoriteArtists(db, uid)) === "unchanged") return;
     await computeForYou(db, OPENAI_API_KEY.value(), uid, { write: true, rerank: false });
     logger.info("Favourite artists synced; For You rebuilt", { uid });

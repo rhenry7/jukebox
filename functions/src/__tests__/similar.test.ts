@@ -13,6 +13,7 @@ const item = (path: string, o: Partial<CorpusItem>): CorpusItem => ({
   recordingMbid: null,
   tags: [],
   embedding: null,
+  releaseYear: null,
   stars: 4,
   likes: 0,
   textLength: 300,
@@ -69,6 +70,21 @@ describe("rankSimilar", () => {
     const out = rankSimilar(anchor.reviewPath, c);
     assert.ok(!out.some((s) => s.reviewPath.endsWith("same")));
     assert.equal(out.filter((s) => s.reviewPath.startsWith("users/seed/")).length, 2);
+  });
+});
+
+describe("same era", () => {
+  it("adds to a musical match but is never a match on its own", () => {
+    const anchor = item("users/me/reviews/a", { tags: ["soul"], releaseYear: 1975 });
+    const c = corpus([
+      anchor,
+      item("users/b/reviews/same-era", { tags: ["soul"], releaseYear: 1976 }),
+      item("users/c/reviews/later", { tags: ["soul"], releaseYear: 2015 }),
+      item("users/d/reviews/only-era", { tags: ["metal"], releaseYear: 1975 }),
+      ...[1, 2, 3, 4].map((n) => item(`users/x${n}/reviews/r`, { tags: ["rock"] })),
+    ]);
+    const out = rankSimilar(anchor.reviewPath, c).map((s) => s.reviewPath.split("/").pop());
+    assert.deepEqual(out, ["same-era", "later"]);
   });
 });
 

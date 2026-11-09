@@ -10,11 +10,14 @@
  * MusicBrainz IDs and ListenBrainz similar artists (no OpenAI key; about
  * one review a second, as MusicBrainz asks):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --mbids --dry-run
- *   … npm run backfill -- --mbids          # also fills in mbTags + tag rarity
+ *   … npm run backfill -- --mbids          # also mbTags, release years + era tags, tag rarity
  *   … npm run backfill -- --mbids --force  # re-fetch every review's mbTags
  *
  * "More like this" lists (similar songs, then every review's list):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --similar [--dry-run]
+ *
+ * Recompute every review's release year + era tags:
+ *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --years [--dry-run]
  *
  * Onboarding favourite artists → MBIDs + similar artists (For You cold start):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --favorites
@@ -36,6 +39,7 @@ import { computeForYou } from "../forYou";
 import { seedUserIds } from "../config";
 import {
   backfillMbTags,
+  backfillYears,
   ensureSimilarArtists,
   ensureSimilarRecordings,
   syncFavoriteArtists,
@@ -53,7 +57,10 @@ const args = new Set(process.argv.slice(2));
 // --user=<uid>: build For You for that one user instead of everyone.
 const onlyUser = process.argv.find((a) => a.startsWith("--user="))?.slice("--user=".length);
 const apiKey = process.env.OPENAI_API_KEY ?? "";
-if (!apiKey && !["--search-keys", "--mbids", "--neighbors", "--similar", "--favorites"].some((f) => args.has(f))) {
+if (
+  !apiKey &&
+  !["--search-keys", "--mbids", "--neighbors", "--similar", "--favorites", "--years"].some((f) => args.has(f))
+) {
   console.error("Set OPENAI_API_KEY (server key, never the old client one).");
   process.exit(1);
 }
@@ -124,6 +131,7 @@ async function backfillMbIds() {
   console.log(`${resolved} reviews matched to a MusicBrainz song; ${artists.size} distinct artists`);
   console.log(`Similar-artist lists fetched: ${await ensureSimilarArtists(db, [...artists])}`);
   console.log(`Filled-in tags written: ${await backfillMbTags(db, { force: args.has("--force") })}`);
+  console.log("Release years (by decade):", await backfillYears(db));
   console.log("Tag rarity:", await computeTagIdf(db));
 }
 
@@ -177,6 +185,10 @@ async function main() {
   if (args.has("--neighbors")) return backfillNeighbors();
   if (args.has("--similar")) return backfillSimilar();
   if (args.has("--favorites")) return backfillFavorites();
+  if (args.has("--years")) {
+    console.log("Release years (by decade):", await backfillYears(db, { force: true, dryRun: args.has("--dry-run") }));
+    return;
+  }
   const reviews = await db.collectionGroup("reviews").get();
   const originals = reviews.docs.filter((d) => !d.get("isRepost") && d.ref.path.split("/").length === 4);
   console.log(`${reviews.size} review docs, ${originals.length} originals (reposts skipped)`);

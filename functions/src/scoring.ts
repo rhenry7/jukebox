@@ -51,12 +51,17 @@ export interface Candidate {
   artistSim?: number;
   /** The user's loved artist that `artistSim` came from, for the reason line. */
   artistMatch?: string;
+  /** How the user loves that artist: their review, a review they liked, or onboarding. */
+  artistVia?: MatchVia;
   /** 0–1: how much this song sounds like one the user loved (ListenBrainz). */
   songSim?: number;
   /** The loved song `songSim` came from, for the reason line. */
   songMatch?: string;
+  songVia?: MatchVia;
   /** 0–1: how much this review's artist is (or sounds like) one the user marked "Not for me". */
   dislike?: number;
+  /** 0–1: how well the song's release year fits the eras the user loves. */
+  eraFit?: number;
   sources: Set<Source>;
 }
 
@@ -159,6 +164,7 @@ export function features(
     artistSim: c.artistSim ?? 0,
     songSim: c.songSim ?? 0,
     dislike: -(c.dislike ?? 0),
+    eraFit: c.eraFit ?? 0,
     affinity: c.affinity,
     tagOverlap: idf ? idfOverlap(c.tags, userTags, idf) : jaccard(c.tags, userTags),
     quality: quality(c.stars, c.likes),
@@ -192,8 +198,34 @@ export function scoreCandidate(
   return { candidate: c, score, aspectFit: fit, bestPair, reason: reasonFor(c, bestPair, fit) };
 }
 
+/**
+ * What a user's profile is built from, so explanations never claim
+ * something they haven't done ("music you write about" for someone with no
+ * reviews).
+ */
+export type ProfileBasis = "reviews" | "activity" | "onboarding" | "none";
+
+/** Where a similar artist / song came from, for the reason line. */
+export type MatchVia = "review" | "liked" | "favorite";
+
+function viaPhrase(name: string, via: MatchVia | undefined, whatYouDid: string): string {
+  switch (via) {
+    case "favorite":
+      return `${name}, one of your favorite artists`;
+    case "liked":
+      return `${name}, from a review you liked`;
+    default:
+      return `${name}, which you ${whatYouDid}`;
+  }
+}
+
 /** Always-available, no-AI explanation from the strongest signal. */
-export function reasonFor(c: Candidate, bestPair: AspectPair | null, fit: number): string {
+export function reasonFor(
+  c: Candidate,
+  bestPair: AspectPair | null,
+  fit: number,
+  basis: ProfileBasis = "reviews",
+): string {
   if (bestPair && bestPair.contribution >= 0.15 && fit >= c.styleSim * 0.5) {
     const { user, candidate } = bestPair;
     return candidate.polarity > 0
@@ -203,16 +235,25 @@ export function reasonFor(c: Candidate, bestPair: AspectPair | null, fit: number
   const artistSim = c.artistSim ?? 0;
   const songSim = c.songSim ?? 0;
   if (c.songMatch && songSim >= 0.5 && songSim >= artistSim && songSim >= c.styleSim && songSim >= c.cf) {
-    return `Similar to ${c.songMatch}, which you loved`;
+    return `Similar to ${viaPhrase(c.songMatch, c.songVia, "loved")}`;
   }
   if (c.artistMatch && artistSim >= 0.5 && artistSim >= c.styleSim && artistSim >= c.cf) {
-    return `Sounds like ${c.artistMatch}, which you rated highly`;
+    return `Sounds like ${viaPhrase(c.artistMatch, c.artistVia, "rated highly")}`;
   }
   if (c.styleMatchTitle && c.styleSim >= c.cf) {
     return `Reads a lot like your review of ${c.styleMatchTitle}`;
   }
   if (c.cf > 0) return "Loved by listeners who rate music like you";
-  return "Matches the music you write about";
+  switch (basis) {
+    case "reviews":
+      return "Matches the music you write about";
+    case "activity":
+      return "Matches reviews you've liked or saved";
+    case "onboarding":
+      return "Picked from the music you chose when you joined";
+    default:
+      return "Popular with REVERB listeners";
+  }
 }
 
 /**

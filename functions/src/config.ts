@@ -44,22 +44,35 @@ export const COLLECTIONS = {
 
 /** Tunables for retrieval and ranking (see plan "Scoring"). */
 export const RANKING = {
+  /**
+   * Tuned with `npm run eval -- --tune` (Nov 2026, 49 test cases): nDCG@10
+   * 0.246 → 0.498, strict hit 6% → 16% (the old app logic: 10%). Aspect fit,
+   * recency and review length added nothing measurable at this size, so
+   * they're 0; aspect search still finds candidates and explains them. Re-tune as the
+   * corpus grows (`dislike` has no data yet; it keeps its starting value).
+   */
   weights: {
-    aspectFit: 0.35,
-    styleSim: 0.2,
-    cf: 0.2,
-    affinity: 0.1,
-    tagOverlap: 0.05,
+    aspectFit: 0,
+    styleSim: 0.3,
+    cf: 0.1,
+    affinity: 0,
+    tagOverlap: 0.025,
     /** Reviews of artists that sound like ones the user loved (ListenBrainz). */
-    artistSim: 0.15,
+    artistSim: 0.3,
     /** Reviews of songs that sound like ones the user loved (ListenBrainz). */
     songSim: 0.1,
     /** Penalty for artists the user marked "Not for me" (and ones like them). */
     dislike: 0.25,
-    quality: 0.05,
-    recency: 0.05,
-    /** Longer, more descriptive reviews rank higher; under `minReviewLength` is penalised. */
-    depth: 0.15,
+    /** How well the song's release year fits the eras the user loves (era.ts). */
+    eraFit: 0.075,
+    quality: 0.1,
+    recency: 0,
+    /**
+     * Longer reviews ranking higher (under `minReviewLength` penalised). Off:
+     * it pushed away short reviews of music users love (nDCG@10 0.352 with
+     * it at 0.15, 0.498 without).
+     */
+    depth: 0,
   },
   /** Reviews shorter than this (characters) carry little signal and rank lower. */
   minReviewLength: 100,

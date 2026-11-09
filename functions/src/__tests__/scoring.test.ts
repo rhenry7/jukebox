@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { RANKING } from "../config";
 import { blendNeighborSim, ratingAgreement } from "../neighbors";
 import {
   aspectFit,
@@ -77,8 +78,10 @@ describe("polarity-aware aspect matching", () => {
       reviewPath: "p/guitar",
       aspects: [{ category: "instrumentation", statement: "clean guitar tone", polarity: 1, embedding: GUITAR }],
     });
-    const a = scoreCandidate(bassLover, user, []);
-    const b = scoreCandidate(guitarLover, user, []);
+    // Tests the matching itself, whatever weight tuning currently gives it.
+    const w = { ...RANKING.weights, aspectFit: 0.35 };
+    const a = scoreCandidate(bassLover, user, [], new Date(), undefined, w);
+    const b = scoreCandidate(guitarLover, user, [], new Date(), undefined, w);
     assert.ok(b.score > a.score);
     assert.ok(a.aspectFit < 0 && b.aspectFit > 0);
   });
@@ -116,16 +119,24 @@ describe("review length", () => {
   });
 
   it("ranks a long review above an otherwise identical short one", () => {
-    const short = scoreCandidate(candidate({ reviewPath: "s", textLength: 60 }), user, []);
-    const long = scoreCandidate(candidate({ reviewPath: "l", textLength: 450 }), user, []);
+    // Tests the length rule itself; production currently weights it 0.
+    const w = { ...RANKING.weights, depth: 0.15 };
+    const short = scoreCandidate(candidate({ reviewPath: "s", textLength: 60 }), user, [], new Date(), undefined, w);
+    const long = scoreCandidate(candidate({ reviewPath: "l", textLength: 450 }), user, [], new Date(), undefined, w);
     assert.ok(long.score > short.score);
   });
 
   it("picks the long review as the track's qualifier", () => {
     const out = bestPerTrack(
       [
-        scoreCandidate(candidate({ reviewPath: "short", trackKey: "t|1", textLength: 50 }), user, []),
-        scoreCandidate(candidate({ reviewPath: "long", trackKey: "t|1", textLength: 400 }), user, []),
+        scoreCandidate(candidate({ reviewPath: "short", trackKey: "t|1", textLength: 50 }), user, [], new Date(), undefined, {
+          ...RANKING.weights,
+          depth: 0.15,
+        }),
+        scoreCandidate(candidate({ reviewPath: "long", trackKey: "t|1", textLength: 400 }), user, [], new Date(), undefined, {
+          ...RANKING.weights,
+          depth: 0.15,
+        }),
       ],
       new Set(),
     );

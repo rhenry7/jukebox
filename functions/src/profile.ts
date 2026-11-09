@@ -8,7 +8,7 @@ import { Firestore } from "firebase-admin/firestore";
 import { RANKING } from "./config";
 import { loadImplicitSignals } from "./implicit";
 import { embed } from "./openai";
-import { UserAspect } from "./scoring";
+import { ProfileBasis, UserAspect } from "./scoring";
 import { aspectsByReview, loadPreferences, ReviewVector, reviewVectorsByPath, reviewVectorsByUser } from "./store";
 import { parseSavedTrack, trackKey } from "./text";
 import { kmeans, recencyWeight, Vec, weightedCentroid } from "./vectors";
@@ -31,7 +31,11 @@ export interface Profile {
   liked: { review: ReviewVector; weight: number }[];
   /** Reviews the user marked "Not for me" on For You. */
   disliked: ReviewVector[];
+  /** Release years of the music the user loves (own liked reviews + engaged-with), weighted. */
+  lovedYears: { year: number; weight: number }[];
   coldStart: boolean;
+  /** What the profile is built from (for honest explanations). */
+  basis: ProfileBasis;
 }
 
 /** How much a "Not for me" review's praise counts toward what the user dislikes. */
@@ -152,7 +156,13 @@ export async function buildProfile(
     knownTrackKeys,
     liked,
     disliked,
+    lovedYears: [
+      ...positiveReviews.map((r) => ({ year: r.releaseYear, weight: r.affinity })),
+      ...liked.map((l) => ({ year: l.review.releaseYear, weight: l.weight })),
+    ].filter((y): y is { year: number; weight: number } => y.year !== null && y.weight > 0),
     coldStart,
+    basis:
+      reviews.length > 0 ? "reviews" : liked.length > 0 ? "activity" : coldStart ? "onboarding" : "none",
   };
 }
 

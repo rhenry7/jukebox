@@ -33,6 +33,10 @@ a dislike. Shared tags are weighted by rarity (`tagStats.ts`), and include
 `mbTags`, genres filled in from ListenBrainz for reviews whose authors left
 none (never shown as the author's tags). Seed / test accounts
 (`SEED_USER_IDS` in `.env.juxeboxd`) are never anyone's "listener like you".
+Each review also gets hidden era metadata (`era.ts`): `releaseYear` (first
+release, from MusicBrainz) and `metaTags` such as `decade:1970s`,
+`era:classic`. For You scores how well a song's year fits the eras the user
+loves (`eraFit`); "More like this" adds a same-era bonus to musical matches.
 
 "More like this" (`similar.ts`) is computed here too: every review scored
 against every other on similar artist, similar song, rare shared tags and

@@ -15,6 +15,8 @@ export interface ReviewVector {
   artistMbids: string[];
   /** The song's MusicBrainz ID, if matched. */
   recordingMbid: string | null;
+  /** The song's first release year, if known. */
+  releaseYear: number | null;
   /** Genres filled in from MusicBrainz / ListenBrainz (never the author's tags). */
   mbTags: string[];
   stars: number;
@@ -57,6 +59,7 @@ export function toReviewVector(snap: DocumentSnapshot): ReviewVector {
     tags: d.tags ?? [],
     artistMbids: d.artistMbids ?? [],
     recordingMbid: d.recordingMbid ?? null,
+    releaseYear: typeof d.releaseYear === "number" ? d.releaseYear : null,
     mbTags: d.mbTags ?? [],
     stars: d.stars ?? 0,
     likes: d.likes ?? 0,

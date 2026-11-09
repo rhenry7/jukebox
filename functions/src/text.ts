@@ -15,6 +15,9 @@ export interface ReviewDoc {
   artistMbids?: string[];
   recordingMbid?: string | null;
   mbTags?: string[];
+  /** First release year and hidden era tags (era.ts); never shown. */
+  releaseYear?: number | null;
+  metaTags?: string[];
 }
 
 /**
