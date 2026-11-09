@@ -10,7 +10,17 @@
  * MusicBrainz IDs and ListenBrainz similar artists (no OpenAI key; about
  * one review a second, as MusicBrainz asks):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --mbids --dry-run
- *   … npm run backfill -- --mbids
+ *   … npm run backfill -- --mbids          # also fills in mbTags + tag rarity
+ *   … npm run backfill -- --mbids --force  # re-fetch every review's mbTags
+ *
+ * "More like this" lists (similar songs, then every review's list):
+ *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --similar [--dry-run]
+ *
+ * Onboarding favourite artists → MBIDs + similar artists (For You cold start):
+ *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --favorites
+ *
+ * "Listeners like you" now, seed accounts excluded (nightly does this too):
+ *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --neighbors [--dry-run]
  *
  * Tag-page index fields only (no OpenAI key needed, no analysis):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --search-keys --dry-run
@@ -23,15 +33,27 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { analyzeText, syncReview } from "../analysis";
 import { computeForYou } from "../forYou";
-import { ensureSimilarArtists, syncMbIds } from "../musicbrainz";
+import { seedUserIds } from "../config";
+import {
+  backfillMbTags,
+  ensureSimilarArtists,
+  ensureSimilarRecordings,
+  syncFavoriteArtists,
+  syncMbIds,
+} from "../musicbrainz";
+import { loadSimilarCorpus, rankSimilar, writeSimilar } from "../similar";
+import { computeNeighbors, writeNeighbors } from "../neighbors";
+import { computeTagIdf } from "../tagStats";
+import { loadProjectEnv } from "./env";
 import { syncSearchKeys } from "../search";
 import { mergedTags, normalizeReview, ReviewDoc, searchKeys } from "../text";
 
+loadProjectEnv();
 const args = new Set(process.argv.slice(2));
 // --user=<uid>: build For You for that one user instead of everyone.
 const onlyUser = process.argv.find((a) => a.startsWith("--user="))?.slice("--user=".length);
 const apiKey = process.env.OPENAI_API_KEY ?? "";
-if (!apiKey && !args.has("--search-keys") && !args.has("--mbids")) {
+if (!apiKey && !["--search-keys", "--mbids", "--neighbors", "--similar", "--favorites"].some((f) => args.has(f))) {
   console.error("Set OPENAI_API_KEY (server key, never the old client one).");
   process.exit(1);
 }
@@ -87,7 +109,11 @@ async function backfillMbIds() {
     if (++i % 25 === 0) console.log(`  ${i}/${reviews.length}`, counts);
   }
   console.log("MusicBrainz IDs:", counts);
-  if (dryRun) return;
+  if (dryRun) {
+    console.log("Filled-in tags (sample, nothing written):");
+    await backfillMbTags(db, { dryRun: true, force: true });
+    return;
+  }
 
   const artists = new Set<string>();
   let resolved = 0;
@@ -97,11 +123,60 @@ async function backfillMbIds() {
   }
   console.log(`${resolved} reviews matched to a MusicBrainz song; ${artists.size} distinct artists`);
   console.log(`Similar-artist lists fetched: ${await ensureSimilarArtists(db, [...artists])}`);
+  console.log(`Filled-in tags written: ${await backfillMbTags(db, { force: args.has("--force") })}`);
+  console.log("Tag rarity:", await computeTagIdf(db));
+}
+
+/** Similar songs for every matched review, then every review's "More like this" list. */
+async function backfillSimilar() {
+  const dryRun = args.has("--dry-run");
+  const recordings = new Set<string>();
+  for (const d of (await db.collectionGroup("reviews").select("recordingMbid").get()).docs) {
+    const id = d.get("recordingMbid") as string | null | undefined;
+    if (id) recordings.add(id);
+  }
+  if (!dryRun) console.log(`Similar-song lists fetched: ${await ensureSimilarRecordings(db, [...recordings])} of ${recordings.size}`);
+  const corpus = await loadSimilarCorpus(db);
+  for (const path of [...corpus.items.keys()].slice(0, 3)) {
+    const me = corpus.items.get(path)!;
+    console.log(`\n${me.artist} – ${path}`);
+    for (const s of rankSimilar(path, corpus).slice(0, 5)) {
+      const it = corpus.items.get(s.reviewPath)!;
+      console.log(`  ${s.score.toFixed(3)} ${s.reason.padEnd(6)} ${it.artist} (${it.trackKey.split("|")[1]})`);
+    }
+  }
+  console.log(`\n"More like this" lists ${dryRun ? "that would be written" : "written"}: ${await writeSimilar(db, corpus, undefined, { dryRun })}`);
+}
+
+/** Resolves every user's onboarding favourite artists (see syncFavoriteArtists). */
+async function backfillFavorites() {
+  const prefs = (await db.collectionGroup("musicPreferences").select("favoriteArtists").get()).docs.filter(
+    (d) => d.id === "profile" && ((d.get("favoriteArtists") as string[] | undefined) ?? []).length > 0,
+  );
+  console.log(`${prefs.length} users with favourite artists`);
+  for (const d of prefs) {
+    const uid = d.ref.path.split("/")[1];
+    console.log(`  ${uid.slice(0, 6)}…: ${await syncFavoriteArtists(db, uid)}`);
+  }
+}
+
+/** Rebuilds "listeners like you" now (seed accounts excluded) instead of waiting for the nightly run. */
+async function backfillNeighbors() {
+  const neighbors = await computeNeighbors(db);
+  const seeds = seedUserIds();
+  const withSeed = [...neighbors.values()].filter((l) => l.some((n) => seeds.has(n.uid))).length;
+  console.log(`${neighbors.size} users; lists including a seed account: ${withSeed}`);
+  if (args.has("--dry-run")) return;
+  await writeNeighbors(db, neighbors);
+  console.log("Neighbours written. Tag rarity:", await computeTagIdf(db));
 }
 
 async function main() {
   if (args.has("--search-keys")) return backfillSearchKeys();
   if (args.has("--mbids")) return backfillMbIds();
+  if (args.has("--neighbors")) return backfillNeighbors();
+  if (args.has("--similar")) return backfillSimilar();
+  if (args.has("--favorites")) return backfillFavorites();
   const reviews = await db.collectionGroup("reviews").get();
   const originals = reviews.docs.filter((d) => !d.get("isRepost") && d.ref.path.split("/").length === 4);
   console.log(`${reviews.size} review docs, ${originals.length} originals (reposts skipped)`);

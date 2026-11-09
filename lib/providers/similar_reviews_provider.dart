@@ -37,28 +37,137 @@ SimilarReviewsKey similarReviewsKeyFor(Review review, String? path) => (
   artistMbids: review.artistMbids.join('\n'),
 );
 
+/// Why a review is in "More like this", shown as a chip on its card.
+enum SimilarReason {
+  sameArtist('Same artist'),
+  similarArtist('Similar artist'),
+  similarSong('Similar song'),
+  sharedTags('Shared tags'),
+  readsAlike('Reads alike');
+
+  const SimilarReason(this.label);
+  final String label;
+}
+
+/// A review in "More like this", and why (null when it came from the
+/// app-side fallback, which doesn't give reasons).
+typedef SimilarReview = ({ReviewWithDocId item, SimilarReason? reason});
+
 /// Up to [similarReviewCount] other reviews like this one, for the "More like
-/// this" row on the review page: reviews sharing its tags (the tag page's
-/// index, `tagKeys` then `tagWordKeys`) and reviews of artists that sound
-/// like its artist (ListenBrainz's similar artists, cached by Cloud
-/// Functions in `similarArtists/{artistMbid}`, matched through
-/// `artistMbids`). A few queries and no AI.
+/// this" row on the review page.
 ///
-/// Answers from the on-device cache first when it has matches, then from
-/// the server. Kept for a few minutes, and started when a card is touched
-/// (see `ReviewCardWidget`), so it's usually ready when the page opens.
+/// Normally the list Cloud Functions keeps in `similarReviews/{reviewDocId}`
+/// (functions/src/similar.ts): reviews scored on similar artists and songs
+/// (ListenBrainz), rare shared tags and how alike the reviews read, each
+/// with a reason. Reviews without that list yet (just posted, or before the
+/// backfill) fall back to [findSimilarReviews]: shared tags and similar
+/// artists, through the tag index and `artistMbids`.
+///
+/// Answers from the on-device cache first, then from the server. Kept for a
+/// few minutes, and started when a card is touched (see `ReviewCardWidget`),
+/// so it's usually ready when the page opens.
 final similarReviewsProvider = StreamProvider.autoDispose
-    .family<List<ReviewWithDocId>, SimilarReviewsKey>((ref, key) async* {
-      ref.keepAliveFor();
-      final db = ref.watch(firestoreProvider);
-      try {
-        final cached = await findSimilarReviews(db, key, source: Source.cache);
-        if (cached.isNotEmpty) yield cached;
-      } catch (_) {
-        // Nothing cached yet.
+    .family<List<SimilarReview>, SimilarReviewsKey>((ref, key) async* {
+  ref.keepAliveFor();
+  final db = ref.watch(firestoreProvider);
+  if (key.path != null) {
+    var found = false;
+    try {
+      final doc = db
+          .collection('similarReviews')
+          .doc(key.path!.replaceAll('/', '__'));
+      await for (final snap in docCacheThenServer(doc)) {
+        final list = await readServerSimilar(db, key, snap.data(),
+            source: snap.metadata.isFromCache
+                ? Source.cache
+                : Source.serverAndCache);
+        if (list.isNotEmpty) {
+          found = true;
+          yield list;
+        }
       }
-      yield await findSimilarReviews(db, key);
-    });
+    } catch (e) {
+      debugPrint('[SIMILAR] Server list unavailable: $e');
+    }
+    if (found) return;
+  }
+  List<SimilarReview> plain(List<ReviewWithDocId> items) =>
+      [for (final item in items) (item: item, reason: null)];
+  try {
+    final cached = await findSimilarReviews(db, key, source: Source.cache);
+    if (cached.isNotEmpty) yield plain(cached);
+  } catch (_) {
+    // Nothing cached yet.
+  }
+  yield plain(await findSimilarReviews(db, key));
+});
+
+/// The reviews a `similarReviews` doc lists, up to [similarReviewCount],
+/// skipping any that were deleted or can't be read. Empty if the doc has no
+/// list.
+@visibleForTesting
+Future<List<SimilarReview>> readServerSimilar(
+  FirebaseFirestore db,
+  SimilarReviewsKey key,
+  Map<String, dynamic>? doc, {
+  Source source = Source.serverAndCache,
+}) async {
+  final items = doc?['items'];
+  if (items is! List) return const [];
+  final wanted = [
+    for (final i in items)
+      if (i is Map && i['reviewPath'] is String) i,
+  ].take(similarReviewCount + 3).toList(); // spares for deleted reviews
+  final snaps = await Future.wait([
+    for (final i in wanted)
+      db
+          .doc(i['reviewPath'] as String)
+          .get(GetOptions(source: source))
+          .then<DocumentSnapshot<Map<String, dynamic>>?>((d) => d)
+          .catchError((Object _) => null),
+  ]);
+  final out = <SimilarReview>[];
+  for (var n = 0; n < wanted.length && out.length < similarReviewCount; n++) {
+    final snap = snaps[n];
+    final data = snap?.data();
+    if (snap == null || data == null) continue;
+    final Review review;
+    try {
+      review = Review.fromFirestore(data);
+    } catch (e) {
+      debugPrint('[SIMILAR] Skipping unreadable review ${snap.id}: $e');
+      continue;
+    }
+    out.add((
+      item: ReviewWithDocId(
+          review: review, docId: snap.id, fullReviewId: snap.reference.path),
+      reason: _reasonFor(wanted[n]['reason'], review, key),
+    ));
+  }
+  return out;
+}
+
+/// The server's reason code as a chip. "artist" covers both the same artist
+/// and a similar one; tell them apart here.
+SimilarReason? _reasonFor(Object? code, Review review, SimilarReviewsKey key) {
+  switch (code) {
+    case 'artist':
+      final mine = key.artistMbids.split('\n').where((id) => id.isNotEmpty);
+      final same = review.artistMbids.any(mine.contains) ||
+          _mainArtist(review.artist) == _mainArtist(key.artist);
+      return same ? SimilarReason.sameArtist : SimilarReason.similarArtist;
+    case 'song':
+      return SimilarReason.similarSong;
+    case 'tags':
+      return SimilarReason.sharedTags;
+    case 'text':
+      return SimilarReason.readsAlike;
+  }
+  return null;
+}
+
+String _mainArtist(String artist) =>
+    artist.split(',').first.trim().toLowerCase();
 
 /// How much a review by a similar artist counts, at full similarity, in
 /// shared-tag points (an exact shared tag is 2).

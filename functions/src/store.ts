@@ -11,6 +11,12 @@ export interface ReviewVector {
   artist: string;
   title: string;
   tags: string[];
+  /** The song's artists' MusicBrainz IDs (empty if unknown). */
+  artistMbids: string[];
+  /** The song's MusicBrainz ID, if matched. */
+  recordingMbid: string | null;
+  /** Genres filled in from MusicBrainz / ListenBrainz (never the author's tags). */
+  mbTags: string[];
   stars: number;
   likes: number;
   /** Characters in the review text; null for docs analysed before this was stored. */
@@ -21,7 +27,12 @@ export interface ReviewVector {
   embedding: Vec;
 }
 
-export interface AspectHit extends Aspect {
+/**
+ * A nearest-aspect search hit. No embedding: retrieval only needs which
+ * review it came from, and leaving the vectors out makes the search about
+ * 13× faster and ~100× smaller.
+ */
+export interface AspectHit extends Omit<Aspect, "embedding"> {
   reviewPath: string;
   userId: string;
   trackKey: string;
@@ -44,6 +55,9 @@ export function toReviewVector(snap: DocumentSnapshot): ReviewVector {
     artist: d.artist ?? "",
     title: d.title ?? "",
     tags: d.tags ?? [],
+    artistMbids: d.artistMbids ?? [],
+    recordingMbid: d.recordingMbid ?? null,
+    mbTags: d.mbTags ?? [],
     stars: d.stars ?? 0,
     likes: d.likes ?? 0,
     textLength: typeof d.textLength === "number" ? d.textLength : null,
@@ -102,6 +116,7 @@ export async function nearestAspects(
   const snap = await db
     .collection(COLLECTIONS.reviewAspects)
     .where("sign", "==", sign)
+    .select("reviewPath", "userId", "trackKey", "category", "statement", "polarity", "distance")
     .findNearest({
       vectorField: "embedding",
       queryVector: FieldValue.vector(query),
@@ -119,7 +134,6 @@ export async function nearestAspects(
       category: d.category,
       statement: d.statement,
       polarity: d.polarity,
-      embedding: toVec(d.embedding),
       similarity: 1 - d.distance,
     };
   });

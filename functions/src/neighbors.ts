@@ -4,7 +4,7 @@
  * is close. Recomputed nightly; small enough to do in memory at this scale.
  */
 import { Firestore } from "firebase-admin/firestore";
-import { COLLECTIONS, RANKING } from "./config";
+import { COLLECTIONS, RANKING, seedUserIds } from "./config";
 import { toVec } from "./store";
 import { cosine, Vec } from "./vectors";
 
@@ -29,7 +29,15 @@ export function blendNeighborSim(agreement: number, tasteCos: number): number {
   return 0.5 * agreement + 0.5 * Math.max(0, tasteCos);
 }
 
-export async function computeNeighbors(db: Firestore): Promise<Map<string, { uid: string; sim: number }[]>> {
+/**
+ * Each user's most similar listeners. Seed / test accounts (`SEED_USER_IDS`)
+ * are never anyone's neighbour: one prolific test account would otherwise be
+ * everyone's "listener like you".
+ */
+export async function computeNeighbors(
+  db: Firestore,
+  seeds: Set<string> = seedUserIds(),
+): Promise<Map<string, { uid: string; sim: number }[]>> {
   const [reviews, users] = await Promise.all([
     db.collection(COLLECTIONS.reviewVectors).select("userId", "trackKey", "affinity").get(),
     db.collection(COLLECTIONS.userVectors).select("centroid").get(),
@@ -53,7 +61,7 @@ export async function computeNeighbors(db: Firestore): Promise<Map<string, { uid
   for (const a of uids) {
     const scored: { uid: string; sim: number }[] = [];
     for (const b of uids) {
-      if (a === b) continue;
+      if (a === b || seeds.has(b)) continue;
       const { sim: agreement } = ratingAgreement(ratings.get(a)!, ratings.get(b)!);
       const ca = centroids.get(a);
       const cb = centroids.get(b);

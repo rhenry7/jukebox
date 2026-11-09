@@ -5,12 +5,14 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { syncReview } from "./analysis";
-import { ensureSimilarArtists, syncMbIds } from "./musicbrainz";
+import { ensureSimilarArtists, ensureSimilarRecordings, syncFavoriteArtists, syncMbIds } from "./musicbrainz";
 import { syncSearchKeys } from "./search";
+import { loadSimilarCorpus, refreshSimilarFor, writeSimilar } from "./similar";
 import { ANALYSIS_VERSION, COLLECTIONS, OPENAI_API_KEY, RERANK_ENABLED } from "./config";
 import { computeForYou } from "./forYou";
 import { matchForReview } from "./match";
 import { computeNeighbors, writeNeighbors } from "./neighbors";
+import { computeTagIdf } from "./tagStats";
 import { reviewDocId } from "./text";
 
 initializeApp();
@@ -43,13 +45,25 @@ export const onReviewWritten = onDocumentWritten(
     // MusicBrainz IDs for the song, then its artists' similar artists. Same
     // pattern: writing the IDs re-runs this trigger, which goes on to analyse.
     if ((await syncMbIds(db, reviewPath)) === "updated") {
-      const artistMbids = ((await db.doc(reviewPath).get()).get("artistMbids") as string[] | undefined) ?? [];
+      const review = await db.doc(reviewPath).get();
+      const artistMbids = (review.get("artistMbids") as string[] | undefined) ?? [];
+      const recordingMbid = review.get("recordingMbid") as string | null | undefined;
       const fetched = await ensureSimilarArtists(db, artistMbids);
+      if (recordingMbid) await ensureSimilarRecordings(db, [recordingMbid]);
       logger.info("MusicBrainz IDs updated", { reviewPath, artistMbids, similarFetched: fetched });
       return;
     }
     const outcome = await syncReview(db, OPENAI_API_KEY.value(), reviewPath);
     logger.info("Review synced", { reviewPath, outcome });
+    // "More like this" for this review (others' lists refresh nightly). Not
+    // on "unchanged": like counts change often and don't affect it.
+    if (outcome !== "unchanged") {
+      try {
+        await refreshSimilarFor(db, reviewPath);
+      } catch (e) {
+        logger.warn("Similar reviews refresh failed", { reviewPath, error: String(e) });
+      }
+    }
     if (outcome === "analyzed" || outcome === "deleted") {
       await db
         .collection(COLLECTIONS.userVectors)
@@ -60,6 +74,33 @@ export const onReviewWritten = onDocumentWritten(
         rerank: RERANK_ENABLED.value(),
       });
     }
+  },
+);
+
+/**
+ * Onboarding / preference changes: resolve favourite artists for the
+ * similar-artist channel, then build For You, so new users have a list
+ * before their first review. No LLM beyond the cold-start embedding.
+ */
+export const onPreferencesWritten = onDocumentWritten(
+  { document: "users/{uid}/musicPreferences/profile", secrets: [OPENAI_API_KEY], timeoutSeconds: 120 },
+  async (event) => {
+    if (!event.data?.after.exists) return;
+    const uid = event.params.uid;
+    if ((await syncFavoriteArtists(db, uid)) === "unchanged") return;
+    await computeForYou(db, OPENAI_API_KEY.value(), uid, { write: true, rerank: false });
+    logger.info("Favourite artists synced; For You rebuilt", { uid });
+  },
+);
+
+/**
+ * "Not for me" on a For You card: rebuild the list so the dismissed song
+ * and similar ones drop out. Deterministic (no LLM).
+ */
+export const onForYouFeedback = onDocumentWritten(
+  { document: "users/{uid}/forYouFeedback/{id}", secrets: [OPENAI_API_KEY], timeoutSeconds: 60 },
+  async (event) => {
+    await computeForYou(db, OPENAI_API_KEY.value(), event.params.uid, { write: true, rerank: false });
   },
 );
 
@@ -116,6 +157,9 @@ export const nightlyRefresh = onSchedule(
   { schedule: "every day 04:00", timeZone: "America/New_York", secrets: [OPENAI_API_KEY], timeoutSeconds: 540 },
   async () => {
     await writeNeighbors(db, await computeNeighbors(db));
+    logger.info("Tag rarity refreshed", await computeTagIdf(db));
+    // New reviews become other reviews' neighbours: rebuild every "More like this".
+    logger.info("Similar reviews refreshed", { count: await writeSimilar(db, await loadSimilarCorpus(db)) });
 
     const activeSince = Timestamp.fromMillis(Date.now() - 30 * 86_400_000);
     const weekAgo = Date.now() - 7 * 86_400_000;

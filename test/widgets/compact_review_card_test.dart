@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_project/ui/widgets/genre_pills.dart';
+import 'package:flutter_test_project/ui/widgets/review_card.dart';
+
+import '../helpers/screen_harness.dart';
 
 void main() {
   testWidgets('single-line pills show only what fits, with no overflow', (
@@ -63,5 +66,42 @@ void main() {
     }
     expect(shown, inInclusiveRange(1, 4));
     expect(find.text('noise'), findsNothing, reason: 'over maxTags');
+  });
+
+  testWidgets('shows why it was suggested before the tags', (tester) async {
+    await pumpScreen(
+      tester,
+      Center(
+        child: CompactReviewCard(
+          review: sampleReview(genres: const ['country', 'western']),
+          reviewId: 'users/someone/reviews/1',
+          reason: 'Similar artist',
+        ),
+      ),
+      overrides: reviewScreenOverrides(),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Similar artist'), findsOneWidget);
+    expect(find.text('country'), findsOneWidget);
+    final reason = tester.getTopLeft(find.text('Similar artist'));
+    final tag = tester.getTopLeft(find.text('country'));
+    expect(reason.dx, lessThan(tag.dx), reason: 'reason comes first');
+  });
+
+  testWidgets('no reason: just the tags', (tester) async {
+    await pumpScreen(
+      tester,
+      Center(
+        child: CompactReviewCard(
+          review: sampleReview(),
+          reviewId: 'users/someone/reviews/1',
+        ),
+      ),
+      overrides: reviewScreenOverrides(),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Similar artist'), findsNothing);
+    expect(find.text('country'), findsOneWidget);
   });
 }

@@ -11,6 +11,10 @@ export interface ReviewDoc {
   date?: { toDate(): Date } | Date | null;
   likes?: number;
   isRepost?: boolean;
+  /** MusicBrainz IDs and filled-in tags, written by `syncMbIds`. */
+  artistMbids?: string[];
+  recordingMbid?: string | null;
+  mbTags?: string[];
 }
 
 /**

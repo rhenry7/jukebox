@@ -12,7 +12,8 @@
  */
 import { FieldValue, Firestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
-import { trackKey } from "./text";
+import { COLLECTIONS } from "./config";
+import { normalizeTag, reviewDocId, trackKey } from "./text";
 
 const MB_BASE = "https://musicbrainz.org/ws/2";
 const USER_AGENT = "REVERB/1.0 ( https://juxeboxd.web.app )";
@@ -24,6 +25,12 @@ const USER_AGENT = "REVERB/1.0 ( https://juxeboxd.web.app )";
 export const SIMILAR_ARTISTS_URL = "https://labs.api.listenbrainz.org/similar-artists/json";
 export const SIMILAR_ARTISTS_ALGORITHM =
   "session_based_days_7500_session_300_contribution_5_threshold_10_limit_100_filter_True_skip_30";
+
+/** ListenBrainz's similar-recordings dataset (labs server, like similar artists). */
+export const SIMILAR_RECORDINGS_URL = "https://labs.api.listenbrainz.org/similar-recordings/json";
+export const SIMILAR_RECORDINGS_ALGORITHM =
+  "session_based_days_9000_session_300_contribution_5_threshold_15_limit_50_skip_30";
+export const SIMILAR_RECORDINGS_COLLECTION = "similarRecordings";
 
 export const SIMILAR_ARTISTS_COLLECTION = "similarArtists";
 /** How many similar artists are kept per artist. */
@@ -129,6 +136,92 @@ export function parseSimilarArtists(body: unknown, keep = SIMILAR_ARTISTS_KEEP):
   }));
 }
 
+/**
+ * Whether a free-form tag is worth using: not personal or bookkeeping
+ * ("seen live", "meme", "favorites"), not a bare year, a sensible length.
+ * Same rule as `isUsefulTag` in lib/services/tag_suggestion_service.dart.
+ */
+export function isUsefulTag(tag: string): boolean {
+  const t = normalizeTag(tag);
+  if (t.length < 2 || t.length > 30) return false;
+  if (/^\d+$/.test(t)) return false;
+  const junk = [
+    "meme", "seen live", "favorite", "favourite", "owned", "spotify", "playlist",
+    "listened", "to listen", "fixme", "check", "wishlist", "my ", "love it",
+  ];
+  return !junk.some((j) => t.includes(j));
+}
+
+/** How many filled-in tags a review keeps. */
+export const MB_TAGS_KEEP = 6;
+/** A free-form (non-genre) tag needs this many votes to count. */
+const MIN_FREEFORM_VOTES = 3;
+
+interface LbTag {
+  tag?: string;
+  count?: number;
+  genre_mbid?: string;
+  artist_mbid?: string;
+}
+
+/**
+ * Filled-in tags from ListenBrainz metadata for one song: its own genres,
+ * then its album's, then its artists', most voted first. Official genres
+ * (with a `genre_mbid`) always count; free-form tags only with
+ * ≥`MIN_FREEFORM_VOTES` votes and passing [isUsefulTag]. Lowercase,
+ * de-duplicated by `normalizeTag`, at most [keep].
+ */
+export function pickMbTags(
+  tags: { recording?: LbTag[]; release_group?: LbTag[]; artist?: LbTag[] } | undefined,
+  keep = MB_TAGS_KEEP,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const level of [tags?.recording, tags?.release_group, tags?.artist]) {
+    const ranked = [...(level ?? [])]
+      .filter((t) => typeof t.tag === "string")
+      .filter((t) => t.genre_mbid || ((t.count ?? 0) >= MIN_FREEFORM_VOTES && isUsefulTag(t.tag!)))
+      .sort((a, b) => Number(!!b.genre_mbid) - Number(!!a.genre_mbid) || (b.count ?? 0) - (a.count ?? 0));
+    for (const t of ranked) {
+      const key = normalizeTag(t.tag!);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(t.tag!.trim().toLowerCase());
+      if (out.length === keep) return out;
+    }
+  }
+  return out;
+}
+
+export interface SimilarRecording {
+  mbid: string;
+  title: string;
+  artist: string;
+  /** 0–1, relative to the most similar song. */
+  score: number;
+}
+
+/** ListenBrainz's similar-recordings rows, best first, scores scaled so the best is 1. */
+export function parseSimilarRecordings(body: unknown, keep = SIMILAR_ARTISTS_KEEP): SimilarRecording[] {
+  const rows: { recording_mbid?: string; recording_name?: string; artist_credit_name?: string; score?: number }[] = [];
+  const walk = (x: unknown) => {
+    if (Array.isArray(x)) x.forEach(walk);
+    else if (x && typeof x === "object" && "recording_mbid" in x) rows.push(x as (typeof rows)[number]);
+  };
+  walk(body);
+  const valid = rows
+    .filter((r) => typeof r.recording_mbid === "string")
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, keep);
+  const top = Math.max(1, valid[0]?.score ?? 1);
+  return valid.map((r) => ({
+    mbid: r.recording_mbid!,
+    title: r.recording_name ?? "",
+    artist: r.artist_credit_name ?? "",
+    score: Number(((r.score ?? 0) / top).toFixed(3)),
+  }));
+}
+
 // ── Network ────────────────────────────────────────────────────────────────
 
 let queue: Promise<unknown> = Promise.resolve();
@@ -178,11 +271,53 @@ export async function lookupMbIds(title: string, artist: string): Promise<MbIds 
   })) as { recordings?: MbRecording[] };
   const found = pickRecording(search.recordings ?? [], title, artist);
   if (found) return found;
-  const artists = (await mbGet("artist", { query: `artist:"${quote(mainArtist)}"`, limit: "5" })) as {
+  const id = await lookupArtistMbid(mainArtist);
+  return id ? { recordingMbid: null, artistMbids: [id] } : null;
+}
+
+/** An artist's MBID by exact name (confident matches only), or null. */
+export async function lookupArtistMbid(name: string): Promise<string | null> {
+  if (!name.trim()) return null;
+  const artists = (await mbGet("artist", { query: `artist:"${quote(name)}"`, limit: "5" })) as {
     artists?: MbArtist[];
   };
-  const id = pickArtist(artists.artists ?? [], mainArtist);
-  return id ? { recordingMbid: null, artistMbids: [id] } : null;
+  return pickArtist(artists.artists ?? [], name);
+}
+
+/** How many onboarding favourite artists are resolved per user. */
+const MAX_FAVORITE_ARTISTS = 15;
+
+/**
+ * Resolves the user's onboarding favourite artists
+ * (`users/{uid}/musicPreferences/profile.favoriteArtists`) to MBIDs, stored
+ * on `userVectors/{uid}.favoriteArtists` (server-only), and caches their
+ * similar artists. For You uses them so new users get similar-artist
+ * picks before writing any reviews. Skips work if the list hasn't changed.
+ */
+export async function syncFavoriteArtists(db: Firestore, userId: string): Promise<"updated" | "unchanged"> {
+  const prefs = await db.doc(`users/${userId}/musicPreferences/profile`).get();
+  const names = ((prefs.get("favoriteArtists") as string[] | undefined) ?? [])
+    .map((n) => String(n).trim())
+    .filter(Boolean)
+    .slice(0, MAX_FAVORITE_ARTISTS);
+  const key = names.map((n) => n.toLowerCase()).join("|");
+  const ref = db.collection(COLLECTIONS.userVectors).doc(userId);
+  if ((await ref.get()).get("favoriteArtistsKey") === key) return "unchanged";
+  const resolved: { mbid: string; name: string }[] = [];
+  for (const name of names) {
+    try {
+      const mbid = await lookupArtistMbid(name);
+      if (mbid) resolved.push({ mbid, name });
+    } catch (e) {
+      logger.warn("Favourite artist lookup failed", { userId, name, error: String(e) });
+    }
+  }
+  await ensureSimilarArtists(
+    db,
+    resolved.map((r) => r.mbid),
+  );
+  await ref.set({ favoriteArtists: resolved, favoriteArtistsKey: key }, { merge: true });
+  return "updated";
 }
 
 export async function fetchSimilarArtists(artistMbid: string): Promise<SimilarArtist[]> {
@@ -193,6 +328,82 @@ export async function fetchSimilarArtists(artistMbid: string): Promise<SimilarAr
   const res = await fetch(url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`ListenBrainz similar artists ${res.status}`);
   return parseSimilarArtists(await res.json());
+}
+
+const LB_METADATA = "https://api.listenbrainz.org/1/metadata";
+/** IDs per ListenBrainz metadata call. */
+const LB_BATCH = 25;
+
+async function lbGet(url: string): Promise<unknown> {
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(20_000) });
+    if (res.ok) return res.json();
+    if (res.status !== 429 && res.status !== 503) throw new Error(`ListenBrainz metadata ${res.status}`);
+    if (attempt >= MB_ATTEMPTS) throw new Error(`ListenBrainz metadata ${res.status}`);
+    await new Promise((r) => setTimeout(r, retryDelayMs(attempt, res.headers.get("retry-after"))));
+  }
+}
+
+/** Filled-in tags for many songs at once: recording MBID → tags. */
+export async function fetchRecordingTags(recordingMbids: string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  for (let i = 0; i < recordingMbids.length; i += LB_BATCH) {
+    const ids = recordingMbids.slice(i, i + LB_BATCH);
+    const body = (await lbGet(`${LB_METADATA}/recording/?recording_mbids=${ids.join(",")}&inc=tag`)) as Record<
+      string,
+      { tag?: Parameters<typeof pickMbTags>[0] }
+    >;
+    for (const id of ids) out.set(id, pickMbTags(body?.[id]?.tag));
+  }
+  return out;
+}
+
+/** Filled-in tags from artists alone (songs MusicBrainz doesn't have): artist MBID → tags. */
+export async function fetchArtistTags(artistMbids: string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  for (let i = 0; i < artistMbids.length; i += LB_BATCH) {
+    const ids = artistMbids.slice(i, i + LB_BATCH);
+    const body = (await lbGet(`${LB_METADATA}/artist/?artist_mbids=${ids.join(",")}&inc=tag`)) as {
+      artist_mbid?: string;
+      tag?: { artist?: LbTag[] };
+    }[];
+    for (const a of Array.isArray(body) ? body : []) {
+      if (a.artist_mbid) out.set(a.artist_mbid, pickMbTags({ artist: a.tag?.artist }));
+    }
+  }
+  return out;
+}
+
+/** Filled-in tags for one review's IDs (empty if none are known). */
+export async function mbTagsFor(ids: MbIds | null): Promise<string[]> {
+  if (!ids) return [];
+  if (ids.recordingMbid) {
+    const tags = (await fetchRecordingTags([ids.recordingMbid])).get(ids.recordingMbid) ?? [];
+    if (tags.length) return tags;
+  }
+  if (ids.artistMbids.length === 0) return [];
+  const byArtist = await fetchArtistTags(ids.artistMbids.slice(0, 3));
+  return [...new Set(ids.artistMbids.flatMap((id) => byArtist.get(id) ?? []))].slice(0, MB_TAGS_KEEP);
+}
+
+/** Mirrors the review's IDs and tags onto its analysis record, if it has one. */
+async function mirrorToVector(
+  db: Firestore,
+  reviewPath: string,
+  fields: { artistMbids: string[]; recordingMbid: string | null; mbTags: string[] },
+) {
+  const ref = db.collection(COLLECTIONS.reviewVectors).doc(reviewDocId(reviewPath));
+  if ((await ref.get()).exists) await ref.set(fields, { merge: true });
+}
+
+export async function fetchSimilarRecordings(recordingMbid: string): Promise<SimilarRecording[]> {
+  const url = `${SIMILAR_RECORDINGS_URL}?${new URLSearchParams({
+    recording_mbids: recordingMbid,
+    algorithm: SIMILAR_RECORDINGS_ALGORITHM,
+  })}`;
+  const res = await fetch(url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`ListenBrainz similar recordings ${res.status}`);
+  return parseSimilarRecordings(await res.json());
 }
 
 // ── Firestore ──────────────────────────────────────────────────────────────
@@ -222,14 +433,54 @@ export async function syncMbIds(
     logger.warn("MusicBrainz lookup failed", { reviewPath, error: String(e) });
     return "failed";
   }
+  let mbTags: string[] = [];
+  try {
+    mbTags = await mbTagsFor(ids);
+  } catch (e) {
+    // Tags are a bonus; the backfill fills them in later.
+    logger.warn("ListenBrainz tags failed", { reviewPath, error: String(e) });
+  }
   if (!opts.dryRun) {
-    await ref.update({
-      recordingMbid: ids?.recordingMbid ?? null,
-      artistMbids: ids?.artistMbids ?? [],
-      mbKey: key,
-    });
+    const fields = { artistMbids: ids?.artistMbids ?? [], recordingMbid: ids?.recordingMbid ?? null, mbTags };
+    await ref.update({ ...fields, mbKey: key });
+    await mirrorToVector(db, reviewPath, fields);
   }
   return "updated";
+}
+
+/**
+ * Fills in `mbTags` for reviews that have MusicBrainz IDs but no tags yet
+ * (or all of them with [force]), in batches. Returns how many were written.
+ */
+export async function backfillMbTags(db: Firestore, opts: { dryRun?: boolean; force?: boolean } = {}): Promise<number> {
+  const docs = (await db.collectionGroup("reviews").select("recordingMbid", "artistMbids", "mbTags", "isRepost").get()).docs.filter(
+    (d) => d.ref.path.startsWith("users/") && !d.get("isRepost") && (opts.force || d.get("mbTags") === undefined),
+  );
+  const recIds = [...new Set(docs.map((d) => d.get("recordingMbid") as string | null).filter((x): x is string => !!x))];
+  const byRecording = await fetchRecordingTags(recIds);
+  const needArtist = docs.filter((d) => !(byRecording.get(d.get("recordingMbid"))?.length));
+  const artistIds = [...new Set(needArtist.flatMap((d) => ((d.get("artistMbids") as string[]) ?? []).slice(0, 3)))];
+  const byArtist = await fetchArtistTags(artistIds);
+  let written = 0;
+  for (const d of docs) {
+    const fromSong = byRecording.get(d.get("recordingMbid")) ?? [];
+    const artists = ((d.get("artistMbids") as string[]) ?? []).slice(0, 3);
+    const mbTags = fromSong.length
+      ? fromSong
+      : [...new Set(artists.flatMap((id) => byArtist.get(id) ?? []))].slice(0, MB_TAGS_KEEP);
+    if (opts.dryRun) {
+      if (written < 8) console.log(`  ${d.ref.path.split("/").pop()}: ${mbTags.join(", ") || "(none)"}`);
+    } else {
+      await d.ref.update({ mbTags });
+      await mirrorToVector(db, d.ref.path, {
+        artistMbids: (d.get("artistMbids") as string[]) ?? [],
+        recordingMbid: (d.get("recordingMbid") as string | null) ?? null,
+        mbTags,
+      });
+    }
+    written++;
+  }
+  return written;
 }
 
 /** Fetches and caches similar artists for any of [artistMbids] not cached recently. */
@@ -250,6 +501,42 @@ export async function ensureSimilarArtists(db: Firestore, artistMbids: string[])
     }
   }
   return fetched;
+}
+
+/** Fetches and caches similar songs for any of [recordingMbids] not cached recently. */
+export async function ensureSimilarRecordings(db: Firestore, recordingMbids: string[]): Promise<number> {
+  let fetched = 0;
+  for (const mbid of recordingMbids) {
+    const ref = db.collection(SIMILAR_RECORDINGS_COLLECTION).doc(mbid);
+    const cached = await ref.get();
+    const at = (cached.get("fetchedAt") as Timestamp | undefined)?.toMillis() ?? 0;
+    if (cached.exists && Date.now() - at < SIMILAR_ARTISTS_MAX_AGE_MS) continue;
+    try {
+      await ref.set({ similar: await fetchSimilarRecordings(mbid), fetchedAt: FieldValue.serverTimestamp() });
+      fetched++;
+    } catch (e) {
+      logger.warn("Similar recordings fetch failed", { mbid, error: String(e) });
+    }
+  }
+  return fetched;
+}
+
+/** Cached similar songs: recording MBID → (similar recording MBID → 0–1). */
+export async function similarRecordingsFor(
+  db: Firestore,
+  recordingMbids: string[],
+): Promise<Map<string, Map<string, number>>> {
+  const out = new Map<string, Map<string, number>>();
+  for (let i = 0; i < recordingMbids.length; i += 300) {
+    const refs = recordingMbids.slice(i, i + 300).map((id) => db.collection(SIMILAR_RECORDINGS_COLLECTION).doc(id));
+    if (refs.length === 0) continue;
+    for (const s of await db.getAll(...refs)) {
+      if (!s.exists) continue;
+      const list = (s.get("similar") as SimilarRecording[] | undefined) ?? [];
+      out.set(s.id, new Map(list.map((r) => [r.mbid, r.score])));
+    }
+  }
+  return out;
 }
 
 /** Cached similar artists for each of [artistMbids] (missing ones left out). */

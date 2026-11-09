@@ -172,6 +172,10 @@ export async function syncReview(
     artist: data.artist,
     title: data.title,
     tags,
+    // Copied from the review (kept in step by syncMbIds) so ranking has them.
+    artistMbids: data.artistMbids ?? [],
+    recordingMbid: data.recordingMbid ?? null,
+    mbTags: data.mbTags ?? [],
     stars,
     likes: data.likes ?? 0,
     textLength: data.review.trim().length,

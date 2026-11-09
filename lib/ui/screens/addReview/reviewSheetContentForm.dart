@@ -7,7 +7,6 @@ import 'package:flutter_test_project/providers/auth_provider.dart'
     show currentUserProvider;
 import 'package:flutter_test_project/providers/community_reviews_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
-import 'package:flutter_test_project/services/recommendation_outcome_service.dart';
 import 'package:flutter_test_project/services/signal_collection_service.dart';
 import 'package:flutter_test_project/utils/reviews/review_helpers.dart';
 import 'package:gap/gap.dart';
@@ -601,15 +600,6 @@ class _MyReviewSheetContentFormState
         track: submittedTrack,
         rating: ratingScore,
         genres: tags,
-      );
-
-      // Check if this review matches a pending recommendation (Phase 4)
-      unawaited(
-        RecommendationOutcomeService.checkAndRecordOutcome(
-          artist: submittedArtist,
-          track: submittedTrack,
-          rating: ratingScore,
-        ),
       );
 
       // Invalidate reviews provider to refresh all screens automatically

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { combineSimilarArtists } from "../forYou";
+import { tagIdf } from "../relevance";
 import { Candidate, scoreCandidate } from "../scoring";
 
 function candidate(overrides: Partial<Candidate>): Candidate {
@@ -78,5 +79,16 @@ describe("similar artists in scoring", () => {
   it("doesn't claim a weak artist match", () => {
     const s = scoreCandidate(candidate({ artistSim: 0.3, artistMatch: "Masego" }), [], []);
     assert.notEqual(s.reason, "Sounds like Masego, which you rated highly");
+  });
+});
+
+describe("rare tags in scoring", () => {
+  // "rock" is on every review; "darkwave" on one.
+  const idf = tagIdf([["rock", "darkwave"], ["rock"], ["rock"], ["rock"]]);
+
+  it("a shared rare tag lifts the score more than a shared common one", () => {
+    const rare = scoreCandidate(candidate({ tags: ["darkwave"] }), [], ["darkwave", "rock"], new Date(), idf);
+    const common = scoreCandidate(candidate({ tags: ["rock"] }), [], ["darkwave", "rock"], new Date(), idf);
+    assert.ok(rare.score > common.score);
   });
 });

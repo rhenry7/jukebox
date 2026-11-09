@@ -1,14 +1,16 @@
 /**
- * For You (plan phases 4–6): retrieve ~300 candidates from four sources over
+ * For You (plan phases 4–6): retrieve ~300 candidates from five sources over
  * the whole corpus, score them deterministically, optionally rerank the top
  * 30 with the LLM, diversify, and cache the result for the app to read.
  */
 import { FieldValue, Firestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { COLLECTIONS, RANKING } from "./config";
-import { SimilarArtist, similarArtistsFor } from "./musicbrainz";
+import { SimilarArtist, similarArtistsFor, similarRecordingsFor } from "./musicbrainz";
 import { buildProfile, Profile, tasteCentroid } from "./profile";
 import { rerank } from "./rerank";
+import { TagIdf } from "./relevance";
+import { loadTagIdf } from "./tagStats";
 import {
   bestPerTrack,
   blendRerank,
@@ -18,6 +20,7 @@ import {
   ScoredCandidate,
   scoreCandidate,
   Source,
+  Weights,
 } from "./scoring";
 import {
   AspectHit,
@@ -70,31 +73,127 @@ export interface ArtistMatch {
   lovedArtist: string;
 }
 
+/** A review that tells us what the user likes, and how much (0–1). */
+interface Loved {
+  review: ReviewVector;
+  affinity: number;
+}
+
 /**
- * Artists that sound like ones the user loved: for each of their reviews
- * with affinity ≥ `artistMinAffinity`, that review's artists' ListenBrainz
+ * The reviews that say what the user loves: their own with affinity ≥
+ * `artistMinAffinity`, plus reviews they liked / bookmarked / reposted /
+ * commented on, at that action's weight.
+ */
+export function lovedReviews(profile: Pick<Profile, "positiveReviews" | "liked">): Loved[] {
+  return [
+    ...profile.positiveReviews
+      .filter((r) => r.affinity >= RANKING.artistMinAffinity)
+      .map((review) => ({ review, affinity: review.affinity })),
+    ...profile.liked.map((l) => ({ review: l.review, affinity: l.weight })),
+  ];
+}
+
+/**
+ * Each review's artist MBIDs: from its analysis record when copied there
+ * (syncMbIds), otherwise read from the review.
+ */
+async function artistMbidsOf(db: Firestore, reviews: ReviewVector[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  const missing = reviews.filter((r) => {
+    if (r.artistMbids.length) out.set(r.reviewPath, r.artistMbids);
+    return !r.artistMbids.length;
+  });
+  if (missing.length) {
+    const docs = await db.getAll(...missing.map((r) => db.doc(r.reviewPath)), { fieldMask: ["artistMbids"] });
+    docs.forEach((d) => out.set(d.ref.path, (d.get("artistMbids") as string[] | undefined) ?? []));
+  }
+  return out;
+}
+
+/** Onboarding favourite artists resolved to MBIDs (see `syncFavoriteArtists`). */
+async function favoriteArtists(db: Firestore, userId: string): Promise<{ mbid: string; name: string }[]> {
+  const snap = await db.collection(COLLECTIONS.userVectors).doc(userId).get();
+  return (snap.get("favoriteArtists") as { mbid: string; name: string }[] | undefined) ?? [];
+}
+
+/** How much an onboarding favourite artist counts, like a ~4★ review. */
+export const FAVORITE_ARTIST_AFFINITY = 0.7;
+
+/**
+ * Artists that sound like ones the user loves: their loved reviews' artists
+ * (see [lovedReviews]) and onboarding favourites, each artist's ListenBrainz
  * similar artists (cached in `similarArtists`), weighted by affinity ×
  * similarity. The user's own artists are left out (other channels cover
  * them); the point is discovery.
  */
 export async function similarArtistSignal(
   db: Firestore,
-  profile: Pick<Profile, "positiveReviews">,
+  profile: Pick<Profile, "positiveReviews" | "liked" | "userId">,
 ): Promise<Map<string, ArtistMatch>> {
-  const loved = profile.positiveReviews.filter((r) => r.affinity >= RANKING.artistMinAffinity);
-  if (loved.length === 0) return new Map();
-  const docs = await db.getAll(...loved.map((r) => db.doc(r.reviewPath)), { fieldMask: ["artistMbids"] });
+  const loved = lovedReviews(profile);
+  const [mbids, favorites] = await Promise.all([
+    artistMbidsOf(
+      db,
+      loved.map((l) => l.review),
+    ),
+    favoriteArtists(db, profile.userId),
+  ]);
   // Each loved artist's best affinity, and a display name for the reason line.
   const own = new Map<string, { affinity: number; name: string }>();
-  docs.forEach((d, i) => {
-    for (const id of (d.get("artistMbids") as string[] | undefined) ?? []) {
-      const prev = own.get(id);
-      if (!prev || loved[i].affinity > prev.affinity) {
-        own.set(id, { affinity: loved[i].affinity, name: loved[i].artist.split(",")[0].trim() });
-      }
-    }
-  });
+  const consider = (id: string, affinity: number, name: string) => {
+    const prev = own.get(id);
+    if (!prev || affinity > prev.affinity) own.set(id, { affinity, name });
+  };
+  for (const { review, affinity } of loved) {
+    for (const id of mbids.get(review.reviewPath) ?? []) consider(id, affinity, review.artist.split(",")[0].trim());
+  }
+  for (const f of favorites) consider(f.mbid, FAVORITE_ARTIST_AFFINITY, f.name);
+  if (own.size === 0) return new Map();
   return combineSimilarArtists(own, await similarArtistsFor(db, [...own.keys()]));
+}
+
+/** A similar song's strength for this user, and which loved song it came from. */
+export interface SongMatch {
+  strength: number;
+  lovedTitle: string;
+}
+
+/**
+ * Songs that sound like ones the user loves (ListenBrainz similar
+ * recordings, cached in `similarRecordings`): recording MBID → strength.
+ */
+export async function similarSongSignal(
+  db: Firestore,
+  profile: Pick<Profile, "positiveReviews" | "liked">,
+): Promise<Map<string, SongMatch>> {
+  const loved = lovedReviews(profile).filter((l) => l.review.recordingMbid);
+  if (loved.length === 0) return new Map();
+  const similar = await similarRecordingsFor(db, [...new Set(loved.map((l) => l.review.recordingMbid!))]);
+  const own = new Set(loved.map((l) => l.review.recordingMbid!));
+  const out = new Map<string, SongMatch>();
+  for (const { review, affinity } of loved) {
+    similar.get(review.recordingMbid!)?.forEach((score, id) => {
+      if (own.has(id)) return;
+      const strength = affinity * score;
+      if (strength > (out.get(id)?.strength ?? 0)) out.set(id, { strength, lovedTitle: review.title });
+    });
+  }
+  return out;
+}
+
+/**
+ * Artists the user marked "Not for me" (1) and ones that sound like them
+ * (half their similarity): artist MBID → 0–1 penalty.
+ */
+export async function dislikeSignal(db: Firestore, profile: Pick<Profile, "disliked">): Promise<Map<string, number>> {
+  if (profile.disliked.length === 0) return new Map();
+  const mbids = await artistMbidsOf(db, profile.disliked);
+  const ids = [...new Set([...mbids.values()].flat())];
+  const out = new Map<string, number>(ids.map((id) => [id, 1]));
+  (await similarArtistsFor(db, ids)).forEach((list) => {
+    for (const s of list) out.set(s.mbid, Math.max(out.get(s.mbid) ?? 0, 0.5 * s.score));
+  });
+  return out;
 }
 
 /** Pure part of [similarArtistSignal] (unit-tested). */
@@ -128,7 +227,11 @@ export async function retrieveCandidates(
   const interests = profile.interests.slice(0, RANKING.maxInterests);
   const styleQueries = profile.positiveReviews.slice(0, RANKING.styleQueries);
 
-  const [aspectHits, styleHits, cfByTrack, artistSignal] = await Promise.all([
+  const quiet = <T>(what: string, fallback: T) => (e: unknown) => {
+    logger.warn(`${what} signal failed`, { userId: profile.userId, error: String(e) });
+    return fallback;
+  };
+  const [aspectHits, styleHits, cfByTrack, artistSignal, songSignal, dislikes] = await Promise.all([
     Promise.all([
       // Praise ↔ praise: other reviews celebrating what this user celebrates.
       ...interests.map((i) => nearestAspects(db, i.centroid, "pos", RANKING.aspectHitsPerInterest)),
@@ -141,10 +244,9 @@ export async function retrieveCandidates(
       (lists) => lists.flat(),
     ),
     opts.disableCf ? Promise.resolve(new Map<string, number>()) : collaborativeSignal(db, profile.userId),
-    similarArtistSignal(db, profile).catch((e) => {
-      logger.warn("Similar-artist signal failed", { userId: profile.userId, error: String(e) });
-      return new Map<string, ArtistMatch>();
-    }),
+    similarArtistSignal(db, profile).catch(quiet("Similar-artist", new Map<string, ArtistMatch>())),
+    similarSongSignal(db, profile).catch(quiet("Similar-song", new Map<string, SongMatch>())),
+    dislikeSignal(db, profile).catch(quiet("Dislike", new Map<string, number>())),
   ]);
 
   aspectHits.forEach((h: AspectHit) => tag(h.reviewPath, "aspect"));
@@ -191,6 +293,29 @@ export async function retrieveCandidates(
     }
   }
 
+  // Similar songs: reviews of songs that sound like the user's loved ones.
+  const songByPath = new Map<string, SongMatch>();
+  const topSongs = [...songSignal.entries()]
+    .sort((a, b) => b[1].strength - a[1].strength)
+    .slice(0, RANKING.similarSongQuery);
+  for (let i = 0; i < topSongs.length; i += 30) {
+    const snap = await db
+      .collection(COLLECTIONS.reviewVectors)
+      .where(
+        "recordingMbid",
+        "in",
+        topSongs.slice(i, i + 30).map(([id]) => id),
+      )
+      .select("reviewPath", "recordingMbid")
+      .get();
+    for (const d of snap.docs) {
+      const m = songSignal.get(d.get("recordingMbid"));
+      if (!m) continue;
+      songByPath.set(d.get("reviewPath"), m);
+      tag(d.get("reviewPath"), "song");
+    }
+  }
+
   const known = new Map<string, ReviewVector>(styleHits.map((r) => [r.reviewPath, r]));
   const missing = [...sources.keys()].filter((p) => !known.has(p));
   (await reviewVectorsByPath(db, missing)).forEach((r) => known.set(r.reviewPath, r));
@@ -219,7 +344,8 @@ export async function retrieveCandidates(
       trackKey: r.trackKey,
       artist: r.artist,
       title: r.title,
-      tags: r.tags,
+      // Author tags plus filled-in MusicBrainz genres.
+      tags: [...r.tags, ...r.mbTags],
       stars: r.stars,
       affinity: r.affinity,
       date: r.date,
@@ -231,9 +357,24 @@ export async function retrieveCandidates(
       cf: cfByTrack.get(r.trackKey) ?? 0,
       artistSim: artistByPath.get(r.reviewPath)?.strength ?? 0,
       artistMatch: artistByPath.get(r.reviewPath)?.lovedArtist,
+      songSim: songByPath.get(r.reviewPath)?.strength ?? 0,
+      songMatch: songByPath.get(r.reviewPath)?.lovedTitle,
+      dislike: Math.max(0, ...r.artistMbids.map((id) => dislikes.get(id) ?? 0)),
       sources: sources.get(r.reviewPath)!,
     };
   });
+}
+
+/** Scores retrieved candidates and keeps the best review per track (no I/O). */
+export function scoreAndGroup(
+  candidates: Candidate[],
+  profile: Pick<Profile, "aspects" | "tags" | "knownTrackKeys">,
+  idf: TagIdf,
+  weights: Weights = RANKING.weights,
+): ScoredCandidate[] {
+  const now = new Date();
+  const scored = candidates.map((c) => scoreCandidate(c, profile.aspects, profile.tags, now, idf, weights));
+  return bestPerTrack(scored, profile.knownTrackKeys);
 }
 
 export async function rankForProfile(
@@ -242,9 +383,8 @@ export async function rankForProfile(
   profile: Profile,
   opts: ForYouOptions,
 ): Promise<ScoredCandidate[]> {
-  const candidates = await retrieveCandidates(db, profile, opts);
-  const scored = candidates.map((c) => scoreCandidate(c, profile.aspects, profile.tags));
-  let ranked = bestPerTrack(scored, profile.knownTrackKeys);
+  const [candidates, idf] = await Promise.all([retrieveCandidates(db, profile, opts), loadTagIdf(db)]);
+  let ranked = scoreAndGroup(candidates, profile, idf);
 
   if (opts.rerank && ranked.length > 0) {
     const pool = ranked.slice(0, RANKING.rerankPoolSize);

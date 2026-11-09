@@ -1,12 +1,15 @@
 /**
- * The active user's taste, rebuilt from their analysed reviews (math only —
- * the one exception is a cold-start embedding of their preferences).
+ * The active user's taste, rebuilt from their analysed reviews and their
+ * actions on other people's reviews (likes, bookmarks, reposts, comments,
+ * "Not for me"; see implicit.ts). Math only — the one exception is a
+ * cold-start embedding of their preferences.
  */
 import { Firestore } from "firebase-admin/firestore";
 import { RANKING } from "./config";
+import { loadImplicitSignals } from "./implicit";
 import { embed } from "./openai";
 import { UserAspect } from "./scoring";
-import { aspectsByReview, loadPreferences, ReviewVector, reviewVectorsByUser } from "./store";
+import { aspectsByReview, loadPreferences, ReviewVector, reviewVectorsByPath, reviewVectorsByUser } from "./store";
 import { parseSavedTrack, trackKey } from "./text";
 import { kmeans, recencyWeight, Vec, weightedCentroid } from "./vectors";
 
@@ -22,10 +25,17 @@ export interface Profile {
   negCentroid: Vec | null;
   /** Tags from positive reviews (for tag overlap). */
   tags: string[];
-  /** Tracks the user has reviewed or saved — never recommended back. */
+  /** Tracks the user has reviewed, saved, engaged with or dismissed — never recommended back. */
   knownTrackKeys: Set<string>;
+  /** Other people's reviews the user liked / bookmarked / reposted / commented on, with 0–1 weight. */
+  liked: { review: ReviewVector; weight: number }[];
+  /** Reviews the user marked "Not for me" on For You. */
+  disliked: ReviewVector[];
   coldStart: boolean;
 }
+
+/** How much a "Not for me" review's praise counts toward what the user dislikes. */
+const DISLIKE_ASPECT_WEIGHT = 0.5;
 
 export async function buildProfile(
   db: Firestore,
@@ -34,18 +44,24 @@ export async function buildProfile(
   opts: { excludeReviewPath?: string } = {},
 ): Promise<Profile> {
   const now = new Date();
-  const [allReviews, prefs, reviewedTracks] = await Promise.all([
+  const [allReviews, prefs, reviewedTracks, implicit] = await Promise.all([
     reviewVectorsByUser(db, userId),
     loadPreferences(db, userId),
     // Every track they've reviewed — including star-only reviews and
     // reposts, which have no vector.
     db.collection(`users/${userId}/reviews`).select("artist", "title").get(),
+    loadImplicitSignals(db, userId),
   ]);
   const reviews = allReviews.filter((r) => r.reviewPath !== opts.excludeReviewPath);
-  const aspectMap = await aspectsByReview(
-    db,
-    reviews.map((r) => r.reviewPath),
-  );
+  const otherVectors = await reviewVectorsByPath(db, [...implicit.liked.keys(), ...implicit.disliked]);
+  const liked = otherVectors
+    .filter((r) => implicit.liked.has(r.reviewPath))
+    .map((review) => ({ review, weight: implicit.liked.get(review.reviewPath)! }));
+  const disliked = otherVectors.filter((r) => implicit.disliked.has(r.reviewPath));
+  const aspectMap = await aspectsByReview(db, [
+    ...reviews.map((r) => r.reviewPath),
+    ...otherVectors.map((r) => r.reviewPath),
+  ]);
 
   const aspects: UserAspect[] = [];
   const posVecs: Vec[] = [];
@@ -63,6 +79,24 @@ export async function buildProfile(
         negVecs.push(a.embedding);
         negWeights.push(-a.polarity * recency);
       }
+    }
+  }
+
+  // Praise in reviews they engaged with: a weaker version of their own.
+  for (const { review, weight } of liked) {
+    const recency = recencyWeight(review.date, RANKING.recencyHalfLifeDays, now);
+    for (const a of aspectMap.get(review.reviewPath) ?? []) {
+      if (a.polarity <= 0) continue;
+      posVecs.push(a.embedding);
+      posWeights.push(a.polarity * weight * recency);
+    }
+  }
+  // What a "Not for me" review praises is something they don't want.
+  for (const review of disliked) {
+    for (const a of aspectMap.get(review.reviewPath) ?? []) {
+      if (a.polarity <= 0) continue;
+      negVecs.push(a.embedding);
+      negWeights.push(a.polarity * DISLIKE_ASPECT_WEIGHT);
     }
   }
 
@@ -99,6 +133,8 @@ export async function buildProfile(
     const key = parseSavedTrack(saved);
     if (key) knownTrackKeys.add(key);
   }
+  // Seen (engaged with or dismissed): don't recommend those songs again.
+  for (const r of otherVectors) knownTrackKeys.add(r.trackKey);
 
   return {
     userId,
@@ -106,8 +142,16 @@ export async function buildProfile(
     aspects,
     interests,
     negCentroid: weightedCentroid(negVecs, negWeights),
-    tags: [...new Set(positiveReviews.flatMap((r) => r.tags.map((t) => t.toLowerCase())))],
+    tags: [
+      ...new Set(
+        [...positiveReviews, ...liked.map((l) => l.review)].flatMap((r) =>
+          [...r.tags, ...r.mbTags].map((t) => t.toLowerCase()),
+        ),
+      ),
+    ],
     knownTrackKeys,
+    liked,
+    disliked,
     coldStart,
   };
 }

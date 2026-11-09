@@ -206,4 +206,39 @@ void main() {
       expect(_titles(results), ['Tagged']);
     });
   });
+
+  group('server list (similarReviews doc)', () {
+    test('reads the listed reviews in order, with reasons', () async {
+      await _add(db, 'users/b/reviews/1',
+          title: 'Paak', genres: ['funk'], artistMbids: ['paak']);
+      await _add(db, 'users/c/reviews/2',
+          title: 'Lullaby', genres: ['jazz'], artistMbids: ['masego']);
+      await _add(db, 'users/d/reviews/3', title: 'Words', genres: ['x']);
+
+      final out = await readServerSimilar(
+          db, _key(const [], title: 'Tadow', artists: ['masego']), {
+        'items': [
+          {'reviewPath': 'users/b/reviews/1', 'reason': 'artist'},
+          {'reviewPath': 'users/gone/reviews/9', 'reason': 'tags'},
+          {'reviewPath': 'users/c/reviews/2', 'reason': 'artist'},
+          {'reviewPath': 'users/d/reviews/3', 'reason': 'text'},
+        ],
+      });
+
+      expect([for (final r in out) r.item.review.title],
+          ['Paak', 'Lullaby', 'Words'],
+          reason: 'deleted reviews are skipped');
+      expect([for (final r in out) r.reason], [
+        SimilarReason.similarArtist,
+        SimilarReason.sameArtist,
+        SimilarReason.readsAlike,
+      ]);
+    });
+
+    test('no list: empty, so the provider falls back', () async {
+      expect(await readServerSimilar(db, _key(const ['x']), null), isEmpty);
+      expect(await readServerSimilar(db, _key(const ['x']), {'items': 'bad'}),
+          isEmpty);
+    });
+  });
 }

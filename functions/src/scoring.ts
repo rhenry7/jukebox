@@ -3,6 +3,7 @@
  * here is unit-tested without Firestore or OpenAI.
  */
 import { RANKING } from "./config";
+import { idfOverlap, TagIdf } from "./relevance";
 import { cosine, recencyWeight, Vec } from "./vectors";
 
 export interface Aspect {
@@ -18,7 +19,10 @@ export interface UserAspect extends Aspect {
   reviewTitle: string;
 }
 
-export type Source = "aspect" | "style" | "cf" | "artist";
+/** Ranking weights; `RANKING.weights` unless tuning. */
+export type Weights = { -readonly [K in keyof typeof RANKING.weights]: number };
+
+export type Source = "aspect" | "style" | "cf" | "artist" | "song";
 
 export interface Candidate {
   reviewPath: string;
@@ -47,6 +51,12 @@ export interface Candidate {
   artistSim?: number;
   /** The user's loved artist that `artistSim` came from, for the reason line. */
   artistMatch?: string;
+  /** 0–1: how much this song sounds like one the user loved (ListenBrainz). */
+  songSim?: number;
+  /** The loved song `songSim` came from, for the reason line. */
+  songMatch?: string;
+  /** 0–1: how much this review's artist is (or sounds like) one the user marked "Not for me". */
+  dislike?: number;
   sources: Set<Source>;
 }
 
@@ -128,25 +138,53 @@ export function depth(textLength: number | null): number {
   return Math.min(1, (textLength - RANKING.minReviewLength) / (RANKING.fullDepthLength - RANKING.minReviewLength));
 }
 
+/**
+ * [idf] weights shared tags by rarity (see `tagStats.ts`); without it, tag
+ * overlap is plain Jaccard.
+ */
+/** Each ranking signal for one candidate, before weighting (dislike counts against). */
+export type Features = Record<keyof Weights, number>;
+
+export function features(
+  c: Candidate,
+  fit: number,
+  userTags: string[],
+  now = new Date(),
+  idf?: TagIdf,
+): Features {
+  return {
+    aspectFit: fit,
+    styleSim: c.styleSim,
+    cf: c.cf,
+    artistSim: c.artistSim ?? 0,
+    songSim: c.songSim ?? 0,
+    dislike: -(c.dislike ?? 0),
+    affinity: c.affinity,
+    tagOverlap: idf ? idfOverlap(c.tags, userTags, idf) : jaccard(c.tags, userTags),
+    quality: quality(c.stars, c.likes),
+    recency: recencyWeight(c.date, RANKING.recencyHalfLifeDays, now),
+    depth: depth(c.textLength),
+  };
+}
+
+/** The weighted sum of [f]. */
+export function weightedScore(f: Features, w: Weights): number {
+  let score = 0;
+  for (const k of Object.keys(w) as (keyof Weights)[]) score += w[k] * f[k];
+  return score;
+}
+
 export function scoreCandidate(
   c: Candidate,
   userAspects: UserAspect[],
   userTags: string[],
   now = new Date(),
+  idf?: TagIdf,
+  w: Weights = RANKING.weights,
 ): ScoredCandidate {
-  const w = RANKING.weights;
   const pairs = aspectPairs(userAspects, c.aspects);
   const fit = aspectFit(pairs);
-  const score =
-    w.aspectFit * fit +
-    w.styleSim * c.styleSim +
-    w.cf * c.cf +
-    w.artistSim * (c.artistSim ?? 0) +
-    w.affinity * c.affinity +
-    w.tagOverlap * jaccard(c.tags, userTags) +
-    w.quality * quality(c.stars, c.likes) +
-    w.recency * recencyWeight(c.date, RANKING.recencyHalfLifeDays, now) +
-    w.depth * depth(c.textLength);
+  const score = weightedScore(features(c, fit, userTags, now, idf), w);
   const bestPair = pairs.reduce<AspectPair | null>(
     (best, p) => (p.contribution > (best?.contribution ?? 0) ? p : best),
     null,
@@ -163,6 +201,10 @@ export function reasonFor(c: Candidate, bestPair: AspectPair | null, fit: number
       : `Also calls out ${candidate.statement}, like you did on ${user.reviewTitle}`;
   }
   const artistSim = c.artistSim ?? 0;
+  const songSim = c.songSim ?? 0;
+  if (c.songMatch && songSim >= 0.5 && songSim >= artistSim && songSim >= c.styleSim && songSim >= c.cf) {
+    return `Similar to ${c.songMatch}, which you loved`;
+  }
   if (c.artistMatch && artistSim >= 0.5 && artistSim >= c.styleSim && artistSim >= c.cf) {
     return `Sounds like ${c.artistMatch}, which you rated highly`;
   }

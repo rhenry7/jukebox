@@ -925,10 +925,15 @@ class CompactReviewCard extends StatelessWidget {
     super.key,
     required this.review,
     required this.reviewId,
+    this.reason,
   });
 
   final Review review;
   final String? reviewId;
+
+  /// Why this card is shown ("Similar artist"), as a highlighted pill before
+  /// the tags. Takes one tag's place.
+  final String? reason;
 
   static const double width = 300;
   static const double height = 140;
@@ -1059,11 +1064,29 @@ class CompactReviewCard extends StatelessWidget {
                     ],
                   ),
                   Expanded(
-                    child: GenrePills(
-                      tags: splitGenreTags(review.genres),
-                      maxTags: _maxTags,
-                      topPadding: AppSpacing.sm,
-                      singleLine: true,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (reason != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: AppSpacing.sm,
+                              right: AppSpacing.sm,
+                            ),
+                            child: GlassPill(
+                              label: reason!,
+                              accent: AppColors.secondary,
+                            ),
+                          ),
+                        Expanded(
+                          child: GenrePills(
+                            tags: splitGenreTags(review.genres),
+                            maxTags: reason == null ? _maxTags : _maxTags - 1,
+                            topPadding: AppSpacing.sm,
+                            singleLine: true,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

@@ -95,6 +95,15 @@ service cloud.firestore {
         allow write: if false;
       }
       
+      // "Not for me" on For You cards. Read by Cloud Functions (implicit.ts),
+      // which rebuild the list without it.
+      match /forYouFeedback/{reviewDocId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isRealOwner(userId)
+          && request.resource.data.reason == 'not_for_me'
+          && request.resource.data.reviewPath is string;
+      }
+
       // Recommendation outcomes subcollection (feedback loop for learning)
       match /recommendationOutcomes/{outcomeId} {
         allow read, write: if isOwner(userId);
@@ -245,6 +254,13 @@ service cloud.firestore {
     // Cloud Functions. Public music data: anyone can read, only the server
     // writes.
     match /similarArtists/{artistMbid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // "More like this" per review (Cloud Functions, functions/src/similar.ts).
+    // Lists of public reviews: anyone can read, only the server writes.
+    match /similarReviews/{reviewDocId} {
       allow read: if true;
       allow write: if false;
     }

@@ -64,7 +64,7 @@ List<Override> reviewScreenOverrides({
       reviewCommentsProvider.overrideWith(
           (ref, id) => comments ?? Stream.value(const <ReviewComment>[])),
       similarReviewsProvider
-          .overrideWith((ref, key) => Stream.value(const <ReviewWithDocId>[])),
+          .overrideWith((ref, key) => Stream.value(const <SimilarReview>[])),
     ];
 
 /// [child] in the app's dark theme, with [overrides], at phone size.

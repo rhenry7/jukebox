@@ -8,7 +8,7 @@ import 'review_card.dart' show CompactReviewCard;
 import 'skeleton_loader.dart';
 
 /// "More like this": a sideways-scrolling row of [CompactReviewCard]s for
-/// reviews tagged like [review]. Shows placeholders while loading and
+/// reviews like [review], each with a chip saying why ("Similar artist"). Shows placeholders while loading and
 /// nothing at all if there are none (or they fail to load).
 ///
 /// Lays itself out [gutter] wider on each side than it's given, so the cards
@@ -65,9 +65,10 @@ class SimilarReviewsRow extends ConsumerWidget {
                         borderRadius: AppRadius.cardAll,
                       )
                     : CompactReviewCard(
-                        key: ValueKey(reviews[i].fullReviewId),
-                        review: reviews[i].review,
-                        reviewId: reviews[i].fullReviewId,
+                        key: ValueKey(reviews[i].item.fullReviewId),
+                        review: reviews[i].item.review,
+                        reviewId: reviews[i].item.fullReviewId,
+                        reason: reviews[i].reason?.label,
                       ),
               ),
             ),

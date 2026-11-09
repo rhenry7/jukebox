@@ -13,6 +13,8 @@ import 'package:flutter_test_project/ui/widgets/home_feed_controls.dart'
     show NoTagMatches;
 import 'package:flutter_test_project/ui/widgets/reason_label.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
+import 'package:flutter_test_project/ui/widgets/review_options.dart'
+    show NotForMeOptions;
 
 /// "For You" tab — shows NLP-recommended community reviews
 /// personalized to the user's taste profile.
@@ -208,7 +210,12 @@ class _RecommendedReviewsCollectionState
     required int displayLimit,
     required Future<void> Function() onRefresh,
   }) {
-    final displayed = scored.take(displayLimit);
+    // "Not for me" cards disappear at once; the server list catches up.
+    final dismissed =
+        ref.watch(forYouDismissedProvider).valueOrNull ?? const <String>{};
+    final displayed = scored
+        .where((s) => !dismissed.contains(s.reviewWithDocId.fullReviewId))
+        .take(displayLimit);
     final reasons = {
       for (final s in scored)
         if (s.reason case final reason? when reason.isNotEmpty)
@@ -220,8 +227,10 @@ class _RecommendedReviewsCollectionState
       hasMore: (total ?? scored.length) > displayLimit,
       onLoadMore: _loadMore,
       onRefresh: onRefresh,
-      itemWrapper: (context, review, card) =>
-          WithReason(reason: reasons[review.fullReviewId], child: card),
+      itemWrapper: (context, review, card) => NotForMeOptions(
+        review: review,
+        child: WithReason(reason: reasons[review.fullReviewId], child: card),
+      ),
     );
   }
 }

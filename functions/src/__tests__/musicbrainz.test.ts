@@ -2,7 +2,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { normName, parseSimilarArtists, pickArtist, pickRecording, retryDelayMs, reviewArtists } from "../musicbrainz";
+import {
+  isUsefulTag,
+  normName,
+  parseSimilarArtists,
+  pickArtist,
+  pickMbTags,
+  pickRecording,
+  retryDelayMs,
+  reviewArtists,
+} from "../musicbrainz";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(join(__dirname, "../../src/__tests__/fixtures", name), "utf8"));
@@ -94,5 +103,38 @@ describe("retryDelayMs", () => {
   });
   it("backs off 2, 4, 8 s otherwise", () => {
     assert.deepEqual([1, 2, 3].map((a) => retryDelayMs(a, null)), [2000, 4000, 8000]);
+  });
+});
+
+describe("filled-in tags (pickMbTags)", () => {
+  it("song genres first, then album, then artist; real genres beat free-form tags", () => {
+    const tags = pickMbTags({
+      recording: [
+        { tag: "sing along", count: 1 },
+        { tag: "Neo Soul", count: 1, genre_mbid: "g1" },
+      ],
+      release_group: [
+        { tag: "jazz", count: 2, genre_mbid: "g2" },
+        { tag: "neo soul", count: 9, genre_mbid: "g1" },
+      ],
+      artist: [
+        { tag: "beholder", count: 2 },
+        { tag: "late night", count: 5 },
+        { tag: "seen live", count: 40 },
+      ],
+    });
+    assert.deepEqual(tags, ["neo soul", "jazz", "late night"]);
+  });
+
+  it("caps the count and copes with missing data", () => {
+    const many = Array.from({ length: 10 }, (_, i) => ({ tag: `g${i}`, count: 1, genre_mbid: "x" }));
+    assert.equal(pickMbTags({ release_group: many }, 4).length, 4);
+    assert.deepEqual(pickMbTags(undefined), []);
+  });
+
+  it("isUsefulTag drops personal and bookkeeping tags", () => {
+    assert.equal(isUsefulTag("darkwave"), true);
+    assert.equal(isUsefulTag("80s"), true);
+    for (const t of ["meme", "seen live", "my favourites", "2019", "x"]) assert.equal(isUsefulTag(t), false, t);
   });
 });

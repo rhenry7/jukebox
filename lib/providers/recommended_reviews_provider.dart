@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart'
     show ReviewWithDocId, firestoreProvider;
+import 'package:flutter_test_project/services/for_you_feedback_service.dart';
 import 'package:flutter_test_project/services/for_you_service.dart';
 import 'package:flutter_test_project/services/review_recommendation_service.dart';
 
@@ -137,6 +138,14 @@ final recommendedReviewsProvider = StreamProvider<ForYouFeed>((ref) async* {
 
 /// Display limit for lazy-loading recommended reviews (starts at 10).
 final recommendedReviewsDisplayLimitProvider = StateProvider<int>((ref) => 5);
+
+/// Reviews the signed-in user marked "Not for me" on For You, live. The tab
+/// hides them at once; Cloud Functions then rebuild the list without them.
+final forYouDismissedProvider = StreamProvider<Set<String>>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return Stream.value(const <String>{});
+  return ForYouFeedbackService(ref.watch(firestoreProvider)).dismissed(userId);
+});
 
 /// Increments the display limit by 10 to show more recommendations.
 final loadMoreRecommendedReviewsProvider = Provider<void Function()>((ref) {

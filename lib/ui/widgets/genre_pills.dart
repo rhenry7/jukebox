@@ -100,7 +100,8 @@ class GenrePills extends StatelessWidget {
 /// A frosted-glass pill: whatever is behind it (a card's album art, the page)
 /// blurred, under a light tint and a faint light edge. Used for tags
 /// everywhere ([GenrePills], the Home tag row). [selected] makes it solid
-/// white with dark text, for a picked filter.
+/// white with dark text, for a picked filter. [accent] tints the edge and
+/// text, for a pill that labels rather than tags ("Similar artist").
 ///
 /// The blur is BackdropFilter.grouped, so all pills on screen share one
 /// capture of the background (the BackdropGroup in main.dart) instead of one
@@ -111,11 +112,13 @@ class GlassPill extends StatelessWidget {
     required this.label,
     this.onTap,
     this.selected = false,
+    this.accent,
   });
 
   final String label;
   final VoidCallback? onTap;
   final bool selected;
+  final Color? accent;
 
   static final _selectedFill = Colors.white.withValues(alpha: 0.92);
 
@@ -131,9 +134,10 @@ class GlassPill extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: selected ? Colors.black : Colors.white,
+          color: selected ? Colors.black : (accent ?? Colors.white),
           fontSize: 12,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          fontWeight:
+              selected || accent != null ? FontWeight.w600 : FontWeight.w400,
         ),
       ),
     );
@@ -166,6 +170,7 @@ class GlassPill extends StatelessWidget {
               level: GlassLevel.pill,
               borderRadius: AppRadius.pillAll,
               grouped: true,
+              accent: accent,
               child: chip,
             ),
     );
