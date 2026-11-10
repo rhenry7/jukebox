@@ -50,7 +50,7 @@ class HomeFeedControls extends ConsumerWidget {
                         const SizedBox(width: AppSpacing.sm),
                     itemBuilder: (context, i) => Center(
                       child: i == 0
-                          ? GlassPill(
+                          ? TagPill(
                               label: 'All',
                               selected: selected.isEmpty,
                               onTap: () =>
@@ -59,7 +59,7 @@ class HomeFeedControls extends ConsumerWidget {
                                           .state =
                                       const {},
                             )
-                          : GlassPill(
+                          : TagPill(
                               label: tags[i - 1],
                               selected: selected.contains(
                                 normalizeTag(tags[i - 1]),
@@ -110,32 +110,31 @@ class _SortButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Tooltip(
       message: 'Sort reviews',
-      child: GlassSurface(
-        level: GlassLevel.pill,
+      // Solid grey like the tag pills beside it.
+      child: Material(
+        color: AppColors.pill,
         borderRadius: AppRadius.cardAll,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: AppRadius.cardAll,
-            onTap: () => _openSortMenu(context, ref),
-            child: SizedBox(
-              width: 44,
-              height: HomeFeedControls.height,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Icons.tune, size: 18, color: Colors.white),
-                  if (active)
-                    const Positioned(
-                      top: 6,
-                      right: 8,
-                      child: CircleAvatar(
-                        radius: 3,
-                        backgroundColor: AppColors.primary,
-                      ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: AppRadius.cardAll,
+          onTap: () => _openSortMenu(context, ref),
+          child: SizedBox(
+            width: 44,
+            height: HomeFeedControls.height,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.tune, size: 18, color: Colors.white),
+                if (active)
+                  const Positioned(
+                    top: 6,
+                    right: 8,
+                    child: CircleAvatar(
+                      radius: 3,
+                      backgroundColor: AppColors.primary,
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ),

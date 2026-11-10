@@ -34,7 +34,6 @@ void main() {
         matching: find.byType(GlassSurface),
       ),
     );
-    expect(glass.level, GlassLevel.panel);
     expect(glass.accent, AppColors.success, reason: 'tone tints the edge');
     expect(find.byIcon(ToastTone.success.icon!), findsOneWidget);
   });

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../screens/tag/tag_reviews_page.dart';
 import '../theme/tokens.dart';
-import 'glass.dart';
 
 /// Splits "/"-joined genre strings (e.g. "jazz/funk/rap" from Discogs or
 /// MusicBrainz) into single tags, deduped case-insensitively.
@@ -94,20 +93,16 @@ class GenrePills extends StatelessWidget {
   }
 
   static Widget _pill(String tag, {VoidCallback? onTap}) =>
-      GlassPill(label: tag, onTap: onTap);
+      TagPill(label: tag, onTap: onTap);
 }
 
-/// A frosted-glass pill: whatever is behind it (a card's album art, the page)
-/// blurred, under a light tint and a faint light edge. Used for tags
-/// everywhere ([GenrePills], the Home tag row). [selected] makes it solid
-/// white with dark text, for a picked filter. [accent] tints the edge and
-/// text, for a pill that labels rather than tags ("Similar artist").
-///
-/// The blur is BackdropFilter.grouped, so all pills on screen share one
-/// capture of the background (the BackdropGroup in main.dart) instead of one
-/// each, which keeps dozens of pills affordable on phones.
-class GlassPill extends StatelessWidget {
-  const GlassPill({
+/// A tag pill: white text on solid dark grey ([AppColors.pill]), fully
+/// rounded. Used for tags everywhere ([GenrePills], the Home tag row, the
+/// review form's suggestions). [selected] makes it white with black text,
+/// for a picked filter. [accent] colors the text, for a pill that labels
+/// rather than tags ("Similar artist").
+class TagPill extends StatelessWidget {
+  const TagPill({
     super.key,
     required this.label,
     this.onTap,
@@ -120,12 +115,10 @@ class GlassPill extends StatelessWidget {
   final bool selected;
   final Color? accent;
 
-  static final _selectedFill = Colors.white.withValues(alpha: 0.92);
-
   @override
   Widget build(BuildContext context) {
-    // A plain pill rather than Material's Chip: Chip paints its own opaque
-    // background from the theme, which hid the glass.
+    // A plain pill rather than Material's Chip, which brings its own theme
+    // colors, borders and padding.
     Widget chip = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -136,43 +129,28 @@ class GlassPill extends StatelessWidget {
         style: TextStyle(
           color: selected ? Colors.black : (accent ?? Colors.white),
           fontSize: 12,
-          fontWeight:
-              selected || accent != null ? FontWeight.w600 : FontWeight.w400,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
     if (onTap != null) {
       // Its own tap target, so tapping a tag on a card opens the tag rather
       // than the review.
-      chip = Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const StadiumBorder(),
-          child: chip,
-        ),
+      chip = InkWell(
+        onTap: onTap,
+        customBorder: const StadiumBorder(),
+        child: chip,
       );
     }
-
     return Semantics(
       button: onTap != null,
       selected: selected,
-      child: selected
-          // A picked filter is solid white, not glass.
-          ? DecoratedBox(
-              decoration: BoxDecoration(
-                color: _selectedFill,
-                borderRadius: AppRadius.pillAll,
-              ),
-              child: chip,
-            )
-          : GlassSurface(
-              level: GlassLevel.pill,
-              borderRadius: AppRadius.pillAll,
-              grouped: true,
-              accent: accent,
-              child: chip,
-            ),
+      child: Material(
+        color: selected ? Colors.white : AppColors.pill,
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: chip,
+      ),
     );
   }
 }

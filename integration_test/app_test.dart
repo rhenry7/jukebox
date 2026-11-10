@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_project/main.dart' as app;
+import 'package:flutter_test_project/ui/widgets/genre_pills.dart' show TagPill;
 import 'package:flutter_test_project/ui/widgets/review_card.dart';
 import 'package:flutter_test_project/utils/cached_image.dart';
 import 'package:integration_test/integration_test.dart';
@@ -119,11 +120,23 @@ void main() {
     await pumpUntilFound(tester, find.byType(TextField));
     await tester.enterText(find.byType(TextField), 'rock');
     await pumpUntilFound(tester, find.textContaining('results'));
-    // A "rock" tag pill on a result (not the search box's own text).
-    final rockPill = find.widgetWithText(ActionChip, 'rock');
+    // A tag pill with "rock" in it on a result ("indie rock", "post-rock"…;
+    // not the search box's own text). Which results come first depends on
+    // live data, so scroll until one shows.
+    final rockPill = find.byWidgetPredicate(
+      (w) => w is TagPill && w.label.toLowerCase().contains('rock'),
+    );
+    await pumpUntilFound(tester, find.byType(TagPill));
+    for (var i = 0; i < 20 && rockPill.evaluate().isEmpty; i++) {
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -300));
+      await tester.pump(const Duration(milliseconds: 400));
+    }
     await pumpUntilFound(tester, rockPill);
+    await tester.ensureVisible(rockPill.first);
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(rockPill.first);
-    final tagHeader = find.textContaining('reviews');
+    // The tag page's count: "1 review", "12 reviews".
+    final tagHeader = find.textContaining(RegExp(r'\d+ reviews?'));
     await pumpUntilFound(tester, tagHeader);
     await goBack(tester, tagHeader);
     await goBack(tester, find.byType(TextField));

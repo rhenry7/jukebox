@@ -1,7 +1,7 @@
 # Glassmorphism
 
 Anything that floats over the app's content is frosted glass: the dock, the
-drawer, sheets, dialogs, menus, toasts and tag pills. The content behind it
+drawer, sheets, dialogs, menus and toasts. The content behind it
 (album art, the feed) shows through, blurred, so the app feels like one layered
 object rather than a stack of grey boxes.
 
@@ -24,36 +24,36 @@ Every glass surface has the same four layers, from back to front:
 4. **Content** on top: white text (`AppColors.onSurface`), with
    `onSurfaceVariant` for secondary text.
 
-## Two strengths
+## Strength
 
-| Level | Use for | Blur | Tint | Edge |
-|---|---|---|---|---|
-| `GlassLevel.pill` | Tag pills, small controls on art (sort button) | 8 | white 16% → 5% | white 25% |
-| `GlassLevel.panel` (default) | Dock, drawer, sheets, dialogs, menus, toasts | 24 + saturation | dark (`surfaceContainerHighest`) ≈ 70% → 48% | white 18% |
+| Use for | Blur | Tint | Edge |
+|---|---|---|---|
+| Dock, drawer, sheets, dialogs, menus, toasts | 24 + saturation | dark (`surfaceContainerHighest`) ≈ 70% → 48% | white 18% |
 
-Pick by what's on it: anything carrying sentences of text is a **panel**,
-because the dark tint keeps text readable over bright album art. A pill
-carries a word or an icon, so it can stay clear.
+The dark tint keeps text readable over bright album art.
+
+**Tag pills are not glass.** They're solid dark grey (`AppColors.pill`,
+#2A2A2A) with white text, and white with black text when selected: `TagPill`
+in `lib/ui/widgets/genre_pills.dart`. The Home sort button next to them
+matches. Small, repeated items read better solid, and dozens of live blurs
+cost too much on phones.
 
 ## Rules
 
-- **Shape comes from the radius tokens.** Pills and the dock use
+- **Shape comes from the radius tokens.** The dock uses
   `AppRadius.pillAll`; menus, toasts and small tiles use `AppRadius.cardAll`
   (12); dialogs, sheets and the drawer use `AppRadius.xl` (24).
 - **Shadow only when it floats over content** (`shadow: true`): the dock,
   dialogs and dropdown menus. It uses `AppShadows.ambient` and is drawn
-  outside the clip. Pills, sheets and toasts don't need one.
+  outside the clip. Sheets and toasts don't need one.
 - **Color is an accent, never a fill.** Status shows as a tinted edge
-  (`accent:`) and an icon, not a solid green or red background. The only
-  solid fill is a *selected* pill (white with black text), because "picked"
-  has to read at a glance.
+  (`accent:`) and an icon, not a solid green or red background.
 - **Give the glass something to blur.** Barriers behind glass dialogs and
   sheets are light (`Colors.black26`–`black38`), not the default heavy dim,
   or the glass just looks grey.
-- **Many small surfaces share one blur.** Tag pills pass `grouped: true`
-  (`BackdropFilter.grouped`), so every pill on screen shares one capture of
-  the background through the `BackdropGroup` in `main.dart`. Use it for any
-  surface that appears dozens of times on screen.
+- **Nothing repeated is glass.** Anything that appears many times on screen
+  (tag pills, list rows) is solid; glass is for the few things floating
+  above content.
 - **Never put glass on glass on glass.** One glass layer over content is the
   look; a pill inside a glass sheet is fine, but don't nest panels.
 - **Card backgrounds aren't glass.** Review cards use a pre-blurred image
@@ -97,7 +97,6 @@ messenger.showAppToast("Couldn't delete the review. Try again.",
 | Reviewer sheet | `lib/ui/widgets/review_card.dart` |
 | Comments sheet | `lib/ui/widgets/review_comments.dart` |
 | Home sort button and menu | `lib/ui/widgets/home_feed_controls.dart` |
-| Tag pills | `lib/ui/widgets/genre_pills.dart` (`GlassPill`) |
 | Toasts | `lib/ui/widgets/app_toast.dart` |
 
 ## Performance

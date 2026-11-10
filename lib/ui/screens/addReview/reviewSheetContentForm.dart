@@ -30,8 +30,11 @@ import 'package:flutter_test_project/ui/theme/tokens.dart' show AppColors;
 import 'package:flutter_test_project/ui/widgets/app_states.dart'
     show AppLoadingText;
 import 'package:flutter_test_project/ui/widgets/genre_pills.dart'
-    show GlassPill;
+    show TagPill;
 
+import 'package:flutter_test_project/providers/add_page_discover_provider.dart'
+    show DiscoverTrack;
+import 'package:flutter_test_project/ui/widgets/add_page_discover.dart';
 import 'package:flutter_test_project/ui/widgets/app_toast.dart';
 
 /// Saves a review; [submitReview] in the app. A provider so screen tests can
@@ -209,7 +212,7 @@ class _MyReviewSheetContentFormState
             runSpacing: 8,
             children: [
               for (final tag in shown)
-                GlassPill(label: '+ $tag', onTap: () => _addTag(tag)),
+                TagPill(label: '+ $tag', onTap: () => _addTag(tag)),
             ],
           ),
         ],
@@ -474,6 +477,19 @@ class _MyReviewSheetContentFormState
       searchParams.clear();
     });
     debugPrint('   ✅ Album selection complete');
+  }
+
+  /// A song picked from "Highly rated" on the empty search page.
+  void _pickDiscovered(DiscoverTrack track) {
+    setState(() {
+      _selectedTrackTitle = track.title;
+      _selectedTrackArtist = track.artist;
+      _selectedTrackImageUrl = track.imageUrl;
+      _selectedSpotifyUrl = track.spotifyUrl ?? '';
+      _trackResults = [];
+      _albumResults = [];
+      searchParams.clear();
+    });
   }
 
   static String _spotifyLink(String type, String? id) =>
@@ -1290,6 +1306,11 @@ class _MyReviewSheetContentFormState
                               }
                             },
                           ),
+                        )
+                      else if (searchParams.text.isEmpty &&
+                          _searchError == null)
+                        Expanded(
+                          child: AddPageDiscover(onPickTrack: _pickDiscovered),
                         )
                       else if (searchParams.text.isNotEmpty && !_isSearching)
                         const Expanded(

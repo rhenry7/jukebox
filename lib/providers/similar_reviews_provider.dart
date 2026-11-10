@@ -43,7 +43,8 @@ enum SimilarReason {
   similarArtist('Similar artist'),
   similarSong('Similar song'),
   sharedTags('Shared tags'),
-  readsAlike('Reads alike');
+  readsAlike('Reads alike'),
+  sameEra('Same era');
 
   const SimilarReason(this.label);
   final String label;
@@ -162,6 +163,8 @@ SimilarReason? _reasonFor(Object? code, Review review, SimilarReviewsKey key) {
       return SimilarReason.sharedTags;
     case 'text':
       return SimilarReason.readsAlike;
+    case 'era':
+      return SimilarReason.sameEra;
   }
   return null;
 }

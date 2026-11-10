@@ -50,7 +50,7 @@ void main() {
     var shown = 0;
     for (final t in tags) {
       final pill = tester.getRect(
-        find.ancestor(of: find.text(t), matching: find.byType(ClipRRect)).first,
+        find.ancestor(of: find.text(t), matching: find.byType(TagPill)).first,
       );
       final inside = box.intersect(pill);
       final visible = inside.width > 0 && inside.height > 0;

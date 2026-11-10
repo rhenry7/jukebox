@@ -1073,7 +1073,7 @@ class CompactReviewCard extends StatelessWidget {
                               top: AppSpacing.sm,
                               right: AppSpacing.sm,
                             ),
-                            child: GlassPill(
+                            child: TagPill(
                               label: reason!,
                               accent: AppColors.secondary,
                             ),

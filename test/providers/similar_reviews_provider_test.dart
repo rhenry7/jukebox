@@ -214,6 +214,7 @@ void main() {
       await _add(db, 'users/c/reviews/2',
           title: 'Lullaby', genres: ['jazz'], artistMbids: ['masego']);
       await _add(db, 'users/d/reviews/3', title: 'Words', genres: ['x']);
+      await _add(db, 'users/e/reviews/4', title: 'Era', genres: ['y']);
 
       final out = await readServerSimilar(
           db, _key(const [], title: 'Tadow', artists: ['masego']), {
@@ -222,16 +223,18 @@ void main() {
           {'reviewPath': 'users/gone/reviews/9', 'reason': 'tags'},
           {'reviewPath': 'users/c/reviews/2', 'reason': 'artist'},
           {'reviewPath': 'users/d/reviews/3', 'reason': 'text'},
+          {'reviewPath': 'users/e/reviews/4', 'reason': 'era'},
         ],
       });
 
       expect([for (final r in out) r.item.review.title],
-          ['Paak', 'Lullaby', 'Words'],
+          ['Paak', 'Lullaby', 'Words', 'Era'],
           reason: 'deleted reviews are skipped');
       expect([for (final r in out) r.reason], [
         SimilarReason.similarArtist,
         SimilarReason.sameArtist,
         SimilarReason.readsAlike,
+        SimilarReason.sameEra,
       ]);
     });
 

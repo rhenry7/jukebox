@@ -239,11 +239,8 @@ class MyApp extends ConsumerWidget {
       ),
       // Phone-width on desktop (the app is mobile-first), and installed
       // copies pick up new deploys.
-      // BackdropGroup: blurs that use BackdropFilter.grouped (tag pills)
-      // share one capture of the screen behind them instead of one each.
-      builder: (context, child) => BackdropGroup(
-        child: MobileFrame(child: AppUpdateWatcher(child: child!)),
-      ),
+      builder: (context, child) =>
+          MobileFrame(child: AppUpdateWatcher(child: child!)),
       home: const MainNav(title: 'REVERB'),
       // On the web, pushed pages put their route name in the URL, so a
       // reload starts at e.g. `/tag/darkwave`: Flutter builds Home and then

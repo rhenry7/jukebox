@@ -24,9 +24,9 @@ The core of this system is the interplay between the void (`background: #0e0e0e`
 2.  **Vertical Rhythm:** Using the Spacing Scale in `lib/ui/theme/tokens.dart` (`AppSpacing.cardGap` = 12 between cards, `AppSpacing.pageGutter` = 16 at page edges) to create clear, unlined gutters.
 
 ### Glassmorphism & Signature Textures
-To escape the "flat" look, everything that floats over content (the dock, drawer, sheets, dialogs, menus, toasts and tag pills) is frosted glass: a **Backdrop Blur** of what's behind it, a tint lighter at the top-left, and a faint light edge. The full rules are in **`docs/glassmorphism.md`**; build it only with `GlassSurface` (`lib/ui/widgets/glass.dart`) and show toasts only with `showAppToast`.
+To escape the "flat" look, everything that floats over content (the dock, drawer, sheets, dialogs, menus and toasts) is frosted glass: a **Backdrop Blur** of what's behind it, a tint lighter at the top-left, and a faint light edge. The full rules are in **`docs/glassmorphism.md`**; build it only with `GlassSurface` (`lib/ui/widgets/glass.dart`) and show toasts only with `showAppToast`.
 *   **Panels** (anything with text on it): `surface-container-highest` at about 70% → 48% with a `24px` blur and a little extra saturation.
-*   **Pills** (tags, small controls on album art): white at 16% → 5% with an `8px` blur.
+*   **Tag pills are solid, not glass:** white text on dark grey (`AppColors.pill`, `#2A2A2A`), fully rounded; a selected pill is white with black text (`TagPill`).
 *   **Status is an accent, not a fill:** a success / error toast gets a tinted edge and icon, never a solid green or red background.
 *   **Gradient Polish:** For main CTAs, use a subtle linear gradient from `primary` (#ff8e80) to `primary-dim` (#e2241f) at a 135-degree angle. This adds a "weighted" feel that flat hex codes lack.
 

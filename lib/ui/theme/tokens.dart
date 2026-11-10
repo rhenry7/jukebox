@@ -109,6 +109,9 @@ abstract final class AppColors {
 
   static const Color outlineVariant = Color(0xFF494847);
 
+  /// Tag pills and the controls beside them: solid dark grey, white text.
+  static const Color pill = Color(0xFF2A2A2A);
+
   /// Faint 1px card outline ("Ghost Border") — white at 15%.
   static const Color ghostBorder = Color(0x26FFFFFF);
 
@@ -136,13 +139,6 @@ abstract final class AppShadows {
 /// docs/glassmorphism.md for the rules; build glass with `GlassSurface`
 /// (lib/ui/widgets/glass.dart), never by hand.
 abstract final class AppGlass {
-  /// Pills and small controls: a light blur and a clear white tint, so the
-  /// album art or page behind them shows through.
-  static const double pillBlur = 8;
-  static const Color pillTintLit = Color(0x29FFFFFF); // white 16%
-  static const Color pillTintFar = Color(0x0DFFFFFF); // white 5%
-  static const Color pillEdge = Color(0x40FFFFFF); // white 25%
-
   /// Panels (dock, drawer, sheets, dialogs, menus, toasts): a heavy blur and
   /// a dark tint, so text on them stays readable over anything.
   static const double panelBlur = 24;
