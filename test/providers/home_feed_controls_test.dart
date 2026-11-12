@@ -2,20 +2,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_project/models/review.dart';
 import 'package:flutter_test_project/providers/home_feed_controls.dart';
 
-Review _r(String title, List<String> genres, {double score = 3, int day = 1}) =>
-    Review(
-      displayName: 'u',
-      userId: 'u',
-      artist: 'a',
-      review: 'text',
-      score: score,
-      likes: 0,
-      replies: 0,
-      reposts: 0,
-      title: title,
-      genres: genres,
-      date: DateTime(2026, 1, day),
-    );
+Review _r(
+  String title,
+  List<String> genres, {
+  double score = 3,
+  int day = 1,
+  String text = 'text',
+  int? year,
+  String artist = 'a',
+}) => Review(
+  displayName: 'u',
+  userId: 'u',
+  artist: artist,
+  review: text,
+  releaseYear: year,
+  score: score,
+  likes: 0,
+  replies: 0,
+  reposts: 0,
+  title: title,
+  genres: genres,
+  date: DateTime(2026, 1, day),
+);
 
 List<String> _titles(List<Review> l) => [for (final r in l) r.title];
 
@@ -87,4 +95,75 @@ void main() {
       expect(sorted(HomeSort.ratingLow).last, 'mid-high-2');
     });
   });
+
+  group('more sorts', () {
+    List<String> sorted(List<Review> items, HomeSort s) =>
+        _titles(applyHomeSort(items, s, (r) => r));
+
+    test('release year: newest / oldest, unknown years last', () {
+      final items = [
+        _r('70s', [], year: 1975),
+        _r('unknown', []),
+        _r('2017', [], year: 2017),
+        _r('60s', [], year: 1964),
+      ];
+      expect(sorted(items, HomeSort.releaseNewest), [
+        '2017',
+        '70s',
+        '60s',
+        'unknown',
+      ]);
+      expect(sorted(items, HomeSort.releaseOldest), [
+        '60s',
+        '70s',
+        '2017',
+        'unknown',
+      ]);
+    });
+
+    test('longest reads first', () {
+      final items = [
+        _r('short', [], text: 'ok'),
+        _r('long', [], text: 'x' * 400),
+        _r('mid', [], text: 'x' * 120),
+      ];
+      expect(sorted(items, HomeSort.longest), ['long', 'mid', 'short']);
+    });
+
+    test('divisive: most-disagreed songs first, their reviews together', () {
+      final items = [
+        _r('agreed-1', [], score: 4, artist: 'B'),
+        _r('split-low', [], score: 1, artist: 'A'),
+        _r('alone', [], score: 5, artist: 'C'),
+        _r('agreed-2', [], score: 4, artist: 'B'),
+        _r('split-high', [], score: 5, artist: 'A'),
+      ].map(_sameSong).toList();
+      final order = [
+        for (final r in applyHomeSort(items, HomeSort.divisive, (r) => r))
+          r.genres!.first,
+      ];
+      expect(order, [
+        'split-high', // song A: 1★ vs 5★ (spread 4), highest rating first
+        'split-low',
+        'agreed-1', // song B: both 4★, then C: one review, in list order
+        'agreed-2',
+        'alone',
+      ]);
+    });
+  });
 }
+
+/// Reviews of the same artist count as the same song here (titles differ
+/// only so the test can tell them apart).
+Review _sameSong(Review r) => Review(
+  displayName: r.displayName,
+  userId: r.userId,
+  artist: r.artist,
+  review: r.review,
+  score: r.score,
+  likes: 0,
+  replies: 0,
+  reposts: 0,
+  title: 'song ${r.artist}',
+  genres: [r.title],
+);

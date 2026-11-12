@@ -59,6 +59,11 @@ cost too much on phones.
 - **Card backgrounds aren't glass.** Review cards use a pre-blurred image
   (`CardSurface`), not a live blur: a live blur per card is too slow while
   scrolling on phones.
+- **The Home header (tabs + tag row) isn't glass.** It floats over the feed
+  but is a plain dark gradient (85% black at the top to 80% at the bottom,
+  `_headerTint` in `categoryTapBar.dart`), no blur: that dark, a full-width
+  blur was barely visible yet redrew on every scroll frame, and was the
+  likely cause of WebGL shader errors on web.
 - **No Material defaults that paint over the glass.** `Chip`, `Card` and
   `SnackBar` paint opaque theme backgrounds; set them transparent or use the
   shared widgets.

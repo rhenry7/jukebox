@@ -258,6 +258,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // "Best New Music" on the Search page: review headlines from music
+    // sites, written by the refreshMusicNews function.
+    match /musicNews/{newsId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // "More like this" per review (Cloud Functions, functions/src/similar.ts).
     // Lists of public reviews: anyone can read, only the server writes.
     match /similarReviews/{reviewDocId} {

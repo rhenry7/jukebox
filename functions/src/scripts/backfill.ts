@@ -25,6 +25,9 @@
  * "Listeners like you" now, seed accounts excluded (nightly does this too):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --neighbors [--dry-run]
  *
+ * "Best New Music" on the Search page (the 3-hourly job does this too):
+ *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --news [--dry-run]
+ *
  * Tag-page index fields only (no OpenAI key needed, no analysis):
  *   GOOGLE_APPLICATION_CREDENTIALS=… npm run backfill -- --search-keys --dry-run
  *   … npm run backfill -- --search-keys
@@ -49,6 +52,7 @@ import { loadSimilarCorpus, rankSimilar, writeSimilar } from "../similar";
 import { computeNeighbors, writeNeighbors } from "../neighbors";
 import { computeTagIdf } from "../tagStats";
 import { loadProjectEnv } from "./env";
+import { syncMusicNews } from "../news";
 import { syncSearchKeys } from "../search";
 import { mergedTags, normalizeReview, ReviewDoc, searchKeys } from "../text";
 
@@ -59,7 +63,7 @@ const onlyUser = process.argv.find((a) => a.startsWith("--user="))?.slice("--use
 const apiKey = process.env.OPENAI_API_KEY ?? "";
 if (
   !apiKey &&
-  !["--search-keys", "--mbids", "--neighbors", "--similar", "--favorites", "--years"].some((f) => args.has(f))
+  !["--search-keys", "--mbids", "--neighbors", "--similar", "--favorites", "--years", "--news"].some((f) => args.has(f))
 ) {
   console.error("Set OPENAI_API_KEY (server key, never the old client one).");
   process.exit(1);
@@ -180,6 +184,10 @@ async function backfillNeighbors() {
 }
 
 async function main() {
+  if (args.has("--news")) {
+    console.log("Music news:", await syncMusicNews(db, { dryRun: args.has("--dry-run") }));
+    return;
+  }
   if (args.has("--search-keys")) return backfillSearchKeys();
   if (args.has("--mbids")) return backfillMbIds();
   if (args.has("--neighbors")) return backfillNeighbors();

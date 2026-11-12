@@ -26,7 +26,10 @@ import 'package:flutter_test_project/providers/tag_reviews_provider.dart'
     show normalizeTag;
 import 'package:flutter_test_project/services/tag_suggestion_service.dart'
     show mergeSuggestions;
-import 'package:flutter_test_project/ui/theme/tokens.dart' show AppColors;
+import 'package:flutter_test_project/ui/theme/tokens.dart'
+    show AppColors, AppSpacing;
+import 'package:flutter_test_project/ui/widgets/round_icon_button.dart';
+import 'package:flutter_test_project/ui/widgets/search_pill_field.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart'
     show AppLoadingText;
 import 'package:flutter_test_project/ui/widgets/genre_pills.dart'
@@ -60,11 +63,18 @@ class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String artist; // Fixed capitalization
   final String albumImageUrl;
 
+  /// Starts with this search typed in (e.g. "Review it" on a music news
+  /// row), showing [initialFilter] results.
+  final String? initialQuery;
+  final String initialFilter;
+
   const MyReviewSheetContentForm({
     super.key,
     required this.title,
     required this.artist, // Fixed capitalization
     required this.albumImageUrl,
+    this.initialQuery,
+    this.initialFilter = 'all',
   });
 
   @override
@@ -120,6 +130,9 @@ class _MyReviewSheetContentFormState
 
     // Listen to search input changes
     searchParams.addListener(_onSearchChanged);
+    _searchFilter = widget.initialFilter;
+    final query = widget.initialQuery?.trim() ?? '';
+    if (query.isNotEmpty) searchParams.text = query;
     // Clear required-error glow when user types in required fields
     void clearRequiredError() {
       if (_showRequiredError && mounted) {
@@ -495,56 +508,19 @@ class _MyReviewSheetContentFormState
   static String _spotifyLink(String type, String? id) =>
       id == null || id.isEmpty ? '' : 'https://open.spotify.com/$type/$id';
 
-  Widget _buildFilterPill(String filter, String label, IconData icon) {
-    final isSelected = _searchFilter == filter;
-    return GestureDetector(
+  Widget _buildFilterPill(String filter, String label) {
+    return TagPill(
+      label: label,
+      selected: _searchFilter == filter,
       onTap: () {
-        debugPrint(
-          '🏷️  [FILTER] Changed filter from "$_searchFilter" to "$filter"',
-        );
         setState(() {
           _searchFilter = filter;
-          // Trigger new search if there's a query
+          // Search again with the new filter if there's a query.
           if (searchParams.text.trim().length >= 2) {
-            debugPrint('   Triggering new search with filter "$filter"');
             _performSearch(searchParams.text.trim());
-          } else {
-            debugPrint(
-              '   No active query, filter changed but no search triggered',
-            );
           }
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.red[600] : Colors.white10,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? Colors.red[400]! : Colors.white24,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Colors.white : Colors.white70,
-            ),
-            const Gap(6),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -678,26 +654,38 @@ class _MyReviewSheetContentFormState
 
   // ─── Extracted sub-widgets ───────────────────────────────────
 
-  /// Header row with back button and user display name.
+  /// Header row like Search and Profile: the round grey back button, then
+  /// (while picking a song) the search field as a grey pill.
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        Row(
-          children: [
-            Text(
-              ref.watch(currentUserProvider)?.displayName ?? 'Stranger',
-              style: const TextStyle(color: Colors.white),
+    return SizedBox(
+      height: 56,
+      child: Row(
+        children: [
+          RoundIconButton(
+            icon: Icons.arrow_back,
+            tooltip: 'Back',
+            onTap: () => Navigator.pop(context),
+          ),
+          if (_selectedTrackImageUrl.isEmpty) ...[
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: SearchPillField(
+                controller: searchParams,
+                hintText: 'Search for a song, artist or album',
+                busy: _isSearching,
+                onClear: () {
+                  searchParams.clear();
+                  setState(() {
+                    _trackResults = [];
+                    _albumResults = [];
+                    _searchError = null;
+                  });
+                },
+              ),
             ),
-            const Gap(8),
-            const Icon(Ionicons.personCircleOutline, color: Colors.white),
           ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1010,7 +998,7 @@ class _MyReviewSheetContentFormState
       decoration: BoxDecoration(color: background),
       height: MediaQuery.of(context).size.height * 1.0,
       width: double.infinity,
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1019,60 +1007,15 @@ class _MyReviewSheetContentFormState
               ? Expanded(
                   child: Column(
                     children: [
-                      SearchBar(
-                        controller: searchParams,
-                        leading: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Icon(Icons.search_rounded),
-                        ),
-                        hintText: 'Search for a song, artist, or album...',
-                        backgroundColor: WidgetStateProperty.all(
-                          Colors.white10,
-                        ),
-                        padding: WidgetStateProperty.all(
-                          const EdgeInsets.symmetric(horizontal: 16.0),
-                        ),
-                        trailing: _isSearching
-                            ? [
-                                const Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.0,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ]
-                            : searchParams.text.isNotEmpty
-                            ? [
-                                IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    searchParams.clear();
-                                    setState(() {
-                                      _trackResults = [];
-                                      _albumResults = [];
-                                      _searchError = null;
-                                    });
-                                  },
-                                ),
-                              ]
-                            : null,
-                      ),
-                      const Gap(12),
+                      const Gap(AppSpacing.sm),
                       // Filter pills: All, Song, Album
                       Row(
                         children: [
-                          _buildFilterPill('all', 'All', Icons.music_note),
+                          _buildFilterPill('all', 'All'),
                           const Gap(8),
-                          _buildFilterPill('song', 'Song', Icons.audiotrack),
+                          _buildFilterPill('song', 'Song'),
                           const Gap(8),
-                          _buildFilterPill('album', 'Album', Icons.album),
+                          _buildFilterPill('album', 'Album'),
                         ],
                       ),
                       const Gap(16),

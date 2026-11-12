@@ -82,6 +82,10 @@ class Review {
   final String? recordingMbid;
   final List<String> artistMbids;
 
+  /// The song's first release year (MusicBrainz), filled in by Cloud
+  /// Functions; null when unknown. Never shown, used for sorting.
+  final int? releaseYear;
+
   Review({
     required this.displayName,
     required this.userId,
@@ -103,6 +107,7 @@ class Review {
     this.spotifyUrl,
     this.recordingMbid,
     this.artistMbids = const [],
+    this.releaseYear,
   });
 
   // Factory method to create a Review from Firestore document data
@@ -132,6 +137,7 @@ class Review {
         for (final id in (data['artistMbids'] as List? ?? const []))
           if (id is String) id,
       ],
+      releaseYear: (data['releaseYear'] as num?)?.toInt(),
     );
   }
 

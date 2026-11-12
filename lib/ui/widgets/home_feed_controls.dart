@@ -17,8 +17,7 @@ class HomeFeedControls extends ConsumerWidget {
 
   static const double height = 34;
 
-  /// Width of the fade at the carousel's right edge. The Home header is
-  /// black, so the tags fade into it.
+  /// Width of the fade at the carousel's right edge.
   static const double _fadeWidth = 28;
 
   @override
@@ -39,54 +38,39 @@ class HomeFeedControls extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.only(left: AppSpacing.pageGutter),
-                    itemCount: tags.length + 1,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(width: AppSpacing.sm),
-                    itemBuilder: (context, i) => Center(
-                      child: i == 0
-                          ? TagPill(
-                              label: 'All',
-                              selected: selected.isEmpty,
-                              onTap: () =>
-                                  ref
-                                          .read(homeTagFilterProvider.notifier)
-                                          .state =
-                                      const {},
-                            )
-                          : TagPill(
-                              label: tags[i - 1],
-                              selected: selected.contains(
-                                normalizeTag(tags[i - 1]),
-                              ),
-                              onTap: () => toggle(tags[i - 1]),
-                            ),
-                    ),
-                  ),
-                ),
-                // Tags fade out under the sort button instead of being cut
-                // off, which also says "swipe for more".
-                const Positioned(
-                  top: 0,
-                  bottom: 0,
-                  right: 0,
-                  width: _fadeWidth,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0x00000000), Color(0xFF000000)],
+            // Tags fade out toward the sort button (which also says "swipe
+            // for more"). The pills fade, not a painted band, so it works on
+            // the see-through header.
+            child: ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (rect) => LinearGradient(
+                colors: const [Colors.white, Colors.white, Colors.transparent],
+                stops: [0, 1 - _fadeWidth / rect.width, 1],
+              ).createShader(rect),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: AppSpacing.pageGutter),
+                itemCount: tags.length + 1,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: AppSpacing.sm),
+                itemBuilder: (context, i) => Center(
+                  child: i == 0
+                      ? TagPill(
+                          label: 'All',
+                          selected: selected.isEmpty,
+                          onTap: () =>
+                              ref.read(homeTagFilterProvider.notifier).state =
+                                  const {},
+                        )
+                      : TagPill(
+                          label: tags[i - 1],
+                          selected: selected.contains(
+                            normalizeTag(tags[i - 1]),
+                          ),
+                          onTap: () => toggle(tags[i - 1]),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
-              ],
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),

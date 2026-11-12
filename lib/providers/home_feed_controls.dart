@@ -18,7 +18,18 @@ enum HomeSort {
   standard('Default'),
   recent('Most recent'),
   ratingHigh('Rating: high to low'),
-  ratingLow('Rating: low to high');
+  ratingLow('Rating: low to high'),
+
+  /// By when the song came out (not the review); unknown years last.
+  releaseNewest('Release year: newest'),
+  releaseOldest('Release year: oldest'),
+
+  /// The most detailed write-ups first.
+  longest('Longest reads'),
+
+  /// Songs reviewers disagree on most (one 5★, another 2★), with that song's
+  /// reviews together, highest rating first.
+  divisive('Divisive');
 
   const HomeSort(this.label);
   final String label;
@@ -102,13 +113,62 @@ List<T> applyHomeSort<T>(
     return db.compareTo(da);
   }
 
+  // Unknown release years sort last in either direction.
+  int byYear(T a, T b, {required bool newest}) {
+    final ya = reviewOf(a).releaseYear, yb = reviewOf(b).releaseYear;
+    if (ya == null && yb == null) return 0;
+    if (ya == null) return 1;
+    if (yb == null) return -1;
+    return newest ? yb.compareTo(ya) : ya.compareTo(yb);
+  }
+
+  int textLength(T x) => reviewOf(x).review.trim().length;
+
+  // Divisive: each song's rating spread across the reviews in this list.
+  String songOf(T x) =>
+      '${reviewOf(x).title.trim().toLowerCase()}|${reviewOf(x).artist.split(',').first.trim().toLowerCase()}';
+  final spread = <String, double>{};
+  if (sort == HomeSort.divisive) {
+    final lo = <String, double>{}, hi = <String, double>{};
+    for (final x in items) {
+      final k = songOf(x), s = reviewOf(x).score;
+      lo[k] = lo[k] == null ? s : (s < lo[k]! ? s : lo[k]!);
+      hi[k] = hi[k] == null ? s : (s > hi[k]! ? s : hi[k]!);
+    }
+    for (final k in lo.keys) {
+      spread[k] = hi[k]! - lo[k]!;
+    }
+  }
+  int byDivisive(T a, T b) {
+    final ka = songOf(a), kb = songOf(b);
+    final bySpread = spread[kb]!.compareTo(spread[ka]!);
+    if (bySpread != 0) return bySpread;
+    // Keep each song's reviews together; within it, highest rating first.
+    if (ka != kb) return 0;
+    return reviewOf(b).score.compareTo(reviewOf(a).score);
+  }
+
   final indexed = [for (var i = 0; i < items.length; i++) (i, items[i])];
+  // Divisive: songs with the same spread keep their first review's place,
+  // so each song's reviews stay next to each other.
+  final firstIndex = <String, int>{};
+  if (sort == HomeSort.divisive) {
+    for (final e in indexed) {
+      firstIndex.putIfAbsent(songOf(e.$2), () => e.$1);
+    }
+  }
   indexed.sort((a, b) {
     final x = a.$2, y = b.$2;
     final c = switch (sort) {
       HomeSort.recent => byDate(x, y),
       HomeSort.ratingHigh => reviewOf(y).score.compareTo(reviewOf(x).score),
       HomeSort.ratingLow => reviewOf(x).score.compareTo(reviewOf(y).score),
+      HomeSort.releaseNewest => byYear(x, y, newest: true),
+      HomeSort.releaseOldest => byYear(x, y, newest: false),
+      HomeSort.longest => textLength(y).compareTo(textLength(x)),
+      HomeSort.divisive => byDivisive(x, y) != 0
+          ? byDivisive(x, y)
+          : firstIndex[songOf(x)]!.compareTo(firstIndex[songOf(y)]!),
       HomeSort.standard => 0,
     };
     return c != 0 ? c : a.$1.compareTo(b.$1);

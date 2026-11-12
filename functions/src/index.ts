@@ -2,7 +2,7 @@ import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
-import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
+import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { syncReview } from "./analysis";
 import { ensureSimilarArtists, ensureSimilarRecordings, syncFavoriteArtists, syncMbIds } from "./musicbrainz";
@@ -12,6 +12,7 @@ import { ANALYSIS_VERSION, COLLECTIONS, OPENAI_API_KEY, RERANK_ENABLED } from ".
 import { computeForYou } from "./forYou";
 import { matchForReview } from "./match";
 import { computeNeighbors, writeNeighbors } from "./neighbors";
+import { fetchNewsImage, syncMusicNews } from "./news";
 import { computeTagIdf } from "./tagStats";
 import { reviewDocId } from "./text";
 
@@ -182,3 +183,37 @@ export const nightlyRefresh = onSchedule(
     }
   },
 );
+
+/**
+ * Every 3 hours: the newest album reviews from Pitchfork, Stereogum, NME and
+ * Billboard into `musicNews` (the Search page's "Best New Music").
+ */
+export const refreshMusicNews = onSchedule(
+  { schedule: "every 3 hours", timeZone: "America/New_York", timeoutSeconds: 120 },
+  async () => {
+    const result = await syncMusicNews(db);
+    if (result.failed.length > 0) logger.warn("Some music news feeds failed", result);
+    else logger.info("Music news refreshed", result);
+  },
+);
+
+/**
+ * A news item's image, by item id: the sites' own images can't be drawn by
+ * the web app (no cross-site headers). Serves only stored items' images.
+ */
+export const newsImage = onRequest({ cors: true, memory: "256MiB", timeoutSeconds: 30 }, async (req, res) => {
+  const id = typeof req.query.id === "string" ? req.query.id : "";
+  try {
+    const image = await fetchNewsImage(db, id);
+    if (!image) {
+      res.status(404).send("Not found");
+      return;
+    }
+    res.set("Cache-Control", "public, max-age=86400, s-maxage=86400");
+    res.set("Content-Type", image.contentType);
+    res.send(image.body);
+  } catch (e) {
+    logger.warn("News image failed", { id, error: String(e) });
+    res.status(502).send("Image unavailable");
+  }
+});

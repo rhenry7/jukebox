@@ -53,16 +53,22 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
   @override
   Widget build(BuildContext context) {
     final review = widget.review;
-    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    // The keyboard's height (0 when it's closed). The page doesn't shrink for
+    // it (resizeToAvoidBottomInset: false); the comment box moves up by it
+    // instead, so it sits right on top of the keyboard.
+    final bottomPad = MediaQuery.viewInsetsOf(context).bottom;
     final albumArt = review.albumImageUrl;
     final hasArt = albumArt != null && albumArt.isNotEmpty;
 
     return Scaffold(
       backgroundColor: _bg,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           CustomScrollView(
             controller: _scrollController,
+            // Dragging the page puts the keyboard away.
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
               // ── Hero: album art ──────────────────────────────────────────
               SliverAppBar(
@@ -271,6 +277,13 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
                           _CommentsSection(
                             review: review,
                             reviewId: widget.reviewId,
+                          ),
+                          // Room to scroll the last comment out from under
+                          // the comment box (and the keyboard, when open).
+                          SizedBox(
+                            height: CommentComposer.restingHeight +
+                                MediaQuery.paddingOf(context).bottom +
+                                bottomPad,
                           ),
                         ],
                       ),

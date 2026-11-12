@@ -9,12 +9,12 @@ import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.d
 import 'package:flutter_test_project/ui/screens/addReview/reviewSheetContentForm.dart';
 import 'package:flutter_test_project/providers/auth_provider.dart';
 import 'package:flutter_test_project/services/data_preloader.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
 import 'package:flutter_test_project/ui/screens/Profile/ProfileButton.dart';
 import 'package:flutter_test_project/ui/widgets/glass.dart';
+import 'package:flutter_test_project/ui/widgets/round_icon_button.dart';
+import 'package:flutter_test_project/ui/widgets/auth_gate_modal.dart';
 
 class MainNav extends ConsumerStatefulWidget {
   const MainNav({super.key, required this.title});
@@ -22,70 +22,6 @@ class MainNav extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<MainNav> createState() => MainNavState();
-}
-
-/// Looping neon-sign glow effect for the app bar title.
-///
-/// Mimics an old neon tube by cycling through three states:
-///   bright  → dim flicker  → bright  → dim  → repeat
-/// The shadow blur radius and opacity shift together so the "tube"
-/// appears to pulse and occasionally stutter like aging neon.
-class _NeonTitle extends StatelessWidget {
-  const _NeonTitle();
-
-  // Dim glow — tube at rest
-  static const TextStyle _dimStyle = TextStyle(
-    color: Color(0xFFCC1111),
-    shadows: [
-      Shadow(blurRadius: 4, color: Color(0x88CC0000)),
-      Shadow(blurRadius: 8, color: Color(0x44CC0000)),
-    ],
-  );
-
-  // Bright glow — tube fully lit
-  static const TextStyle _brightStyle = TextStyle(
-    color: Color.fromARGB(255, 214, 30, 30),
-    shadows: [
-      Shadow(blurRadius: 12, color: Color.fromARGB(172, 221, 25, 25)),
-      Shadow(blurRadius: 24, color: Color.fromARGB(153, 187, 12, 12)),
-      Shadow(blurRadius: 40, color: Color(0x55FF2200)),
-    ],
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final base = Text(
-      'REVERB',
-      style: GoogleFonts.gasoekOne(textStyle: _dimStyle),
-    );
-
-    // Shrinks the logo to fit the space between the menu and search buttons
-    // on narrow screens; never grows it past the app bar's font size.
-    return FittedBox(
-        fit: BoxFit.scaleDown,
-        child: base
-            // Slow fade up to full brightness
-            .animate(onPlay: (c) => c.repeat(reverse: true))
-            .custom(
-              duration: 2800.ms,
-              curve: Curves.easeInOut,
-              builder: (context, value, child) {
-                // value goes 0 → 1 → 0 on each cycle
-                final style = TextStyle.lerp(_dimStyle, _brightStyle, value)!;
-                return Text(
-                  'REVERB',
-                  style: GoogleFonts.gasoekOne(textStyle: style),
-                );
-              },
-            )
-            // Brief stutter flicker on top — like a dying neon tube
-            .then(delay: 1400.ms)
-            .shimmer(
-              duration: 120.ms,
-              color: const Color.fromARGB(61, 172, 49, 49),
-              angle: 0,
-            ));
-  }
 }
 
 class MainNavState extends ConsumerState<MainNav> {
@@ -156,7 +92,12 @@ class MainNavState extends ConsumerState<MainNav> {
   void initState() {
     super.initState();
     _pages = [
-      CategoryTapBar(onChromeVisibilityChanged: _onChromeVisibilityChanged),
+      // Home draws its own header row (menu, tabs, search) instead of the
+      // REVERB bar.
+      CategoryTapBar(
+        onChromeVisibilityChanged: _onChromeVisibilityChanged,
+        onOpenMenu: _openMenu,
+      ),
       const MyReviewSheetContentForm(
         title: 'track-title',
         artist: 'artist',
@@ -166,55 +107,35 @@ class MainNavState extends ConsumerState<MainNav> {
     ];
   }
 
+  void _openMenu() => _scaffoldKey.currentState?.openDrawer();
+
   Widget _buildTopBar(BuildContext context) {
     return AppBar(
       backgroundColor: const Color.fromARGB(4, 131, 131, 131),
       elevation: 0,
       leading: Padding(
         padding: const EdgeInsets.only(left: 12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(50),
-          onTap: () => _scaffoldKey.currentState?.openDrawer(),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.grey[850],
-            ),
-            child: const Icon(Icons.menu, color: Colors.white, size: 22),
+        child: Center(
+          child: RoundIconButton(
+            icon: Icons.menu,
+            tooltip: 'Menu',
+            onTap: _openMenu,
           ),
         ),
       ),
-      title: const _NeonTitle(),
-      titleTextStyle: const TextStyle(color: Colors.white, fontSize: 64),
-      toolbarHeight: 70.0,
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(50),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SearchScreen()),
-            ),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey[850],
-              ),
-              child: const Icon(Icons.search, color: Colors.white, size: 22),
-            ),
-          ),
-        ),
-      ],
+      // Profile: menu, then a wide "Search your reviews" bar.
+      toolbarHeight: 56.0,
+      titleSpacing: AppSpacing.sm,
+      title: const _MyReviewsSearchBar(),
+      actions: const [SizedBox(width: 12)],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Home has its own header (menu · tabs · search); other pages get the
+    // REVERB bar.
+    final showTopBar = currentPageIndex != homeTab;
     return Scaffold(
       key: _scaffoldKey,
       extendBody: true,
@@ -226,6 +147,7 @@ class MainNavState extends ConsumerState<MainNav> {
       // popping out and making the page jump.
       body: Column(
         children: [
+          if (showTopBar)
           TweenAnimationBuilder<double>(
             duration: _bottomNavTweenDuration,
             curve: _isNavigationChromeVisible
@@ -249,10 +171,10 @@ class MainNavState extends ConsumerState<MainNav> {
           ),
           Expanded(
             // The top bar already pads for the status bar / notch; don't let
-            // the pages pad for it again.
+            // the pages pad for it again. Home pads for it itself.
             child: MediaQuery.removePadding(
               context: context,
-              removeTop: true,
+              removeTop: showTopBar,
               child: DataPreloader(child: _pages[currentPageIndex]),
             ),
           ),
@@ -513,6 +435,58 @@ class _AppDrawer extends ConsumerWidget {
               ),
             ),
           ),
+      ),
+    );
+  }
+}
+
+/// The Profile page's search: a wide rounded bar that opens a search of the
+/// signed-in user's own reviews (artist, song, tags, text). Signed out, it
+/// asks to sign in.
+class _MyReviewsSearchBar extends ConsumerWidget {
+  const _MyReviewsSearchBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Semantics(
+      button: true,
+      label: 'Search your reviews',
+      child: Material(
+        color: Colors.grey[850],
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            if (ref.read(currentUserIdProvider) == null ||
+                ref.read(isAnonymousUserProvider)) {
+              showAuthGateModal(context);
+              return;
+            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SearchScreen(ownReviewsOnly: true),
+              ),
+            );
+          },
+          child: const SizedBox(
+            height: RoundIconButton.size,
+            child: Row(
+              children: [
+                SizedBox(width: AppSpacing.md),
+                Icon(Icons.search, color: Colors.white70, size: 20),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Search your reviews',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white60, fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

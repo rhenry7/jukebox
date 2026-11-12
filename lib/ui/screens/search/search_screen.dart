@@ -4,11 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/search_reviews_provider.dart';
-import 'package:flutter_test_project/ui/widgets/review_card.dart' show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/widgets/review_card.dart'
+    show ReviewCardWithGenres;
 import 'package:flutter_test_project/ui/theme/tokens.dart';
+import 'package:flutter_test_project/ui/widgets/music_news_feed.dart';
+import 'package:flutter_test_project/ui/widgets/round_icon_button.dart';
+import 'package:flutter_test_project/ui/widgets/search_pill_field.dart';
 
+/// Search reviews: everyone's (the Home search button), or with
+/// [ownReviewsOnly] just the signed-in user's (the Profile search bar).
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.ownReviewsOnly = false});
+
+  final bool ownReviewsOnly;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -64,41 +72,57 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // Same header as Home and Profile: a round grey back button, then the
+      // search field as a grey pill like Profile's "Search your reviews".
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: TextField(
-          controller: _controller,
-          focusNode: _focusNode,
-          onChanged: _onChanged,
-          onSubmitted: _onSubmitted,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-          cursorColor: Colors.red,
-          decoration: InputDecoration(
-            hintText: 'Artist, track, album, genre...',
-            hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
-            border: InputBorder.none,
-            suffixIcon: _controller.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: _clearSearch,
-                  )
-                : null,
+        automaticallyImplyLeading: false,
+        toolbarHeight: 56.0,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: RoundIconButton(
+              icon: Icons.arrow_back,
+              tooltip: 'Back',
+              onTap: () => Navigator.of(context).pop(),
+            ),
           ),
         ),
+        titleSpacing: AppSpacing.sm,
+        title: SearchPillField(
+          controller: _controller,
+          focusNode: _focusNode,
+          hintText: widget.ownReviewsOnly
+              ? 'Search your reviews'
+              : 'Artist, track, album, genre…',
+          onChanged: _onChanged,
+          onSubmitted: _onSubmitted,
+          onClear: _clearSearch,
+        ),
+        actions: const [SizedBox(width: 12)],
       ),
+      // Before typing: the latest reviews from music sites (searching all
+      // reviews) or a prompt (your own). Typing swaps in the results.
       body: _submittedQuery.isEmpty
-          ? _EmptyPrompt()
-          : _SearchResults(query: _submittedQuery),
+          ? widget.ownReviewsOnly
+                ? const _EmptyPrompt(ownReviewsOnly: true)
+                : const MusicNewsFeed(
+                    emptyPrompt: _EmptyPrompt(ownReviewsOnly: false),
+                  )
+          : _SearchResults(
+              query: _submittedQuery,
+              ownReviewsOnly: widget.ownReviewsOnly,
+            ),
     );
   }
 }
 
 class _EmptyPrompt extends StatelessWidget {
+  const _EmptyPrompt({required this.ownReviewsOnly});
+
+  final bool ownReviewsOnly;
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -108,7 +132,9 @@ class _EmptyPrompt extends StatelessWidget {
           Icon(Icons.search, size: 64, color: Colors.grey[700]),
           const SizedBox(height: 16),
           Text(
-            'Search reviews by artist,\ntrack, album, or genre',
+            ownReviewsOnly
+                ? 'Find your reviews by artist,\nsong, tag or anything you wrote'
+                : 'Search reviews by artist,\ntrack, album, or genre',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[500], fontSize: 15),
           ),
@@ -120,19 +146,18 @@ class _EmptyPrompt extends StatelessWidget {
 
 class _SearchResults extends ConsumerWidget {
   final String query;
-  const _SearchResults({required this.query});
+  final bool ownReviewsOnly;
+  const _SearchResults({required this.query, required this.ownReviewsOnly});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resultsAsync = ref.watch(searchReviewsProvider(query));
+    final resultsAsync = ownReviewsOnly
+        ? ref.watch(myReviewsSearchProvider(query))
+        : ref.watch(searchReviewsProvider(query));
 
     return resultsAsync.when(
-      loading: () => const Center(
-        child: SizedBox(
-          height: 200,
-          child: DiscoBallLoading(),
-        ),
-      ),
+      loading: () =>
+          const Center(child: SizedBox(height: 200, child: DiscoBallLoading())),
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -161,10 +186,11 @@ class _SearchResults extends ConsumerWidget {
                   Icon(Icons.music_off, size: 56, color: Colors.grey[700]),
                   const SizedBox(height: 16),
                   Text(
-                    'No reviews found for\n"$query"',
+                    ownReviewsOnly
+                        ? 'None of your reviews match\n"$query"'
+                        : 'No reviews found for\n"$query"',
                     textAlign: TextAlign.center,
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 15),
+                    style: const TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                 ],
               ),
@@ -176,10 +202,11 @@ class _SearchResults extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Text(
-                '${results.length} result${results.length == 1 ? '' : 's'}',
+                ownReviewsOnly
+                    ? '${results.length} of your review${results.length == 1 ? '' : 's'}'
+                    : '${results.length} result${results.length == 1 ? '' : 's'}',
                 style: TextStyle(
                   color: Colors.grey[500],
                   fontSize: 13,

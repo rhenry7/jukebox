@@ -127,18 +127,22 @@ class _ReviewFeedState extends State<ReviewFeed> {
   @override
   Widget build(BuildContext context) {
     final reviews = widget.reviews;
+    // On Home the tabs float over the feed; they report their height as
+    // the top padding, and the feed starts (and refreshes) below them.
+    final topInset = MediaQuery.paddingOf(context).top;
 
     return RefreshIndicator(
       key: _refreshKey,
       onRefresh: widget.onRefresh,
       color: AppColors.primary,
+      edgeOffset: topInset,
       child: ListView.builder(
         key: PageStorageKey(widget.storageKey),
         // Cache more items to prevent scroll jumps.
         scrollCacheExtent: const ScrollCacheExtent.pixels(500),
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: reviewFeedPadding(widget.layout),
+        padding: reviewFeedPadding(widget.layout, topInset: topInset),
         itemCount: reviews.length + (_isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == reviews.length) return const AppLoadingFooter();
@@ -172,7 +176,10 @@ class ReviewFeedSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: reviewFeedPadding(layout),
+      padding: reviewFeedPadding(
+        layout,
+        topInset: MediaQuery.paddingOf(context).top,
+      ),
       itemCount: 3,
       itemBuilder: (_, __) => const ReviewCardSkeleton(),
     );
@@ -180,10 +187,11 @@ class ReviewFeedSkeleton extends StatelessWidget {
 }
 
 /// Outer list padding. Each card adds [AppSpacing.cardGap] / 2 above and
-/// below, so the first card sits [AppSpacing.lg] below the top edge.
-EdgeInsets reviewFeedPadding(ReviewFeedLayout layout) {
+/// below, so the first card sits [AppSpacing.lg] below the top edge, plus
+/// [topInset] (a header floating over the feed, e.g. Home's tabs).
+EdgeInsets reviewFeedPadding(ReviewFeedLayout layout, {double topInset = 0}) {
   return EdgeInsets.only(
-    top: AppSpacing.lg - AppSpacing.cardGap / 2,
+    top: topInset + AppSpacing.lg - AppSpacing.cardGap / 2,
     bottom: switch (layout) {
       ReviewFeedLayout.tab => AppSpacing.dockClearance,
       ReviewFeedLayout.pushed => AppSpacing.lg,

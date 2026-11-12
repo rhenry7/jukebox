@@ -151,12 +151,7 @@ class _ReviewCommentsSheet extends ConsumerWidget {
                           ),
                         ),
             ),
-            CommentComposer(
-              review: review,
-              reviewId: reviewId,
-              // Let the glass show through instead of a solid strip.
-              backgroundColor: Colors.transparent,
-            ),
+            CommentComposer(review: review, reviewId: reviewId),
           ],
         );
       },
@@ -164,30 +159,51 @@ class _ReviewCommentsSheet extends ConsumerWidget {
   }
 }
 
-/// Text field + send button that posts a comment on a review.
+/// The comment box: a floating frosted-glass card. At rest it's a one-line
+/// "Write a comment..." field; tapped, it shows "Comment on <song>" and
+/// grows to 5 lines as you type. Callers place it just above the keyboard
+/// (`MediaQuery.viewInsets`), so what you type stays visible.
 class CommentComposer extends ConsumerStatefulWidget {
   const CommentComposer({
     super.key,
     required this.review,
     required this.reviewId,
-    this.backgroundColor = AppColors.surfaceContainerLow,
   });
 
   final Review review;
   final String? reviewId;
-  final Color backgroundColor;
+
+  /// Height of the card at rest, plus its margin: space to leave below
+  /// content it floats over.
+  static const double restingHeight = 84;
 
   @override
   ConsumerState<CommentComposer> createState() => _CommentComposerState();
 }
 
 class _CommentComposerState extends ConsumerState<CommentComposer> {
+  /// Extra space under the text while the box is open.
+  static const double _openExtraSpace = 29;
+
   final _controller = TextEditingController();
+  final _focus = FocusNode();
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(_rebuild);
+    _controller.addListener(_rebuild);
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -230,74 +246,121 @@ class _CommentComposerState extends ConsumerState<CommentComposer> {
   @override
   Widget build(BuildContext context) {
     final isAnon = ref.watch(isAnonymousUserProvider);
+    final open = _focus.hasFocus || _controller.text.isNotEmpty;
+    final canSend = _controller.text.trim().isNotEmpty && !_isSubmitting;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: widget.backgroundColor,
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: isAnon ? () => showAuthGateModal(context) : null,
-                child: AbsorbPointer(
-                  absorbing: isAnon,
-                  child: TextField(
-                    controller: _controller,
-                    maxLines: null,
-                    minLines: 1,
-                    keyboardType: TextInputType.multiline,
-                    textInputAction: TextInputAction.newline,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 14, height: 1.4),
-                    decoration: InputDecoration(
-                      hintText:
-                          isAnon ? 'Sign in to comment...' : 'Write a comment...',
-                      hintStyle:
-                          const TextStyle(color: Colors.white38, fontSize: 14),
-                      filled: true,
-                      fillColor: AppColors.surfaceContainerHigh,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-                      border: const OutlineInputBorder(
-                        borderRadius: AppRadius.inputAll,
-                        borderSide: BorderSide.none,
-                      ),
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        child: GlassSurface(
+          borderRadius: const BorderRadius.all(Radius.circular(AppRadius.xl)),
+          shadow: true,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.md, AppSpacing.md, AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (open)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                    child: Text.rich(
+                      TextSpan(children: [
+                        const TextSpan(
+                          text: 'Comment on ',
+                          style: TextStyle(color: AppColors.onSurfaceVariant),
+                        ),
+                        TextSpan(
+                          text: widget.review.title,
+                          style: const TextStyle(
+                            color: AppColors.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13),
                     ),
                   ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: isAnon ? () => showAuthGateModal(context) : null,
+                        child: AbsorbPointer(
+                          absorbing: isAnon,
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focus,
+                            minLines: 1,
+                            // Grows with the text up to 5 lines, then scrolls.
+                            maxLines: open ? 5 : 1,
+                            keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.newline,
+                            textCapitalization: TextCapitalization.sentences,
+                            scrollPadding: EdgeInsets.zero,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 15, height: 1.4),
+                            decoration: InputDecoration(
+                              hintText: isAnon
+                                  ? 'Sign in to comment...'
+                                  : 'Write a comment...',
+                              hintStyle: const TextStyle(
+                                  color: Colors.white54, fontSize: 15),
+                              border: InputBorder.none,
+                              isDense: true,
+                              // Open: extra room under the text (~70% more
+                              // typing area) so it reads as a place to write.
+                              contentPadding: EdgeInsets.only(
+                                top: AppSpacing.sm + 2,
+                                bottom: open
+                                    ? AppSpacing.sm + 2 + _openExtraSpace
+                                    : AppSpacing.sm + 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Semantics(
+                      button: true,
+                      label: 'Post comment',
+                      enabled: canSend,
+                      child: GestureDetector(
+                        onTap: canSend ? _submit : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: canSend || _isSubmitting
+                                ? Colors.white
+                                : Colors.white24,
+                          ),
+                          child: _isSubmitting
+                              ? const Padding(
+                                  padding: EdgeInsets.all(AppSpacing.md),
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.black),
+                                )
+                              : Icon(Ionicons.arrowUp,
+                                  color: canSend ? Colors.black : Colors.white54,
+                                  size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.md),
-            GestureDetector(
-              onTap: _submit,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: _isSubmitting
-                    ? const Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Ionicons.arrowUp,
-                        color: Colors.white, size: 20),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

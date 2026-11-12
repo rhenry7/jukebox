@@ -889,6 +889,7 @@ extension ReviewCopyWith on Review {
     String? spotifyUrl,
     String? recordingMbid,
     List<String>? artistMbids,
+    int? releaseYear,
   }) {
     return Review(
       displayName: displayName ?? this.displayName,
@@ -912,6 +913,7 @@ extension ReviewCopyWith on Review {
       spotifyUrl: spotifyUrl ?? this.spotifyUrl,
       recordingMbid: recordingMbid ?? this.recordingMbid,
       artistMbids: artistMbids ?? this.artistMbids,
+      releaseYear: releaseYear ?? this.releaseYear,
     );
   }
 }
