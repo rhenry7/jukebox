@@ -623,6 +623,33 @@ class _RepostHeader extends StatelessWidget {
   }
 }
 
+/// Why a recommended review is shown, at the top of its card in the same
+/// muted style as [_RepostHeader] (no icon), so it reads as part of the card.
+class _ReasonHeader extends StatelessWidget {
+  const _ReasonHeader(this.reason);
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.cardPadding, AppSpacing.lg, AppSpacing.cardPadding, 0),
+      child: Text(
+        reason,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white60,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+          height: 1.35,
+        ),
+      ),
+    );
+  }
+}
+
 // ── Repost toggle button ──────────────────────────────────────────────────────
 class _RepostButton extends ConsumerWidget {
   final String reviewId;
@@ -752,11 +779,17 @@ class ReviewCardWithGenres extends StatefulWidget {
   final String? reviewId; // Full review ID for likes
   final bool showLikeButton;
 
+  /// Why this review is shown ("Also praises…", "Sounds like…"), as a muted
+  /// line at the top of the card, like "X reposted" (For You, the
+  /// post-review matches).
+  final String? reason;
+
   const ReviewCardWithGenres({
     super.key,
     required this.review,
     this.reviewId,
     this.showLikeButton = false,
+    this.reason,
   });
 
   @override
@@ -845,14 +878,20 @@ class _ReviewCardWithGenresState extends State<ReviewCardWithGenres> {
       showLikeButton: widget.showLikeButton,
     );
 
-    // Show "X reposted" header when this card is a repost
-    if (widget.review.isRepost && widget.review.repostedByDisplayName != null) {
+    // Lines at the top of the card, inside it: "X reposted" on a repost,
+    // and why it's recommended.
+    final repostedBy = widget.review.isRepost
+        ? widget.review.repostedByDisplayName
+        : null;
+    final reason = widget.reason;
+    if (repostedBy != null || (reason != null && reason.isNotEmpty)) {
       return CardSurface(
         imageUrl: widget.review.albumImageUrl,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _RepostHeader(displayName: widget.review.repostedByDisplayName!),
+            if (repostedBy != null) _RepostHeader(displayName: repostedBy),
+            if (reason != null && reason.isNotEmpty) _ReasonHeader(reason),
             card,
           ],
         ),

@@ -5,7 +5,6 @@ import '../../../services/for_you_service.dart' show ReviewMatch;
 import '../../../services/tag_match_service.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/app_states.dart';
-import '../../widgets/reason_label.dart';
 import '../../widgets/review_card.dart';
 
 /// Shown right after posting a review: other people's reviews whose tags
@@ -103,13 +102,11 @@ class _ReviewMatchesSheet extends StatelessWidget {
                       final match = list[index];
                       return Padding(
                         padding: AppSpacing.cardListItem,
-                        child: WithReason(
+                        child: ReviewCardWithGenres(
+                          review: match.review.review,
+                          reviewId: match.review.fullReviewId,
+                          showLikeButton: true,
                           reason: match.reason,
-                          child: ReviewCardWithGenres(
-                            review: match.review.review,
-                            reviewId: match.review.fullReviewId,
-                            showLikeButton: true,
-                          ),
                         ),
                       );
                     },

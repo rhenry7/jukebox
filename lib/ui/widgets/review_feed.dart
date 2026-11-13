@@ -34,6 +34,7 @@ class ReviewFeed extends StatefulWidget {
     this.hasMore = false,
     this.layout = ReviewFeedLayout.tab,
     this.itemWrapper,
+    this.reasonFor,
   });
 
   final List<ReviewWithDocId> reviews;
@@ -50,6 +51,9 @@ class ReviewFeed extends StatefulWidget {
   /// Wraps each card (e.g. in a Dismissible). Must not add padding.
   final Widget Function(
       BuildContext context, ReviewWithDocId review, Widget card)? itemWrapper;
+
+  /// Why each review is shown (For You), drawn at the top of its card.
+  final String? Function(ReviewWithDocId review)? reasonFor;
 
   /// Tells the [ReviewFeedLayout.tab] feed on screen to scroll to the top
   /// and refresh (the Home button tapped while already on Home).
@@ -155,6 +159,7 @@ class _ReviewFeedState extends State<ReviewFeed> {
             review: review.review,
             reviewId: review.fullReviewId,
             showLikeButton: true,
+            reason: widget.reasonFor?.call(review),
           );
           return Padding(
             padding: AppSpacing.cardListItem,

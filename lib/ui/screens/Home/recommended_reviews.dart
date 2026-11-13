@@ -11,7 +11,6 @@ import '../../../routing/MainNavigation.dart';
 import 'package:flutter_test_project/ui/widgets/app_states.dart';
 import 'package:flutter_test_project/ui/widgets/home_feed_controls.dart'
     show NoTagMatches;
-import 'package:flutter_test_project/ui/widgets/reason_label.dart';
 import 'package:flutter_test_project/ui/widgets/review_feed.dart';
 import 'package:flutter_test_project/ui/widgets/review_options.dart'
     show NotForMeOptions;
@@ -227,10 +226,9 @@ class _RecommendedReviewsCollectionState
       hasMore: (total ?? scored.length) > displayLimit,
       onLoadMore: _loadMore,
       onRefresh: onRefresh,
-      itemWrapper: (context, review, card) => NotForMeOptions(
-        review: review,
-        child: WithReason(reason: reasons[review.fullReviewId], child: card),
-      ),
+      reasonFor: (review) => reasons[review.fullReviewId],
+      itemWrapper: (context, review, card) =>
+          NotForMeOptions(review: review, child: card),
     );
   }
 }
