@@ -17,13 +17,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// "Best New Music": the newest album reviews from Pitchfork, Stereogum, NME
-/// and Billboard, shown on the Search page until the user types.
+/// "Best New Music": the newest album reviews from Pitchfork, Stereogum, NME,
+/// Billboard, The Guardian and The Quietus, shown on the Search page until
+/// the user types.
 ///
-/// Built for browsing: compact rows (cover, album, artist, the critic's
-/// take), the sites taking turns in "All", and the source pills pinned while
-/// scrolling. Tapping a row opens a sheet with the summary and what to do
-/// next: review it in REVERB, play it on Spotify, or read the full review.
+/// Built for browsing: one compact row per album (several sites' reviews of
+/// the same album merge, "critics agree"), the sites taking turns in "All",
+/// and a pinned filter row by why to look (For you, Critics agree, This week)
+/// and by genre, with the sites themselves in a picker at its end. Tapping a
+/// row opens a sheet with each site's take and what to do next: review it in
+/// REVERB, play it on Spotify, or read the full review.
 class MusicNewsFeed extends ConsumerWidget {
   const MusicNewsFeed({super.key, this.emptyPrompt});
 
@@ -45,8 +48,19 @@ class MusicNewsFeed extends ConsumerWidget {
       },
       data: (items) {
         if (items.isEmpty) return emptyPrompt ?? const SizedBox.shrink();
-        final source = ref.watch(musicNewsSourceProvider);
-        final shown = filterMusicNews(items, source);
+        final hidden = ref.watch(musicNewsHiddenSourcesProvider);
+        final albums = groupNewsAlbums([
+          for (final i in items)
+            if (!hidden.contains(i.source)) i,
+        ]);
+        // "For you" needs the user's reviews; until they load (or for
+        // someone signed out) it just isn't offered.
+        final taste =
+            ref.watch(newsTasteProvider).valueOrNull ?? NewsTaste.empty;
+        final filters = newsFilters(albums, taste);
+        final picked = ref.watch(musicNewsFilterProvider);
+        final filter = filters.contains(picked) ? picked : NewsFilter.all;
+        final shown = applyNewsFilter(albums, filter, taste);
         final bottomInset = MediaQuery.paddingOf(context).bottom;
         return CustomScrollView(
           // Dragging the list puts the keyboard away.
@@ -57,11 +71,12 @@ class MusicNewsFeed extends ConsumerWidget {
             SliverPersistentHeader(
               pinned: true,
               delegate: _PinnedPills(
-                child: _SourcePills(
-                  selected: source,
-                  available: {for (final i in items) i.source},
-                  onSelected: (s) =>
-                      ref.read(musicNewsSourceProvider.notifier).state = s,
+                child: _FilterRow(
+                  filters: filters,
+                  selected: filter,
+                  onSelected: (f) =>
+                      ref.read(musicNewsFilterProvider.notifier).state = f,
+                  sources: {for (final i in items) i.source},
                 ),
               ),
             ),
@@ -75,7 +90,7 @@ class MusicNewsFeed extends ConsumerWidget {
                 itemBuilder: (context, index) => Padding(
                   padding: AppSpacing.cardListItem,
                   child: MusicNewsRow(
-                    item: shown[index],
+                    album: shown[index],
                     onTap: () => showMusicNewsSheet(context, shown[index]),
                   ),
                 ),
@@ -134,58 +149,236 @@ class _PinnedPills extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_PinnedPills oldDelegate) => oldDelegate.child != child;
 }
 
-/// All · Pitchfork · Stereogum · NME · Billboard, for sources with reviews.
-class _SourcePills extends StatelessWidget {
-  const _SourcePills({
+/// All · For you · Critics agree · This week · genres…, then the site
+/// picker. One pill at a time; tapping the picked one goes back to All.
+class _FilterRow extends StatelessWidget {
+  const _FilterRow({
+    required this.filters,
     required this.selected,
-    required this.available,
     required this.onSelected,
+    required this.sources,
   });
 
-  final String? selected;
-  final Set<String> available;
-  final ValueChanged<String?> onSelected;
+  final List<NewsFilter> filters;
+  final NewsFilter selected;
+  final ValueChanged<NewsFilter> onSelected;
+
+  /// The sites with reviews, for the picker.
+  final Set<String> sources;
 
   @override
   Widget build(BuildContext context) {
-    final sources = [
-      for (final e in musicNewsSources.entries)
-        if (available.contains(e.key)) e,
-    ];
-    return ListView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageGutter),
+    return Row(
       children: [
-        // Centered: the row is taller than a pill, which would stretch.
-        Center(
-          child: TagPill(
-            label: 'All',
-            selected: selected == null,
-            onTap: () => onSelected(null),
-          ),
-        ),
-        for (final e in sources) ...[
-          const SizedBox(width: AppSpacing.sm),
-          Center(
-            child: TagPill(
-              label: e.value,
-              selected: selected == e.key,
-              onTap: () => onSelected(selected == e.key ? null : e.key),
+        Expanded(
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(left: AppSpacing.pageGutter),
+            itemCount: filters.length,
+            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+            // Centered: the row is taller than a pill, which would stretch.
+            itemBuilder: (_, i) => Center(
+              child: TagPill(
+                label: filters[i].label,
+                selected: filters[i] == selected,
+                onTap: () => onSelected(
+                  filters[i] == selected ? NewsFilter.all : filters[i],
+                ),
+              ),
             ),
           ),
-        ],
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.pageGutter),
+          child: _SitesButton(sources: sources),
+        ),
       ],
     );
   }
 }
 
-/// One review as a compact row: cover; album (or the headline when the
-/// site's title couldn't be split), artist, the critic's take; site and age;
-/// Spotify. Same glass card as the compact review cards.
-class MusicNewsRow extends StatefulWidget {
-  const MusicNewsRow({super.key, required this.item, required this.onTap});
+/// The grey tile at the end of the row (like Home's sort button) that opens
+/// the site picker; a dot shows when a site is switched off.
+class _SitesButton extends ConsumerWidget {
+  const _SitesButton({required this.sources});
 
-  final MusicNewsItem item;
+  final Set<String> sources;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(musicNewsHiddenSourcesProvider).isNotEmpty;
+    return Tooltip(
+      message: 'Choose sites',
+      child: Material(
+        color: AppColors.pill,
+        borderRadius: AppRadius.cardAll,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: AppRadius.cardAll,
+          onTap: () => _open(context),
+          child: SizedBox(
+            width: 44,
+            height: 36,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.tune, size: 18, color: Colors.white),
+                if (active)
+                  const Positioned(
+                    top: 5,
+                    right: 8,
+                    child: CircleAvatar(
+                      radius: 3,
+                      backgroundColor: AppColors.primary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// A glass menu right under the button, aligned to its right edge.
+  void _open(BuildContext context) {
+    final overlay =
+        Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
+    final button = context.findRenderObject()! as RenderBox;
+    final rect =
+        button.localToGlobal(Offset.zero, ancestor: overlay) & button.size;
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close site picker',
+      barrierColor: Colors.black26,
+      transitionDuration: const Duration(milliseconds: 160),
+      pageBuilder: (_, __, ___) => Stack(
+        children: [
+          Positioned(
+            top: rect.bottom + AppSpacing.sm,
+            right: overlay.size.width - rect.right,
+            child: _SitesMenu(sources: sources),
+          ),
+        ],
+      ),
+      transitionBuilder: (_, animation, __, child) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          alignment: Alignment.topRight,
+          scale: Tween(begin: 0.95, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// Every site with a check; tapping one switches it on or off (at least one
+/// stays on). Stays open so several can be changed at once.
+class _SitesMenu extends ConsumerWidget {
+  const _SitesMenu({required this.sources});
+
+  final Set<String> sources;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hidden = ref.watch(musicNewsHiddenSourcesProvider);
+    final sites = [
+      for (final e in musicNewsSources.entries)
+        if (sources.contains(e.key)) e,
+    ];
+    final shownCount = sites.where((e) => !hidden.contains(e.key)).length;
+    return SizedBox(
+      width: 230,
+      child: GlassSurface(
+        borderRadius: AppRadius.cardAll,
+        shadow: true,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.xs,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: Text(
+                    'SITES',
+                    style: TextStyle(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                for (final e in sites)
+                  InkWell(
+                    onTap: () {
+                      final on = !hidden.contains(e.key);
+                      // Keep at least one site on.
+                      if (on && shownCount <= 1) return;
+                      ref
+                          .read(musicNewsHiddenSourcesProvider.notifier)
+                          .state = on
+                          ? {...hidden, e.key}
+                          : ({...hidden}..remove(e.key));
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              e.value,
+                              style: const TextStyle(
+                                color: AppColors.onSurface,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            hidden.contains(e.key)
+                                ? Icons.check_box_outline_blank
+                                : Icons.check_box,
+                            size: 20,
+                            color: hidden.contains(e.key)
+                                ? AppColors.onSurfaceVariant
+                                : AppColors.onSurface,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One album as a compact row: cover; album, artist, the critic's take; the
+/// sites that reviewed it and when; Spotify. Same glass card as the compact
+/// review cards.
+class MusicNewsRow extends StatefulWidget {
+  const MusicNewsRow({super.key, required this.album, required this.onTap});
+
+  final NewsAlbum album;
   final VoidCallback onTap;
 
   @override
@@ -199,13 +392,13 @@ class _MusicNewsRowState extends State<MusicNewsRow> {
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.item;
+    final item = widget.album.primary;
     return Semantics(
       button: true,
       label: [
         item.heading,
         if (item.byArtist.isNotEmpty) item.byArtist,
-        item.sourceName,
+        ...widget.album.sourceNames,
       ].join(', '),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -266,7 +459,7 @@ class _MusicNewsRowState extends State<MusicNewsRow> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
-                        _SourceLine(item: item),
+                        _SourceLine(album: widget.album),
                       ],
                     ),
                   ),
@@ -284,11 +477,12 @@ class _MusicNewsRowState extends State<MusicNewsRow> {
   }
 }
 
-/// "NME · ALBUM REVIEW · 10h", tracked out like an archive label.
+/// "NME · ALBUM REVIEW · 10h", tracked out like an archive label; for an
+/// album several sites reviewed, "NME + THE GUARDIAN · 10h" in green.
 class _SourceLine extends StatelessWidget {
-  const _SourceLine({required this.item});
+  const _SourceLine({required this.album});
 
-  final MusicNewsItem item;
+  final NewsAlbum album;
 
   @override
   Widget build(BuildContext context) {
@@ -298,20 +492,31 @@ class _SourceLine extends StatelessWidget {
       letterSpacing: 0.9,
       height: 1.2,
     );
+    final item = album.primary;
+    final age = formatRelativeTime(album.latest);
     return Text.rich(
       TextSpan(
-        children: [
-          TextSpan(
-            text: item.sourceName.toUpperCase(),
-            style: style.copyWith(color: AppColors.onSurface),
-          ),
-          TextSpan(
-            text:
-                '  ·  ${item.label.toUpperCase()}  ·  '
-                '${formatRelativeTime(item.publishedAt)}',
-            style: style.copyWith(color: AppColors.onSurfaceVariant),
-          ),
-        ],
+        children: album.criticsAgree
+            ? [
+                TextSpan(
+                  text: album.sourceNames.join(' + ').toUpperCase(),
+                  style: style.copyWith(color: AppColors.secondary),
+                ),
+                TextSpan(
+                  text: '  ·  $age',
+                  style: style.copyWith(color: AppColors.onSurfaceVariant),
+                ),
+              ]
+            : [
+                TextSpan(
+                  text: item.sourceName.toUpperCase(),
+                  style: style.copyWith(color: AppColors.onSurface),
+                ),
+                TextSpan(
+                  text: '  ·  ${item.label.toUpperCase()}  ·  $age',
+                  style: style.copyWith(color: AppColors.onSurfaceVariant),
+                ),
+              ],
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -366,9 +571,9 @@ class _NewsSpotifyButton extends StatelessWidget {
   }
 }
 
-/// The review in a glass sheet: cover, album and artist, the critic's take
-/// and summary, then Review it (in REVERB), Spotify and the full review.
-Future<void> showMusicNewsSheet(BuildContext context, MusicNewsItem item) {
+/// The album in a glass sheet: cover, album and artist, each site's take
+/// and summary (with its own Read link), then Spotify and Review it.
+Future<void> showMusicNewsSheet(BuildContext context, NewsAlbum album) {
   const radius = BorderRadius.vertical(top: Radius.circular(AppRadius.xl));
   return showModalBottomSheet(
     context: context,
@@ -379,18 +584,20 @@ Future<void> showMusicNewsSheet(BuildContext context, MusicNewsItem item) {
     shape: const RoundedRectangleBorder(borderRadius: radius),
     builder: (_) => GlassSurface(
       borderRadius: radius,
-      child: _MusicNewsSheet(item: item),
+      child: _MusicNewsSheet(album: album),
     ),
   );
 }
 
 class _MusicNewsSheet extends ConsumerWidget {
-  const _MusicNewsSheet({required this.item});
+  const _MusicNewsSheet({required this.album});
 
-  final MusicNewsItem item;
+  final NewsAlbum album;
 
-  Future<void> _read() async {
-    final uri = Uri.tryParse(item.url);
+  MusicNewsItem get item => album.primary;
+
+  static Future<void> _read(MusicNewsItem review) async {
+    final uri = Uri.tryParse(review.url);
     if (uri == null || uri.scheme != 'https') return;
     // In an in-app browser where the platform has one, so closing it comes
     // back here.
@@ -428,10 +635,6 @@ class _MusicNewsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final byline = [
-      if (item.author.isNotEmpty) 'By ${item.author}',
-      formatRelativeTime(item.publishedAt),
-    ].join(' · ');
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -465,7 +668,7 @@ class _MusicNewsSheet extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SourceLine(item: item),
+                      _SourceLine(album: album),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         item.heading,
@@ -491,66 +694,126 @@ class _MusicNewsSheet extends ConsumerWidget {
                 ),
               ],
             ),
-            if (item.verdict.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                '“${item.verdict}”',
-                style: const TextStyle(
-                  color: AppColors.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  height: 1.35,
-                ),
+            // Each site's take: one for most albums, several when critics
+            // agree.
+            for (final review in album.reviews)
+              _SiteTake(
+                review: review,
+                showSource: album.criticsAgree,
+                onRead: () => _read(review),
               ),
-            ],
-            if (item.summary.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                item.summary,
-                style: const TextStyle(
-                  color: AppColors.onSurface,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              byline,
-              style: const TextStyle(
-                color: AppColors.onSurfaceVariant,
-                fontSize: 12,
-              ),
-            ),
             const SizedBox(height: AppSpacing.xl),
             if (item.lookup != null) ...[
               _NewsSpotifyButton(item: item),
               const SizedBox(height: AppSpacing.sm),
             ],
-            Row(
-              children: [
-                if (item.lookup != null) ...[
-                  Expanded(
-                    child: _SheetButton(
-                      label: 'Review it',
-                      icon: Ionicons.add,
-                      primary: true,
-                      onTap: () => _review(context, ref),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                ],
-                Expanded(
-                  child: _SheetButton(
-                    label: 'Read on ${item.sourceName}',
-                    icon: Ionicons.openOutline,
-                    onTap: _read,
-                  ),
-                ),
-              ],
-            ),
+            if (item.lookup != null)
+              _SheetButton(
+                label: 'Review it',
+                icon: Ionicons.add,
+                primary: true,
+                onTap: () => _review(context, ref),
+              ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One site's review in the sheet: (when several sites reviewed it) which
+/// site, then the critic's quote, the summary, byline and a Read link.
+class _SiteTake extends StatelessWidget {
+  const _SiteTake({
+    required this.review,
+    required this.showSource,
+    required this.onRead,
+  });
+
+  final MusicNewsItem review;
+  final bool showSource;
+  final VoidCallback onRead;
+
+  @override
+  Widget build(BuildContext context) {
+    final byline = [
+      if (review.author.isNotEmpty) 'By ${review.author}',
+      formatRelativeTime(review.publishedAt),
+    ].join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showSource) ...[
+            Text(
+              '${review.sourceName}  ·  ${review.label}'.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.9,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+          if (review.verdict.isNotEmpty) ...[
+            Text(
+              '“${review.verdict}”',
+              style: const TextStyle(
+                color: AppColors.onSurface,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          if (review.summary.isNotEmpty) ...[
+            Text(
+              review.summary,
+              style: const TextStyle(
+                color: AppColors.onSurface,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  byline,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onRead,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.onSurface,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                ),
+                icon: const Icon(Ionicons.openOutline, size: 16),
+                label: Text(
+                  'Read on ${review.sourceName}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

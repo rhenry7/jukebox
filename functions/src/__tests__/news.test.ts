@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { imageOf, isReview, NEWS_SOURCES, titleParts, newsFromFeed, newsId, parseFeed, plainText, smallImageUrl } from "../news";
+import { genresFor, imageOf, pickItunesCover, isReview, mainArtist, NEWS_SOURCES, siteGenreTags, titleParts, newsFromFeed, newsId, parseFeed, plainText, smallImageUrl } from "../news";
 
 const source = (id: string) => NEWS_SOURCES.find((s) => s.id === id)!;
 
@@ -131,6 +131,77 @@ srcset="https://www.nme.com/wp-content/uploads/2026/11/U2-Credit-1392x884.jpg 13
     const [krill] = newsFromFeed(source("stereogum"), stereogum);
     assert.equal(krill.album, "Secret Language");
     assert.equal(krill.artist, "Krill");
+  });
+
+  it("The Guardian: artist, album, verdict, and its album of the week", () => {
+    assert.deepEqual(
+      titleParts("guardian", "Snoh Aalegra: Legendary Love review – raw R&B talent restrained by reverence", "", []),
+      { artist: "Snoh Aalegra", album: "Legendary Love", verdict: "Raw R&B talent restrained by reverence" },
+    );
+    assert.deepEqual(
+      titleParts("guardian", "Blackhaine: Saints in the Wethouse review | Alexis Petridis's album of the week", "", []),
+      { artist: "Blackhaine", album: "Saints in the Wethouse", verdict: "", label: "Album of the Week" },
+    );
+    assert.equal(
+      titleParts("guardian", "Giulio Cesare in Egitto album review – Sabine Devieilhe’s Cleopatra", "", []).album,
+      "",
+      "classical reviews without an artist are left out",
+    );
+  });
+
+  it("The Quietus: reviews only, artist then album", () => {
+    const xml = `<item><title>Tara Cunningham – Warm Ground</title><link>https://thequietus.com/reviews/x/</link>
+<pubDate>Thu, 12 Nov 2026 09:00:00 +0000</pubDate><category>Reviews</category></item>
+<item><title>UK Cultural Organisations Call on Andy Burnham – EU Touring</title><link>https://thequietus.com/news/y/</link>
+<pubDate>Thu, 12 Nov 2026 09:00:00 +0000</pubDate><category>News</category></item>`;
+    const items = newsFromFeed(source("quietus"), xml);
+    assert.equal(items.length, 1);
+    assert.equal(items[0].artist, "Tara Cunningham");
+    assert.equal(items[0].album, "Warm Ground");
+  });
+
+  it("broad genres from tags: whole words, two at most, 'Pop and rock' is too broad", () => {
+    assert.deepEqual(genresFor(["grime", "hip hop", "house", "dubstep"]), ["Hip-hop", "Electronic"]);
+    assert.deepEqual(genresFor(["Pop and rock", "Soul", "R&B"]), ["R&B"]);
+    assert.deepEqual(genresFor(["electropop"]), ["Pop"]);
+    assert.deepEqual(genresFor(["country", "alternative country", "folk"]), ["Folk & Country"]);
+    assert.deepEqual(genresFor(["digicore", "trapeze"]), [], "no partial words");
+    assert.deepEqual(siteGenreTags(["Album Reviews", "Reviews", "Rock", "genre hiphop", "Krill"]), ["rock", "hiphop"]);
+  });
+
+  it("The Quietus: drops the repeated artist and album from the summary", () => {
+    const xml = `<item><title>Tara Cunningham – Warm Ground</title><link>https://thequietus.com/reviews/x/</link>
+<pubDate>Thu, 12 Nov 2026 09:00:00 +0000</pubDate><category>Reviews</category>
+<description>Tara Cunningham Warm Ground Tara Cunningham’s latest mini-LP of small wonders</description></item>`;
+    assert.equal(newsFromFeed(source("quietus"), xml)[0].summary, "Tara Cunningham’s latest mini-LP of small wonders");
+  });
+
+  it("The Guardian: no 'Continue reading' at the end", () => {
+    const xml = `<item><title>Snoh Aalegra: Legendary Love review</title><link>https://www.theguardian.com/music/x</link>
+<pubDate>Thu, 12 Nov 2026 09:00:00 +0000</pubDate><description>Raw talent. Continue reading...</description></item>`;
+    assert.equal(newsFromFeed(source("guardian"), xml)[0].summary, "Raw talent.");
+  });
+
+  it("covers from Apple: names must match, asked for at 600 px", () => {
+    const results = [
+      { artistName: "Tara Cunningham", collectionName: "Other Album", artworkUrl100: "https://a/100x100bb.jpg" },
+      { artistName: "Tara Cunningham", collectionName: "Warm Ground - EP", artworkUrl100: "https://is1/x/100x100bb.jpg" },
+    ];
+    assert.equal(pickItunesCover("Tara Cunningham", "Warm Ground", results), "https://is1/x/600x600bb.jpg");
+    assert.equal(pickItunesCover("Someone Else", "Warm Ground", results), null);
+  });
+
+  it("looks up the first named artist", () => {
+    assert.equal(mainArtist("Erykah Badu & The Alchemist"), "Erykah Badu");
+    assert.equal(mainArtist("Crystal Waters, The Basement Boys"), "Crystal Waters");
+    assert.equal(mainArtist("Skepta"), "Skepta");
+  });
+
+  it("picks the media:content size closest to 640 px", () => {
+    const item = `<item><media:content width="140" url="https://i.guim.co.uk/a.jpg?width=140&amp;s=1"/>
+<media:content width="460" url="https://i.guim.co.uk/a.jpg?width=460&amp;s=2"/>
+<media:content width="700" url="https://i.guim.co.uk/a.jpg?width=700&amp;s=3"/></item>`;
+    assert.equal(imageOf(item), "https://i.guim.co.uk/a.jpg?width=700&s=3");
   });
 
   it("ids are stable across query strings and trailing slashes", () => {

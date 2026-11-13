@@ -1,6 +1,9 @@
 /**
- * "Best New Music": review headlines from Pitchfork, Stereogum, NME and
- * Billboard, shown on the Search page before the user types.
+ * "Best New Music": album reviews from Pitchfork, Stereogum, NME, Billboard,
+ * The Guardian and The Quietus, shown on the Search page before the user
+ * types. Each carries broad genres (the sites' own tags + the artist's
+ * MusicBrainz tags) and the artist's MBID, for the page's genre and
+ * "For you" filters.
  *
  * The app can't read these feeds itself (browsers block cross-site requests
  * on the web), so `refreshMusicNews` fetches them every few hours into
@@ -11,6 +14,7 @@
  */
 import { createHash } from "node:crypto";
 import { Firestore, Timestamp } from "firebase-admin/firestore";
+import { fetchArtistTags, lookupArtistMbid, normName } from "./musicbrainz";
 
 export const NEWS_COLLECTION = "musicNews";
 
@@ -20,7 +24,7 @@ export const NEWS_PER_SOURCE = 12;
 /** Older reviews are dropped (Billboard's review feeds go back years). */
 export const NEWS_MAX_AGE_DAYS = 365;
 
-export type NewsSourceId = "pitchfork" | "stereogum" | "nme" | "billboard";
+export type NewsSourceId = "pitchfork" | "stereogum" | "nme" | "billboard" | "guardian" | "quietus";
 
 export interface NewsSource {
   id: NewsSourceId;
@@ -75,6 +79,20 @@ export const NEWS_SOURCES: NewsSource[] = [
     ],
     keep: isReview,
   },
+  {
+    id: "guardian",
+    name: "The Guardian",
+    label: "Album Review",
+    feeds: ["https://www.theguardian.com/music+tone/albumreview/rss"],
+  },
+  {
+    id: "quietus",
+    name: "The Quietus",
+    label: "Album Review",
+    // The main feed: news, features and reviews; reviews are tagged so.
+    feeds: ["https://thequietus.com/feed"],
+    keep: (item) => item.categories.some((c) => /^reviews?$/i.test(c.trim())),
+  },
 ];
 
 export interface FeedItem {
@@ -104,12 +122,20 @@ export interface NewsItem {
   url: string;
   imageUrl: string | null;
   publishedAt: Date;
+  /** Genre-like tags: the site's own (when it has them) + MusicBrainz's. */
+  tags: string[];
+  /** Broad genres ([GENRES]) from [tags], at most two. */
+  genres: string[];
+  /** The artist's MusicBrainz ID, when found (empty if not). */
+  artistMbids: string[];
 }
 
 export interface TitleParts {
   album: string;
   artist: string;
   verdict: string;
+  /** Overrides the source's label ("Album of the Week" on The Guardian). */
+  label?: string;
 }
 
 const NONE: TitleParts = { album: "", artist: "", verdict: "" };
@@ -168,7 +194,69 @@ export function titleParts(source: NewsSourceId, title: string, link: string, ca
         .join(" ");
       return { album: title, artist, verdict: "" };
     }
+    case "guardian": {
+      // "Snoh Aalegra: Legendary Love review – raw R&B talent …" or
+      // "Blackhaine: Saints in the Wethouse review | Alexis Petridis's album of
+      // the week". Classical reviews ("Giulio Cesare in Egitto album review")
+      // have no "Artist:" and are left out.
+      const m = title.match(/^(.+?):\s+(.+?)\s+review\b(.*)$/i);
+      if (!m) return NONE;
+      const rest = m[3];
+      const pick = rest.match(/album of the (week|month)/i);
+      return {
+        artist: m[1].trim(),
+        album: m[2].trim(),
+        verdict: capitalize(rest.replace(/\|.*$/, "").replace(/^\s*[–—-]\s*/, "").trim()),
+        ...(pick ? { label: `Album of the ${capitalize(pick[1].toLowerCase())}` } : {}),
+      };
+    }
+    case "quietus": {
+      const m = title.match(/^(.+?)\s+[–—]\s+(.+)$/);
+      return m ? { artist: m[1].trim(), album: m[2].trim(), verdict: "" } : NONE;
+    }
   }
+}
+
+/**
+ * The broad genres of the page's filter row, each with the tags that mean
+ * it. Matched on whole words, in this order; a review keeps its first two.
+ */
+export const GENRES: [string, RegExp][] = [
+  ["Hip-hop", /\b(hip[- ]?hop|hiphop|rap|grime|trap|drill|boom bap)\b/],
+  ["R&B", /(^|\W)(r&b|rnb|soul|neo[- ]soul|funk)(\W|$)/],
+  ["Electronic", /\b(electronic|electronica|house|techno|edm|dubstep|uk garage|drum and bass|dnb|jungle|idm|trance|club)\b/],
+  ["Metal", /\b(metal|metalcore|doom|sludge|grindcore|deathcore)\b/],
+  ["Rock", /\b(rock|punk|post-punk|shoegaze|grunge|emo|indie|hardcore)\b/],
+  ["Pop", /\b(pop|k-pop|synthpop|electropop|hyperpop|dance-pop)\b/],
+  ["Folk & Country", /\b(folk|country|americana|singer[- ]songwriter|bluegrass)\b/],
+  ["Jazz", /\bjazz\b/],
+  ["Experimental", /\b(experimental|avant[- ]garde|noise|drone|ambient)\b/],
+  ["Classical", /\b(classical|opera|orchestral|baroque)\b/],
+  ["Global", /\b(afrobeats?|afropop|amapiano|latin|reggaeton|reggae|dancehall|global)\b/],
+];
+
+/** Site tags too broad to mean a genre (The Guardian files rock and pop alike under one). */
+const TOO_BROAD = /^(pop and rock|music|culture|reviews?|album reviews?|news)$/i;
+
+/** Tags (most relevant first) → up to two broad genres. */
+export function genresFor(tags: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of tags) {
+    const t = raw.toLowerCase().trim();
+    if (TOO_BROAD.test(t)) continue;
+    for (const [genre, re] of GENRES) {
+      if (re.test(t) && !out.includes(genre)) out.push(genre);
+    }
+    if (out.length >= 2) break;
+  }
+  return out.slice(0, 2);
+}
+
+/** The site's own tags that name a genre (not artists, sections or "Reviews"). */
+export function siteGenreTags(categories: string[]): string[] {
+  return categories
+    .map((c) => c.trim().toLowerCase().replace(/^genre\s+/, ""))
+    .filter((c) => !TOO_BROAD.test(c) && genresFor([c]).length > 0);
 }
 
 const ENTITIES: Record<string, string> = {
@@ -216,6 +304,19 @@ function imageUrlsIn(item: string): string[] {
 const fileStem = (url: string) => url.replace(/[?#].*$/, "").replace(/(-\d+x\d+)?\.(jpe?g|png|webp)$/i, "");
 
 /**
+ * The `media:content` closest to 640 px wide when a feed lists several sizes
+ * (The Guardian: 140, 460, 700), else null.
+ */
+function sizedMediaContent(item: string): string | null {
+  const sizes = [...item.matchAll(/<media:content\b[^>]*>/gi)]
+    .map((m) => ({ url: m[0].match(/\burl="([^"]+)"/)?.[1], width: Number(m[0].match(/\bwidth="(\d+)"/)?.[1]) }))
+    .filter((x): x is { url: string; width: number } => !!x.url && x.width > 0);
+  if (sizes.length < 2) return null;
+  sizes.sort((a, b) => Math.abs(a.width - 640) - Math.abs(b.width - 640));
+  return decodeEntities(sizes[0].url);
+}
+
+/**
  * The item's image: its album artwork when the post includes it (NME puts a
  * press photo first and the cover further down), else the feed's main image;
  * and, when the post lists resized copies (WordPress srcsets), one 400–800 px
@@ -224,6 +325,7 @@ const fileStem = (url: string) => url.replace(/[?#].*$/, "").replace(/(-\d+x\d+)
 export function imageOf(item: string): string | null {
   const urls = imageUrlsIn(item);
   const main =
+    sizedMediaContent(item) ??
     attr(item, "media:thumbnail", "url") ??
     attr(item, "media:content", "url") ??
     attr(item, "enclosure", "url") ??
@@ -277,19 +379,29 @@ export function toNewsItem(source: NewsSource, item: FeedItem): NewsItem | null 
   if (!parts.album || !parts.artist) return null;
   // WordPress appends "The post … appeared first on NME." to excerpts.
   let summary = item.summary.replace(/\s*The post [\s\S]*? appeared first on [^.]+\.?\s*$/i, "");
+  // The Guardian ends excerpts with "Continue reading…".
+  summary = summary.replace(/\s*Continue reading(\.\.\.|…)?\s*$/i, "");
+  // The Quietus starts every excerpt with "Artist Album".
+  const lead = `${parts.artist} ${parts.album}`;
+  if (summary.toLowerCase().startsWith(lead.toLowerCase())) summary = summary.slice(lead.length).trim();
   if (summary.length > 220) summary = summary.slice(0, 217).replace(/\s+\S*$/, "") + "…";
   return {
     id: newsId(item.link),
     source: source.id,
     sourceName: source.name,
-    label: source.label,
+    label: parts.label ?? source.label,
     title,
-    ...parts,
+    album: parts.album,
+    artist: parts.artist,
+    verdict: parts.verdict,
     summary,
     author: item.author,
     url: item.link,
     imageUrl: item.imageUrl,
     publishedAt: item.publishedAt,
+    tags: siteGenreTags(item.categories),
+    genres: genresFor(siteGenreTags(item.categories)),
+    artistMbids: [],
   };
 }
 
@@ -322,6 +434,137 @@ export interface NewsSyncResult {
   failed: string[];
 }
 
+/** Image formats the app can draw everywhere (AVIF can't on phones). */
+const DRAWABLE_IMAGE = /\.(jpe?g|png|webp|gif)(\?|$)|i\.guim\.co\.uk|media\.pitchfork\.com/i;
+
+export interface ItunesAlbum {
+  artistName?: string;
+  collectionName?: string;
+  artworkUrl100?: string;
+}
+
+/**
+ * The cover from Apple's catalogue for [album] by [artist]: names must
+ * match (ignoring case, punctuation and "- EP" / "(Deluxe)" endings); the
+ * 100 px artwork link is asked for at 600 px. Null if nothing matches.
+ */
+export function pickItunesCover(artist: string, album: string, results: ItunesAlbum[]): string | null {
+  const want = normName(album.replace(/\s*[([].*$/, ""));
+  const who = normName(mainArtist(artist));
+  for (const r of results) {
+    const name = normName((r.collectionName ?? "").replace(/\s*[([].*$|\s+-\s+(ep|single)$/i, ""));
+    const by = normName(r.artistName ?? "");
+    if (!r.artworkUrl100 || !want || !who) continue;
+    if (name === want && (by === who || by.includes(who))) {
+      return r.artworkUrl100.replace(/\/\d+x\d+bb\./, "/600x600bb.");
+    }
+  }
+  return null;
+}
+
+async function itunesCover(artist: string, album: string): Promise<string | null> {
+  const url = `https://itunes.apple.com/search?${new URLSearchParams({
+    term: `${mainArtist(artist)} ${album}`,
+    entity: "album",
+    limit: "10",
+  })}`;
+  const res = await fetch(url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) return null;
+  const body = (await res.json()) as { results?: ItunesAlbum[] };
+  return pickItunesCover(artist, album, body.results ?? []);
+}
+
+/**
+ * Items whose image the app can't draw (The Quietus serves only AVIF) or
+ * that have none get the album's cover from Apple's catalogue instead, or
+ * no image if Apple doesn't have it.
+ */
+async function fillCovers(items: NewsItem[]): Promise<void> {
+  for (const item of items) {
+    if (item.imageUrl && DRAWABLE_IMAGE.test(item.imageUrl)) continue;
+    try {
+      item.imageUrl = await itunesCover(item.artist, item.album);
+    } catch {
+      item.imageUrl = null;
+    }
+  }
+}
+
+/** Server-only cache of each news artist's MBID and MusicBrainz tags. */
+export const NEWS_ARTISTS_COLLECTION = "newsArtists";
+
+/** How long a cached artist lasts (a miss is retried sooner). */
+const ARTIST_TTL_MS = 30 * 86_400_000;
+const ARTIST_MISS_TTL_MS = 7 * 86_400_000;
+
+/** New artists looked up per run (MusicBrainz allows about one call a second). */
+const ARTIST_LOOKUPS_PER_RUN = 60;
+
+/** The artist to look up: the first named ("Erykah Badu & The Alchemist" → "Erykah Badu"). */
+export function mainArtist(artist: string): string {
+  return artist.split(/\s*(?:,|&|\band\b|\bfeat\.?|\bx\b)\s*/i)[0].trim();
+}
+
+const artistKey = (name: string) => createHash("sha1").update(normName(name)).digest("hex").slice(0, 20);
+
+interface CachedArtist {
+  mbid: string | null;
+  tags: string[];
+}
+
+/**
+ * Fills in each item's artist MBID, MusicBrainz tags and so its genres,
+ * from the cache, looking up artists it doesn't have (up to
+ * [ARTIST_LOOKUPS_PER_RUN] a run; the rest next run). Lookup failures just
+ * leave an item with its site tags.
+ */
+async function enrichArtists(db: Firestore, items: NewsItem[], dryRun: boolean): Promise<void> {
+  const col = db.collection(NEWS_ARTISTS_COLLECTION);
+  const names = [...new Set(items.map((i) => mainArtist(i.artist)).filter(Boolean))];
+  const snaps = names.length ? await db.getAll(...names.map((n) => col.doc(artistKey(n)))) : [];
+  const cache = new Map<string, CachedArtist>();
+  const now = Date.now();
+  const stale: string[] = [];
+  names.forEach((name, i) => {
+    const d = snaps[i];
+    const fetched = (d.get("fetchedAt") as Timestamp | undefined)?.toMillis() ?? 0;
+    const mbid = (d.get("mbid") as string | null | undefined) ?? null;
+    if (d.exists) cache.set(name, { mbid, tags: (d.get("tags") as string[] | undefined) ?? [] });
+    if (!d.exists || now - fetched > (mbid ? ARTIST_TTL_MS : ARTIST_MISS_TTL_MS)) stale.push(name);
+  });
+
+  const found = new Map<string, string | null>();
+  for (const name of stale.slice(0, ARTIST_LOOKUPS_PER_RUN)) {
+    try {
+      found.set(name, await lookupArtistMbid(name));
+    } catch {
+      // MusicBrainz busy: try again next run.
+    }
+  }
+  const ids = [...found.values()].filter((x): x is string => !!x);
+  let tagsById = new Map<string, string[]>();
+  try {
+    tagsById = ids.length ? await fetchArtistTags(ids) : tagsById;
+  } catch {
+    // ListenBrainz down: keep the MBIDs, tags next time.
+  }
+  const writer = dryRun ? null : db.bulkWriter();
+  for (const [name, mbid] of found) {
+    const entry = { mbid, tags: mbid ? (tagsById.get(mbid) ?? []) : [] };
+    cache.set(name, entry);
+    writer?.set(col.doc(artistKey(name)), { name, ...entry, fetchedAt: Timestamp.now() });
+  }
+  await writer?.close();
+
+  for (const item of items) {
+    const a = cache.get(mainArtist(item.artist));
+    if (!a) continue;
+    if (a.mbid) item.artistMbids = [a.mbid];
+    item.tags = [...new Set([...item.tags, ...a.tags.map((t) => t.toLowerCase())])].slice(0, 8);
+    item.genres = genresFor(item.tags);
+  }
+}
+
 /**
  * Fetches every source and stores its newest reviews. A source whose feed
  * fails keeps what it had, so one site being down never empties the list.
@@ -329,6 +572,7 @@ export interface NewsSyncResult {
 export async function syncMusicNews(db: Firestore, { dryRun = false } = {}): Promise<NewsSyncResult> {
   const result: NewsSyncResult = { written: 0, removed: 0, failed: [] };
   const col = db.collection(NEWS_COLLECTION);
+  const fetched: { source: NewsSource; items: NewsItem[] }[] = [];
   for (const source of NEWS_SOURCES) {
     // A source counts as fetched if any of its feeds answered.
     const settled = await Promise.allSettled(source.feeds.map(fetchText));
@@ -340,6 +584,15 @@ export async function syncMusicNews(db: Firestore, { dryRun = false } = {}): Pro
       result.failed.push(`${source.name}: no reviews in the feed`);
       continue;
     }
+    fetched.push({ source, items });
+  }
+  await enrichArtists(
+    db,
+    fetched.flatMap((f) => f.items),
+    dryRun,
+  );
+  await fillCovers(fetched.flatMap((f) => f.items));
+  for (const { source, items } of fetched) {
     const keep = new Set(items.map((n) => n.id));
     const stale = (await col.where("source", "==", source.id).get()).docs.filter((d) => !keep.has(d.id));
     result.written += items.length;

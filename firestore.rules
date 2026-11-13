@@ -269,6 +269,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Each news artist's MusicBrainz ID and tags, cached for refreshMusicNews.
+    match /newsArtists/{artistKey} {
+      allow read, write: if false;
+    }
+
     // "More like this" per review (Cloud Functions, functions/src/similar.ts).
     // Lists of public reviews: anyone can read, only the server writes.
     match /similarReviews/{reviewDocId} {

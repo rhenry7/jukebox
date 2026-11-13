@@ -230,11 +230,13 @@ export const nightlyRefresh = onSchedule(
 );
 
 /**
- * Every 3 hours: the newest album reviews from Pitchfork, Stereogum, NME and
- * Billboard into `musicNews` (the Search page's "Best New Music").
+ * Every 3 hours: the newest album reviews from Pitchfork, Stereogum, NME,
+ * Billboard, The Guardian and The Quietus into `musicNews` (the Search
+ * page's "Best New Music"), with genres and artist MBIDs.
  */
 export const refreshMusicNews = onSchedule(
-  { schedule: "every 3 hours", timeZone: "America/New_York", timeoutSeconds: 120 },
+  // Up to 60 new artists looked up on MusicBrainz (about a second each).
+  { schedule: "every 3 hours", timeZone: "America/New_York", timeoutSeconds: 300 },
   async () => {
     const result = await syncMusicNews(db);
     if (result.failed.length > 0) logger.warn("Some music news feeds failed", result);
