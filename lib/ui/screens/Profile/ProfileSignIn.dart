@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/ui/widgets/reveal_on_focus.dart';
+import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 import 'package:ionicons/ionicons.dart';
 
@@ -19,7 +21,8 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Read on use, not when the screen is built (tests have no Firebase).
+  FirebaseAuth get _auth => FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _emailFocusNode = FocusNode();
@@ -114,7 +117,8 @@ class _SignInScreenState extends State<SignInScreen> {
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 16),
-            TextField(
+            RevealOnFocus(
+              child: TextField(
               controller: emailController,
               style: const TextStyle(color: Colors.white),
               keyboardType: TextInputType.emailAddress,
@@ -128,6 +132,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
+            ),
             ),
           ],
         ),
@@ -198,8 +203,12 @@ class _SignInScreenState extends State<SignInScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-          child: Column(
+          // Clears the floating dock (hidden while typing), so the last
+          // buttons are never under it.
+          padding:
+              const EdgeInsets.fromLTRB(24, 0, 24, AppSpacing.dockClearance),
+          child: AutofillGroup(
+           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Hero image ────────────────────────────────────
@@ -224,29 +233,34 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
+              RevealOnFocus(
+                child: TextField(
                 controller: _emailController,
                 focusNode: _emailFocusNode,
                 keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                autocorrect: false,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => _passwordFocusNode.requestFocus(),
                 enabled: !_isLoading,
                 style: const TextStyle(color: Colors.white, fontSize: 15),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'curator@crateboxd.io',
-                  hintStyle: const TextStyle(color: Colors.white24),
+                  hintStyle: TextStyle(color: Colors.white38),
                   filled: true,
-                  fillColor: const Color(0xFF1C1C1C),
+                  fillColor: Color(0xFF1C1C1C),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.inputAll,
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Colors.white24, width: 1),
+                    borderRadius: AppRadius.inputAll,
+                    borderSide: BorderSide(color: Colors.white24, width: 1),
                   ),
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
+              ),
               ),
               const SizedBox(height: 16),
 
@@ -261,25 +275,28 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
+              RevealOnFocus(
+                child: TextField(
                 controller: _passwordController,
                 focusNode: _passwordFocusNode,
                 obscureText: _obscurePassword,
+                autofillHints: const [AutofillHints.password],
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _isLoading ? null : _handleSignIn(),
                 enabled: !_isLoading,
                 style: const TextStyle(color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: '••••••••••',
-                  hintStyle: const TextStyle(color: Colors.white24),
+                  hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: const Color(0xFF1C1C1C),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  border: const OutlineInputBorder(
+                    borderRadius: AppRadius.inputAll,
                     borderSide: BorderSide.none,
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Colors.white24, width: 1),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.inputAll,
+                    borderSide: BorderSide(color: Colors.white24, width: 1),
                   ),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -296,6 +313,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
               ),
+              ),
 
               // ── Forgot password ───────────────────────────────
               Align(
@@ -311,37 +329,32 @@ class _SignInScreenState extends State<SignInScreen> {
               const SizedBox(height: 4),
 
               // ── Sign In | Sign Up ─────────────────────────────
+              // Signing in is what this screen is for, so it's the filled
+              // button; new users take the outlined one.
               Row(
                 children: [
-                  // Sign In — ghost
                   Expanded(
-                    child: TextButton(
-                      onPressed: _isLoading ? null : _handleSignIn,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              'Sign In',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : () => openSignUp(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                        shape: const StadiumBorder(),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        // Same height as the Sign In pill beside it.
+                        minimumSize: const Size.fromHeight(50),
+                      ),
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Sign Up — neon green pill
                   Expanded(
                     child: GestureDetector(
-                      onTap: _isLoading ? null : () => openSignUp(context),
+                      onTap: _isLoading ? null : _handleSignIn,
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
@@ -349,21 +362,32 @@ class _SignInScreenState extends State<SignInScreen> {
                           borderRadius: BorderRadius.circular(999),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF39FF6A).withValues(alpha: 0.35),
+                              color: const Color(0xFF39FF6A)
+                                  .withValues(alpha: 0.35),
                               blurRadius: 22,
                               spreadRadius: 1,
                             ),
                           ],
                         ),
-                        child: const Center(
-                          child: Text(
-                            'Sign Up',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        child: Center(
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.black),
+                                  ),
+                                )
+                              : const Text(
+                                  'Sign In',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -468,6 +492,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
               ],
             ],
+           ),
           ),
         ),
       ),

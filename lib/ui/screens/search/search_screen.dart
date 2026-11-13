@@ -6,6 +6,7 @@ import 'package:flutter_test_project/GIFs/gifs.dart';
 import 'package:flutter_test_project/providers/search_reviews_provider.dart';
 import 'package:flutter_test_project/ui/widgets/review_card.dart'
     show ReviewCardWithGenres;
+import 'package:flutter_test_project/ui/screens/search/unified_search_results.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
 import 'package:flutter_test_project/ui/widgets/music_news_feed.dart';
 import 'package:flutter_test_project/ui/widgets/round_icon_button.dart';
@@ -110,6 +111,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 : const MusicNewsFeed(
                     emptyPrompt: _EmptyPrompt(ownReviewsOnly: false),
                   )
+          // All reviews: everything that matches (reviews, music to review,
+          // articles, tags). Your own: just your reviews.
+          : !widget.ownReviewsOnly
+          ? UnifiedSearchResults(query: _submittedQuery)
           : _SearchResults(
               query: _submittedQuery,
               ownReviewsOnly: widget.ownReviewsOnly,

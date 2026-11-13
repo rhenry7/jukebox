@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test_project/ui/widgets/reveal_on_focus.dart';
 import 'package:flutter_test_project/ui/screens/Profile/helpers/profileHelpers.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:flutter_test_project/ui/widgets/app_toast.dart';
@@ -90,11 +91,9 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final bottomKeyboardInset = mediaQuery.viewInsets.bottom;
-    final bottomSafeInset = mediaQuery.viewPadding.bottom;
-    final bottomPadding =
-        (bottomKeyboardInset > 0 ? bottomKeyboardInset : bottomSafeInset) +
-            20.0;
+    // The Scaffold already lifts the body above the keyboard, so only the
+    // home indicator's safe area is added here (not the keyboard again).
+    final bottomPadding = mediaQuery.viewPadding.bottom + 20.0;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -103,7 +102,8 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.fromLTRB(24, 24, 24, bottomPadding),
-          child: Form(
+          child: AutofillGroup(
+           child: Form(
             key: _formKey,
             autovalidateMode: _autovalidateMode,
             child: Column(
@@ -119,12 +119,17 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                       padding: EdgeInsets.zero,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Create Account',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
+                    // Shrinks rather than overflowing at large text sizes.
+                    const Flexible(
+                      child: Text(
+                        'Create Account',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -139,8 +144,12 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.6)),
                 const SizedBox(height: 8),
-                TextFormField(
+                RevealOnFocus(
+                  child: TextFormField(
                   controller: _userNameController,
+                  autofillHints: const [AutofillHints.newUsername],
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                   decoration: _inputDecoration('your_username'),
                   onSaved: (v) {
@@ -157,6 +166,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     return null;
                   },
                 ),
+                ),
                 const SizedBox(height: 16),
 
                 // ── EMAIL ────────────────────────────────────────
@@ -167,9 +177,13 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.6)),
                 const SizedBox(height: 8),
-                TextFormField(
+                RevealOnFocus(
+                  child: TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                   decoration: _inputDecoration('curator@crateboxd.io'),
                   onSaved: (v) {
@@ -186,6 +200,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     return null;
                   },
                 ),
+                ),
                 const SizedBox(height: 16),
 
                 // ── PASSWORD ─────────────────────────────────────
@@ -196,9 +211,12 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.6)),
                 const SizedBox(height: 8),
-                TextFormField(
+                RevealOnFocus(
+                  child: TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  autofillHints: const [AutofillHints.newPassword],
+                  textInputAction: TextInputAction.next,
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                   decoration: _inputDecoration('Min. 8 characters').copyWith(
                     suffixIcon: IconButton(
@@ -222,6 +240,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     return null;
                   },
                 ),
+                ),
                 const SizedBox(height: 16),
 
                 // ── CONFIRM PASSWORD ─────────────────────────────
@@ -232,9 +251,14 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.6)),
                 const SizedBox(height: 8),
-                TextFormField(
+                RevealOnFocus(
+                  child: TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
+                  autofillHints: const [AutofillHints.newPassword],
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) =>
+                      _isSubmitting ? null : _handleCreateAccount(),
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                   decoration: _inputDecoration('Re-enter password').copyWith(
                     suffixIcon: IconButton(
@@ -258,6 +282,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                     }
                     return null;
                   },
+                ),
                 ),
                 const SizedBox(height: 32),
 
@@ -364,6 +389,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
                 ),
               ],
             ),
+           ),
           ),
         ),
       ),
@@ -373,7 +399,7 @@ class ProfileSignUpPage extends State<ProfileSignUp> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white24),
+      hintStyle: const TextStyle(color: Colors.white38),
       filled: true,
       fillColor: const Color(0xFF1C1C1C),
       border: OutlineInputBorder(

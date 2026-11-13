@@ -2,19 +2,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/models/review.dart';
+import 'package:flutter_test_project/providers/cache_first.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/providers/tag_reviews_provider.dart'
     show normalizeTag;
 
-/// Fetches up to 400 recent reviews from all users and filters client-side
-/// against [query], matching artist, title, and genres (case-insensitive).
-final searchReviewsProvider =
-    FutureProvider.autoDispose.family<List<ReviewWithDocId>, String>((ref, query) async {
-  final q = query.trim().toLowerCase();
-  if (q.isEmpty) return [];
-
-  debugPrint('[SEARCH] Querying reviews for: "$q"');
-
+/// The 400 newest reviews from all users, read once and kept a while: every
+/// search filters this pool (reviews, tags, artists) instead of reading it
+/// again per keystroke.
+final searchPoolProvider = FutureProvider.autoDispose<List<ReviewWithDocId>>((
+  ref,
+) async {
+  ref.keepAliveFor();
   final snapshot = await FirebaseFirestore.instance
       .collectionGroup('reviews')
       .orderBy('date', descending: true)
@@ -36,18 +35,27 @@ final searchReviewsProvider =
         }
       })
       .whereType<ReviewWithDocId>()
-      .where((r) {
-        final artist = r.review.artist.toLowerCase();
-        final title = r.review.title.toLowerCase();
-        final genres =
-            r.review.genres?.map((g) => g.toLowerCase()).join(' ') ?? '';
-        return artist.contains(q) || title.contains(q) || genres.contains(q);
-      })
       .toList();
-
-  debugPrint('[SEARCH] Found ${results.length} results for "$q"');
   return results;
 });
+
+/// Reviews from all users matching [query] (artist, title or tags,
+/// case-insensitive), from [searchPoolProvider].
+final searchReviewsProvider = FutureProvider.autoDispose
+    .family<List<ReviewWithDocId>, String>((ref, query) async {
+      final q = query.trim().toLowerCase();
+      if (q.isEmpty) return [];
+      final pool = await ref.watch(searchPoolProvider.future);
+      return [
+        for (final r in pool)
+          if (r.review.artist.toLowerCase().contains(q) ||
+              r.review.title.toLowerCase().contains(q) ||
+              (r.review.genres ?? const <String>[]).any(
+                (g) => g.toLowerCase().contains(q),
+              ))
+            r,
+      ];
+    });
 
 /// The signed-in user's own reviews (not reposts) matching [query], newest
 /// first, for the Profile page's "Search your reviews". Filters the list the

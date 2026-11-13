@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_project/providers/music_news_provider.dart';
 import 'package:flutter_test_project/providers/reviews_provider.dart';
 import 'package:flutter_test_project/providers/search_reviews_provider.dart';
+import 'package:flutter_test_project/providers/unified_search_provider.dart';
 import 'package:flutter_test_project/ui/screens/search/search_screen.dart';
 import 'package:flutter_test_project/ui/widgets/music_news_feed.dart';
 
@@ -223,6 +224,8 @@ void main() {
       overrides: [
         ..._overrides(),
         searchReviewsProvider.overrideWith((ref, q) async => [result]),
+        searchPoolProvider.overrideWith((ref) async => [result]),
+        musicSearchProvider.overrideWith((ref, q) async => const []),
       ],
     );
     await tester.pump();
@@ -233,7 +236,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Best New Music'), findsNothing);
-    expect(find.text('1 result'), findsOneWidget);
+    expect(find.textContaining('REVIEWS'), findsOneWidget);
     expect(find.text('Nights'), findsOneWidget);
   });
 

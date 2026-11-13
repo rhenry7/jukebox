@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test_project/services/demo_auto_sign_in.dart';
@@ -42,17 +41,18 @@ class MainNavState extends ConsumerState<MainNav> {
     if (index == addTab) {
       // The add button opens the review sheet instead of switching tabs
       showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (BuildContext context) {
-            //initialChildSize: 0.9; // Takes up 90% of the screen
+        context: context,
+        isScrollControlled: true,
+        builder: (BuildContext context) {
+          //initialChildSize: 0.9; // Takes up 90% of the screen
 
-            return const MyReviewSheetContentForm(
-              title: 'track-title',
-              artist: 'artist',
-              albumImageUrl: '',
-            );
-          });
+          return const MyReviewSheetContentForm(
+            title: 'track-title',
+            artist: 'artist',
+            albumImageUrl: '',
+          );
+        },
+      );
     } else if (index == homeTab && currentPageIndex == homeTab) {
       // Already home: back to the top of the feed, refreshed.
       setState(() => _isNavigationChromeVisible = true);
@@ -136,9 +136,16 @@ class MainNavState extends ConsumerState<MainNav> {
     // Home has its own header (menu · tabs · search); other pages get the
     // REVERB bar.
     final showTopBar = currentPageIndex != homeTab;
+    // While typing, the dock gets out of the way of the keyboard and fields.
+    final typing = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       key: _scaffoldKey,
       extendBody: true,
+      // Only the page with the text field makes room for the keyboard (its
+      // own Scaffold or scroll view); the shell doesn't shrink as well, which
+      // on iPhones left almost no height for the page (a black screen under
+      // the top bar).
+      resizeToAvoidBottomInset: false,
       drawer: _AppDrawer(),
       // Lighter than the default, so the glass drawer has the feed to blur.
       drawerScrimColor: Colors.black26,
@@ -148,27 +155,27 @@ class MainNavState extends ConsumerState<MainNav> {
       body: Column(
         children: [
           if (showTopBar)
-          TweenAnimationBuilder<double>(
-            duration: _bottomNavTweenDuration,
-            curve: _isNavigationChromeVisible
-                ? Curves.easeOutCubic
-                : Curves.easeInCubic,
-            tween: Tween<double>(end: _isNavigationChromeVisible ? 1.0 : 0.0),
-            child: _buildTopBar(context),
-            builder: (context, value, child) {
-              final visibility = value.clamp(0.0, 1.0);
-              return ClipRect(
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  heightFactor: visibility == 0 ? 0.0001 : visibility,
-                  child: IgnorePointer(
-                    ignoring: visibility < 0.05,
-                    child: Opacity(opacity: visibility, child: child),
+            TweenAnimationBuilder<double>(
+              duration: _bottomNavTweenDuration,
+              curve: _isNavigationChromeVisible
+                  ? Curves.easeOutCubic
+                  : Curves.easeInCubic,
+              tween: Tween<double>(end: _isNavigationChromeVisible ? 1.0 : 0.0),
+              child: _buildTopBar(context),
+              builder: (context, value, child) {
+                final visibility = value.clamp(0.0, 1.0);
+                return ClipRect(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    heightFactor: visibility == 0 ? 0.0001 : visibility,
+                    child: IgnorePointer(
+                      ignoring: visibility < 0.05,
+                      child: Opacity(opacity: visibility, child: child),
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
           Expanded(
             // The top bar already pads for the status bar / notch; don't let
             // the pages pad for it again. Home pads for it itself.
@@ -185,7 +192,9 @@ class MainNavState extends ConsumerState<MainNav> {
         curve: _isNavigationChromeVisible
             ? Curves.easeOutCubic
             : Curves.easeInCubic,
-        tween: Tween<double>(end: _isNavigationChromeVisible ? 1.0 : 0.0),
+        tween: Tween<double>(
+          end: _isNavigationChromeVisible && !typing ? 1.0 : 0.0,
+        ),
         child: SafeArea(
           top: false,
           left: false,
@@ -248,38 +257,38 @@ class _GlassDock extends StatelessWidget {
       borderRadius: _shape,
       shadow: true,
       child: Padding(
-              padding: const EdgeInsets.all(_inset),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _DockButton(
-                    tooltip: 'Home',
-                    selected: selectedIndex == MainNavState.homeTab,
-                    icon: Ionicons.homeOutline,
-                    selectedIcon: Ionicons.home,
-                    onTap: () => onSelected(MainNavState.homeTab),
-                  ),
-                  const SizedBox(width: _gap),
-                  _DockButton(
-                    tooltip: 'New review',
-                    selected: false, // An action, never a tab.
-                    icon: Ionicons.addCircleOutline,
-                    selectedIcon: Ionicons.addCircleOutline,
-                    iconSize: 34,
-                    color: Colors.greenAccent[700],
-                    onTap: () => onSelected(MainNavState.addTab),
-                  ),
-                  const SizedBox(width: _gap),
-                  _DockButton(
-                    tooltip: 'Profile',
-                    selected: selectedIndex == MainNavState.profileTab,
-                    icon: Ionicons.personCircleOutline,
-                    selectedIcon: Ionicons.personCircle,
-                    onTap: () => onSelected(MainNavState.profileTab),
-                  ),
-                ],
-              ),
+        padding: const EdgeInsets.all(_inset),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _DockButton(
+              tooltip: 'Home',
+              selected: selectedIndex == MainNavState.homeTab,
+              icon: Ionicons.homeOutline,
+              selectedIcon: Ionicons.home,
+              onTap: () => onSelected(MainNavState.homeTab),
             ),
+            const SizedBox(width: _gap),
+            _DockButton(
+              tooltip: 'New review',
+              selected: false, // An action, never a tab.
+              icon: Ionicons.addCircleOutline,
+              selectedIcon: Ionicons.addCircleOutline,
+              iconSize: 34,
+              color: Colors.greenAccent[700],
+              onTap: () => onSelected(MainNavState.addTab),
+            ),
+            const SizedBox(width: _gap),
+            _DockButton(
+              tooltip: 'Profile',
+              selected: selectedIndex == MainNavState.profileTab,
+              icon: Ionicons.personCircleOutline,
+              selectedIcon: Ionicons.personCircle,
+              onTap: () => onSelected(MainNavState.profileTab),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -328,7 +337,8 @@ class _DockButton extends StatelessWidget {
               child: Icon(
                 selected ? selectedIcon : icon,
                 size: iconSize,
-                color: color ??
+                color:
+                    color ??
                     (selected ? Colors.white : AppColors.onSurfaceVariant),
               ),
             ),
@@ -361,80 +371,88 @@ class _AppDrawer extends ConsumerWidget {
       child: GlassSurface(
         borderRadius: shape,
         child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8, bottom: 24),
-                    child: Text(
-                      'MENU',
-                      style: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2,
-                      ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                const Padding(
+                  padding: EdgeInsets.only(left: 8, bottom: 24),
+                  child: Text(
+                    'MENU',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
                     ),
                   ),
+                ),
 
-                  // Settings card
+                // Settings card
+                Card(
+                  color: Colors.grey[900],
+                  elevation: 0,
+                  margin: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const ProfileButton(
+                        name: 'Notifications',
+                        icon: Ionicons.notificationsOutline,
+                      ),
+                      Divider(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        height: 1,
+                      ),
+                      const ProfileButton(
+                        name: 'Legal',
+                        icon: Ionicons.documentTextOutline,
+                      ),
+                      if (signedIn) ...[
+                        Divider(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          height: 1,
+                        ),
+                        const ProfileButton(
+                          name: 'LogOut',
+                          icon: Ionicons.exitOutline,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Danger zone
+                if (canDeleteAccount)
                   Card(
-                    color: Colors.grey[900],
+                    color: Colors.red.withValues(alpha: 0.08),
                     elevation: 0,
                     margin: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1), width: 1),
+                        color: Colors.red.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
                     ),
-                    child: Column(
-                      children: [
-                        const ProfileButton(
-                          name: 'Notifications',
-                          icon: Ionicons.notificationsOutline,
-                        ),
-                        Divider(
-                            color: Colors.white.withValues(alpha: 0.05), height: 1),
-                        const ProfileButton(
-                          name: 'Legal',
-                          icon: Ionicons.documentTextOutline,
-                        ),
-                        if (signedIn) ...[
-                          Divider(
-                              color: Colors.white.withValues(alpha: 0.05), height: 1),
-                          const ProfileButton(
-                            name: 'LogOut',
-                            icon: Ionicons.exitOutline,
-                          ),
-                        ],
-                      ],
+                    child: const ProfileButton(
+                      name: 'Delete Account',
+                      icon: Ionicons.trashOutline,
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Danger zone
-                  if (canDeleteAccount)
-                    Card(
-                      color: Colors.red.withValues(alpha: 0.08),
-                      elevation: 0,
-                      margin: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                            color: Colors.red.withValues(alpha: 0.25), width: 1),
-                      ),
-                      child: const ProfileButton(
-                        name: 'Delete Account',
-                        icon: Ionicons.trashOutline,
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
           ),
+        ),
       ),
     );
   }

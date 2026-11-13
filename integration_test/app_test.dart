@@ -119,7 +119,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.search));
     await pumpUntilFound(tester, find.byType(TextField));
     await tester.enterText(find.byType(TextField), 'rock');
-    await pumpUntilFound(tester, find.textContaining('results'));
+    // The results page's sections ("TAGS", "REVIEWS  ·  12"…).
+    await pumpUntilFound(tester, find.textContaining('REVIEWS'));
     // A tag pill with "rock" in it on a result ("indie rock", "post-rock"…;
     // not the search box's own text). Which results come first depends on
     // live data, so scroll until one shows.

@@ -68,6 +68,10 @@ class MyReviewSheetContentForm extends ConsumerStatefulWidget {
   final String? initialQuery;
   final String initialFilter;
 
+  /// The picked song or album's Spotify link, when [title] is already
+  /// chosen (e.g. "+ Review" on a search result), saved with the review.
+  final String spotifyUrl;
+
   const MyReviewSheetContentForm({
     super.key,
     required this.title,
@@ -75,6 +79,7 @@ class MyReviewSheetContentForm extends ConsumerStatefulWidget {
     required this.albumImageUrl,
     this.initialQuery,
     this.initialFilter = 'all',
+    this.spotifyUrl = '',
   });
 
   @override
@@ -127,6 +132,7 @@ class _MyReviewSheetContentFormState
     _selectedTrackTitle = widget.title;
     _selectedTrackArtist = widget.artist;
     _selectedTrackImageUrl = widget.albumImageUrl;
+    _selectedSpotifyUrl = widget.spotifyUrl;
 
     // Listen to search input changes
     searchParams.addListener(_onSearchChanged);

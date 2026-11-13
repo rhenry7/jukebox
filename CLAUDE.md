@@ -40,6 +40,9 @@ Genre / tag pills come from `lib/ui/widgets/genre_pills.dart`: `GenrePills(tags)
 ### Add page (before searching)
 With the search box empty, the Add page shows `AddPageDiscover` (`lib/ui/widgets/add_page_discover.dart`): "Highly rated" songs (5 at a time, "Show more" up to 15; tapping one starts a review of it; Spotify button on each) and a "Suggested reviewers" carousel (Follow via `toggleFriend`, ✕ hides for the session, tap opens their profile). Both come from the Popular reviews already loaded, ranked in `lib/providers/add_page_discover_provider.dart`: songs by average stars weighted by how many rated them, without songs you've reviewed; reviewers who review your artists first, then the most active, never you or people you follow.
 
+### Search page: results
+Typing a search (all reviews) shows `UnifiedSearchResults` (`lib/ui/screens/search/unified_search_results.dart`), not just reviews: a top result (an artist with REVERB's average rating and review count, or a tag used on 2+ reviews), tags (open their tag page), reviews (a `CompactReviewCard` row), songs and albums to review from Spotify (`musicSearchProvider`; "+ Review" opens the Add page with the song picked, `MyReviewSheetContentForm(spotifyUrl:)`), and matching Best New Music articles. With fewer than 3 reviews, songs come first ("Be the first to review"). Scope pills (All · Reviews · Music · Articles · Tags) narrow it. Matching is in `lib/providers/unified_search_provider.dart` (`matchTags`, `matchArtist`, `matchArticles`); reviews, tags and artists all come from one pool of the 400 newest reviews (`searchPoolProvider`), read once. Profile's "Search your reviews" still searches only the user's reviews. People search is the planned next step (needs a lowercase name field on profiles).
+
 ### Search page: Best New Music
 With the search box empty, Search (all reviews) shows `MusicNewsFeed` (`lib/ui/widgets/music_news_feed.dart`): album reviews from Pitchfork (Best New Albums), Stereogum (Album of the Week), NME, Billboard, The Guardian and The Quietus, one compact `MusicNewsRow` per album. Reviews of the same album by several sites merge (`groupNewsAlbums`; "critics agree", sources in green), and the sheet shows each site's take with its own Read link, plus Spotify and "Review it" (the Add page pre-searched, `MyReviewSheetContentForm(initialQuery:)`). The pinned filter row is All · For you · Critics agree · This week · genres (`newsFilters` / `applyNewsFilter` in `lib/providers/music_news_provider.dart`), with the sites in a ⚙ picker at its end (`musicNewsHiddenSourcesProvider`). For you (`NewsTaste`) matches the user's 3.5★+ artists, artists like them (`similarArtists`) and their tags; genres are ordered by the user's tags. Typing swaps in the search results; Profile's "Search your reviews" keeps its prompt.
 
@@ -119,6 +122,13 @@ The signed-in user drives the UI: `ProfileGate` and the auth providers rebuild o
 - New users' `users/{uid}` record is created by `ensureUserDoc` only. Never store passwords in Firestore.
 - Show auth errors with `authErrorMessage(code)` (`auth/authService.dart`), never raw Firebase text.
 - Sign out with `await signOut()`, then `popUntil(isFirst)`.
+
+### Keyboard and text fields (phones)
+- The app shell (`MainNav`) doesn't resize for the keyboard (`resizeToAvoidBottomInset: false`); the page with the field does (its own Scaffold or scroll view). Resizing both left almost no height on iPhones (a black screen under the top bar). The dock hides while the keyboard is up.
+- Wrap form fields in `RevealOnFocus` (`lib/ui/widgets/reveal_on_focus.dart`): Flutter scrolls a field into view only when the keyboard opens, so moving to the next field (Next, or a tap lower down) left it behind the keyboard.
+- Give fields `autofillHints`, a `textInputAction` (Next, then Done that submits) and an `AutofillGroup` around the form; pad scroll views by `AppSpacing.dockClearance` when the dock shows under them.
+- Diagnose on a phone with `?debugViewport=1`: a corner panel shows Flutter's size, keyboard inset and space left next to the browser's visual viewport (`lib/ui/widgets/viewport_debug/`). With the keyboard up, "space left" should match the browser's visible height.
+- Tests: `test/screens/auth_keyboard_test.dart` taps a field, raises a 340 px keyboard, then Nexts through the form, checking each field stays above it.
 
 ### Performance conventions
 - Spotify: always use `sharedSpotifyApi()` (`lib/services/spotify_client.dart`), never `SpotifyApi(...)` directly — each new client fetches its own token.

@@ -14,6 +14,7 @@ import 'package:flutter_test_project/utils/firebase_options.dart';
 import 'package:flutter_test_project/ui/screens/tag/tag_reviews_page.dart';
 import 'package:flutter_test_project/ui/widgets/app_update_watcher.dart';
 import 'package:flutter_test_project/ui/widgets/mobile_frame.dart';
+import 'package:flutter_test_project/ui/widgets/viewport_debug/viewport_debug_overlay.dart';
 import 'package:flutter_test_project/ui/theme/tokens.dart';
 
 Future<void> main() async {
@@ -239,8 +240,9 @@ class MyApp extends ConsumerWidget {
       ),
       // Phone-width on desktop (the app is mobile-first), and installed
       // copies pick up new deploys.
-      builder: (context, child) =>
-          MobileFrame(child: AppUpdateWatcher(child: child!)),
+      builder: (context, child) => MobileFrame(
+        child: ViewportDebugOverlay(child: AppUpdateWatcher(child: child!)),
+      ),
       home: const MainNav(title: 'REVERB'),
       // On the web, pushed pages put their route name in the URL, so a
       // reload starts at e.g. `/tag/darkwave`: Flutter builds Home and then
