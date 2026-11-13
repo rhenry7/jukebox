@@ -25,6 +25,7 @@ The core of this system is the interplay between the void (`background: #0e0e0e`
 
 ### Glassmorphism & Signature Textures
 To escape the "flat" look, everything that floats over content (the dock, drawer, sheets, dialogs, menus and toasts) is frosted glass: a **Backdrop Blur** of what's behind it, a tint lighter at the top-left, and a faint light edge. The full rules are in **`docs/glassmorphism.md`**; build it only with `GlassSurface` (`lib/ui/widgets/glass.dart`) and show toasts only with `showAppToast`.
+*   **Liquid Glass light (iOS 26 style):** every glass surface carries a rim brightest at the top-left that glints again at the bottom-right, an inner glow under the top edge and a faint sheen (`LiquidRim`). Small controls on black (round buttons, search pills, the dock's sliding selection lens) are `LiquidSurface`: the same light on a faint white fill, no blur.
 *   **Panels** (anything with text on it): `surface-container-highest` at about 70% → 48% with a `24px` blur and a little extra saturation.
 *   **Tag pills are solid, not glass:** white text on dark grey (`AppColors.pill`, `#2A2A2A`), fully rounded; a selected pill is white with black text (`TagPill`).
 *   **Status is an accent, not a fill:** a success / error toast gets a tinted edge and icon, never a solid green or red background.

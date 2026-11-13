@@ -253,38 +253,63 @@ class _GlassDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The selected tab sits under a Liquid Glass lens that glides (with a
+    // little overshoot) to whichever tab is picked. Add is an action, so it
+    // never holds the lens.
+    final slot = switch (selectedIndex) {
+      MainNavState.homeTab => 0,
+      MainNavState.profileTab => 2,
+      _ => null,
+    };
     return GlassSurface(
       borderRadius: _shape,
       shadow: true,
       child: Padding(
         padding: const EdgeInsets.all(_inset),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
           children: [
-            _DockButton(
-              tooltip: 'Home',
-              selected: selectedIndex == MainNavState.homeTab,
-              icon: Ionicons.homeOutline,
-              selectedIcon: Ionicons.home,
-              onTap: () => onSelected(MainNavState.homeTab),
-            ),
-            const SizedBox(width: _gap),
-            _DockButton(
-              tooltip: 'New review',
-              selected: false, // An action, never a tab.
-              icon: Ionicons.addCircleOutline,
-              selectedIcon: Ionicons.addCircleOutline,
-              iconSize: 34,
-              color: Colors.greenAccent[700],
-              onTap: () => onSelected(MainNavState.addTab),
-            ),
-            const SizedBox(width: _gap),
-            _DockButton(
-              tooltip: 'Profile',
-              selected: selectedIndex == MainNavState.profileTab,
-              icon: Ionicons.personCircleOutline,
-              selectedIcon: Ionicons.personCircle,
-              onTap: () => onSelected(MainNavState.profileTab),
+            if (slot != null)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutBack,
+                left: slot * (buttonSize + _gap),
+                top: 0,
+                width: buttonSize,
+                height: buttonSize,
+                child: const LiquidSurface(
+                  borderRadius: AppRadius.pillAll,
+                  child: SizedBox.expand(),
+                ),
+              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _DockButton(
+                  tooltip: 'Home',
+                  selected: selectedIndex == MainNavState.homeTab,
+                  icon: Ionicons.homeOutline,
+                  selectedIcon: Ionicons.home,
+                  onTap: () => onSelected(MainNavState.homeTab),
+                ),
+                const SizedBox(width: _gap),
+                _DockButton(
+                  tooltip: 'New review',
+                  selected: false, // An action, never a tab.
+                  icon: Ionicons.addCircleOutline,
+                  selectedIcon: Ionicons.addCircleOutline,
+                  iconSize: 34,
+                  color: Colors.greenAccent[700],
+                  onTap: () => onSelected(MainNavState.addTab),
+                ),
+                const SizedBox(width: _gap),
+                _DockButton(
+                  tooltip: 'Profile',
+                  selected: selectedIndex == MainNavState.profileTab,
+                  icon: Ionicons.personCircleOutline,
+                  selectedIcon: Ionicons.personCircle,
+                  onTap: () => onSelected(MainNavState.profileTab),
+                ),
+              ],
             ),
           ],
         ),
@@ -324,10 +349,8 @@ class _DockButton extends StatelessWidget {
       child: Tooltip(
         message: tooltip,
         child: Material(
-          // The selected tab sits in a soft lighter circle.
-          color: selected
-              ? Colors.white.withValues(alpha: 0.12)
-              : Colors.transparent,
+          // The selection lens is drawn by the dock, behind the buttons.
+          color: Colors.transparent,
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -469,39 +492,42 @@ class _MyReviewsSearchBar extends ConsumerWidget {
     return Semantics(
       button: true,
       label: 'Search your reviews',
-      child: Material(
-        color: Colors.grey[850],
-        shape: const StadiumBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {
-            if (ref.read(currentUserIdProvider) == null ||
-                ref.read(isAnonymousUserProvider)) {
-              showAuthGateModal(context);
-              return;
-            }
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const SearchScreen(ownReviewsOnly: true),
-              ),
-            );
-          },
-          child: const SizedBox(
-            height: RoundIconButton.size,
-            child: Row(
-              children: [
-                SizedBox(width: AppSpacing.md),
-                Icon(Icons.search, color: Colors.white70, size: 20),
-                SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    'Search your reviews',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white60, fontSize: 15),
-                  ),
+      child: LiquidSurface(
+        borderRadius: AppRadius.pillAll,
+        child: Material(
+          type: MaterialType.transparency,
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              if (ref.read(currentUserIdProvider) == null ||
+                  ref.read(isAnonymousUserProvider)) {
+                showAuthGateModal(context);
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SearchScreen(ownReviewsOnly: true),
                 ),
-              ],
+              );
+            },
+            child: const SizedBox(
+              height: RoundIconButton.size,
+              child: Row(
+                children: [
+                  SizedBox(width: AppSpacing.md),
+                  Icon(Icons.search, color: Colors.white70, size: 20),
+                  SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'Search your reviews',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.white60, fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

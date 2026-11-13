@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
 
-/// "Why this is for you" line shown above a recommended review card.
+/// "Why this is for you" above a recommended review card, as a pill: solid
+/// dark grey with light text, like the tag pills (not glass: it repeats on
+/// every card in a scrolling list). As wide as its text; a long reason wraps
+/// to a second line inside the pill.
 class ReasonLabel extends StatelessWidget {
   const ReasonLabel(this.reason, {super.key});
 
@@ -10,19 +13,32 @@ class ReasonLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.auto_awesome, size: 14, color: AppColors.onSurfaceVariant),
-        const SizedBox(width: AppSpacing.xs),
-        Expanded(
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: AppColors.pill,
+          // Round at one line, still soft if it wraps to two.
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs + 2,
+          ),
           child: Text(
             reason,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              height: 1.3,
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -41,14 +57,13 @@ class WithReason extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Cards run edge to edge, so the label is inset to line up with the
-        // card's content.
+        // Lined up with the card's left edge, so it reads as the card's tab.
         Padding(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.cardPadding,
+            AppSpacing.cardGap,
             AppSpacing.md,
-            AppSpacing.cardPadding,
-            AppSpacing.sm,
+            AppSpacing.cardGap,
+            AppSpacing.xs,
           ),
           child: ReasonLabel(reason),
         ),

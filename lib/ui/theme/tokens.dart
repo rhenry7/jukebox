@@ -148,10 +148,34 @@ abstract final class AppGlass {
     0xB3363636,
   ); // ≈ highest 62% + white 8%
   static const Color panelTintFar = Color(0x7A262626); // highest 48%
-  static const Color panelEdge = Color(0x2EFFFFFF); // white 18%
 
   /// How much an accent (a toast's success / error color) tints the edge.
   static const double accentEdgeOpacity = 0.55;
+
+  // ── Liquid Glass light (iOS 26 style; see `LiquidRim` in glass.dart) ──
+  // The edge catches light brightest at the top-left, fades along the sides
+  // and glints again, more softly, at the bottom-right; a thin inner line
+  // glows just under the top edge, and a faint sheen washes the upper part.
+
+  /// Rim at the lit top-left corner (white 55%).
+  static const Color rimLit = Color(0x8CFFFFFF);
+
+  /// Rim along the sides, between the two glints (white 8%).
+  static const Color rimMid = Color(0x14FFFFFF);
+
+  /// Rim at the far bottom-right corner (white 24%).
+  static const Color rimFar = Color(0x3DFFFFFF);
+
+  /// Inner glow just under the top edge (white 16%).
+  static const Color innerGlow = Color(0x29FFFFFF);
+
+  /// Sheen over the upper part of the surface (white 6%).
+  static const Color sheen = Color(0x0FFFFFFF);
+
+  /// Fill of blur-free liquid controls (round buttons, search pills, the
+  /// dock's selection lens): white 13% at the top to 5% at the bottom.
+  static const Color liquidFillTop = Color(0x21FFFFFF);
+  static const Color liquidFillBottom = Color(0x0DFFFFFF);
 
   /// Saturation 1.3 behind panels, so colors glow through the blur instead
   /// of turning grey.

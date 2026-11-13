@@ -19,16 +19,36 @@ Every glass surface has the same four layers, from back to front:
    saturation slightly (1.3), so colors glow through instead of turning grey.
 2. **Tint**: a diagonal gradient, lighter at the top-left where light hits
    it and fading toward the bottom-right.
-3. **Edge**: a faint 1px light border, so the shape reads against busy art.
-   It is felt, not seen (see the "Ghost Border" in `design_system.md`).
+3. **Liquid light** (Apple's iOS 26 "Liquid Glass" look, `LiquidRim`): a
+   rim brightest at the top-left (white 55%) that fades along the sides
+   (8%) and glints again at the bottom-right (24%); a thin glow just inside
+   the top edge; and a faint sheen over the upper part. A toast's accent
+   tints the rim instead. Gradients and strokes only, so it costs nothing
+   like the blur does.
 4. **Content** on top: white text (`AppColors.onSurface`), with
    `onSurfaceVariant` for secondary text.
+
+Apple's glass also bends the light behind it (refraction). Flutter can only
+do that in native apps (Impeller), not on the web where REVERB ships, so the
+look comes from the light on the glass, which works everywhere. The
+`liquid_glass_renderer` package was considered (Nov 2026): on the web it
+falls back to the same blur, and it's a pre-release.
+
+## Liquid controls (no blur)
+
+Small controls over the app's black backgrounds are `LiquidSurface`: a faint
+white fill (13% → 5%) with the same Liquid light, and no blur (over black a
+blur would show nothing). Used for the round header buttons
+(`RoundIconButton`), the search pills (`SearchPillField`, Profile's "Search
+your reviews") and the dock's selection lens, which glides to the picked tab
+with a slight overshoot.
 
 ## Strength
 
 | Use for | Blur | Tint | Edge |
 |---|---|---|---|
-| Dock, drawer, sheets, dialogs, menus, toasts | 24 + saturation | dark (`surfaceContainerHighest`) ≈ 70% → 48% | white 18% |
+| Dock, drawer, sheets, dialogs, menus, toasts | 24 + saturation | dark (`surfaceContainerHighest`) ≈ 70% → 48% | Liquid rim (`LiquidRim`) |
+| Round buttons, search pills, dock lens | none | white 13% → 5% | Liquid rim |
 
 The dark tint keeps text readable over bright album art.
 
@@ -96,7 +116,9 @@ messenger.showAppToast("Couldn't delete the review. Try again.",
 
 | Surface | File |
 |---|---|
-| Nav dock | `lib/routing/MainNavigation.dart` (`_GlassDock`) |
+| Nav dock, with its sliding selection lens | `lib/routing/MainNavigation.dart` (`_GlassDock`) |
+| Round header buttons (☰, 🔍, back) | `lib/ui/widgets/round_icon_button.dart` (Liquid control) |
+| Search pills | `lib/ui/widgets/search_pill_field.dart`, `MainNavigation.dart` (`_MyReviewsSearchBar`) (Liquid controls) |
 | Drawer | `lib/routing/MainNavigation.dart` (`_AppDrawer`) |
 | Dialogs | `lib/ui/widgets/glass_dialog.dart` (`GlassDialog`) |
 | Reviewer sheet | `lib/ui/widgets/review_card.dart` |
