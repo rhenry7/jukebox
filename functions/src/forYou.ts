@@ -8,10 +8,13 @@ import { logger } from "firebase-functions";
 import { COLLECTIONS, RANKING } from "./config";
 import { eraFit } from "./era";
 import { SimilarArtist, similarArtistsFor, similarRecordingsFor } from "./musicbrainz";
+import type { ImplicitAction } from "./implicit";
 import { buildProfile, Profile, tasteCentroid } from "./profile";
 import { rerank } from "./rerank";
 import { TagIdf } from "./relevance";
+import { SIMILAR_COLLECTION, SimilarItem } from "./similar";
 import { loadTagIdf } from "./tagStats";
+import { reviewDocId } from "./text";
 import {
   bestPerTrack,
   blendRerank,
@@ -170,6 +173,70 @@ export interface SongMatch {
  * Songs that sound like ones the user loves (ListenBrainz similar
  * recordings, cached in `similarRecordings`): recording MBID → strength.
  */
+/** A review found through the "More like this" list of a review the user liked. */
+export interface LikedMatch {
+  strength: number;
+  likedTitle: string;
+  action: ImplicitAction;
+}
+
+/**
+ * The reviews the user engaged with most strongly (bookmark/repost, then
+ * like, then comment; newest first among equals), which seed For You.
+ */
+export function likedSeeds(profile: Pick<Profile, "liked">, n: number = RANKING.likedSeeds): Profile["liked"] {
+  return [...profile.liked]
+    .sort(
+      (a, b) =>
+        b.weight - a.weight || (b.review.date?.getTime() ?? 0) - (a.review.date?.getTime() ?? 0),
+    )
+    .slice(0, n);
+}
+
+/**
+ * Combines the "More like this" lists ([lists], `similarReviews/{id}`) of
+ * the [seeds] the user liked: review path → best match. Each list's top item
+ * counts as 1, the rest by their score relative to it, all × the strength
+ * of the user's action (a bookmark counts more than a like). Pure.
+ */
+export function combineLikedSimilar(
+  seeds: Profile["liked"],
+  lists: (SimilarItem[] | undefined)[],
+  userId: string,
+): Map<string, LikedMatch> {
+  const out = new Map<string, LikedMatch>();
+  seeds.forEach((seed, i) => {
+    const items = lists[i] ?? [];
+    const top = Math.max(0, ...items.map((it) => it.score));
+    if (top <= 0) return;
+    for (const it of items) {
+      if (it.reviewPath.startsWith(`users/${userId}/`)) continue;
+      const strength = Math.min(1, (it.score / top) * seed.weight);
+      if (strength > (out.get(it.reviewPath)?.strength ?? 0)) {
+        out.set(it.reviewPath, { strength, likedTitle: seed.review.title, action: seed.action });
+      }
+    }
+  });
+  return out;
+}
+
+/** Reads the liked seeds' "More like this" lists (already computed by similar.ts). */
+export async function likedSimilarSignal(
+  db: Firestore,
+  profile: Pick<Profile, "liked" | "userId">,
+): Promise<Map<string, LikedMatch>> {
+  const seeds = likedSeeds(profile);
+  if (seeds.length === 0) return new Map();
+  const snaps = await db.getAll(
+    ...seeds.map((s) => db.collection(SIMILAR_COLLECTION).doc(reviewDocId(s.review.reviewPath))),
+  );
+  return combineLikedSimilar(
+    seeds,
+    snaps.map((d) => (d.exists ? (d.get("items") as SimilarItem[] | undefined) : undefined)),
+    profile.userId,
+  );
+}
+
 export async function similarSongSignal(
   db: Firestore,
   profile: Pick<Profile, "positiveReviews" | "liked">,
@@ -242,13 +309,27 @@ export async function retrieveCandidates(
   };
 
   const interests = profile.interests.slice(0, RANKING.maxInterests);
-  const styleQueries = profile.positiveReviews.slice(0, RANKING.styleQueries);
+  // "Reads alike" searches start from the user's own loved reviews and the
+  // ones they liked / saved (counting a bit less: someone else's words).
+  const styleQueries: { embedding: ReviewVector["embedding"]; title: string; factor: number; via?: ImplicitAction }[] = [
+    ...profile.positiveReviews.slice(0, RANKING.styleQueries).map((r) => ({
+      embedding: r.embedding,
+      title: r.title,
+      factor: 1,
+    })),
+    ...likedSeeds(profile).map((l) => ({
+      embedding: l.review.embedding,
+      title: l.review.title,
+      factor: Math.min(1, 0.5 + l.weight),
+      via: l.action,
+    })),
+  ];
 
   const quiet = <T>(what: string, fallback: T) => (e: unknown) => {
     logger.warn(`${what} signal failed`, { userId: profile.userId, error: String(e) });
     return fallback;
   };
-  const [aspectHits, styleHits, cfByTrack, artistSignal, songSignal, dislikes] = await Promise.all([
+  const [aspectHits, styleHits, cfByTrack, artistSignal, songSignal, dislikes, likedSimilar] = await Promise.all([
     Promise.all([
       // Praise ↔ praise: other reviews celebrating what this user celebrates.
       ...interests.map((i) => nearestAspects(db, i.centroid, "pos", RANKING.aspectHitsPerInterest)),
@@ -264,10 +345,13 @@ export async function retrieveCandidates(
     similarArtistSignal(db, profile).catch(quiet("Similar-artist", new Map<string, ArtistMatch>())),
     similarSongSignal(db, profile).catch(quiet("Similar-song", new Map<string, SongMatch>())),
     dislikeSignal(db, profile).catch(quiet("Dislike", new Map<string, number>())),
+    likedSimilarSignal(db, profile).catch(quiet("Liked-similar", new Map<string, LikedMatch>())),
   ]);
 
   aspectHits.forEach((h: AspectHit) => tag(h.reviewPath, "aspect"));
   styleHits.forEach((r) => tag(r.reviewPath, "style"));
+  // "More like this" of reviews the user liked / saved.
+  likedSimilar.forEach((_m, path) => tag(path, "liked"));
 
   // CF: pull in every indexed review of a track the user's neighbours loved.
   const cfTracks = [...cfByTrack.keys()].filter((k) => !profile.knownTrackKeys.has(k));
@@ -348,11 +432,13 @@ export async function retrieveCandidates(
   return reviews.map((r) => {
     let styleSim = 0;
     let styleMatchTitle: string | undefined;
-    for (const own of styleQueries) {
-      const s = rescaleSim(cosine(own.embedding, r.embedding));
+    let styleVia: ImplicitAction | undefined;
+    for (const q of styleQueries) {
+      const s = rescaleSim(cosine(q.embedding, r.embedding)) * q.factor;
       if (s > styleSim) {
         styleSim = s;
-        styleMatchTitle = own.title;
+        styleMatchTitle = q.title;
+        styleVia = q.via;
       }
     }
     return {
@@ -371,6 +457,10 @@ export async function retrieveCandidates(
       aspects: aspectMap.get(r.reviewPath) ?? [],
       styleSim,
       styleMatchTitle,
+      styleVia,
+      likedSim: likedSimilar.get(r.reviewPath)?.strength ?? 0,
+      likedMatch: likedSimilar.get(r.reviewPath)?.likedTitle,
+      likedAction: likedSimilar.get(r.reviewPath)?.action,
       cf: cfByTrack.get(r.trackKey) ?? 0,
       artistSim: artistByPath.get(r.reviewPath)?.strength ?? 0,
       artistMatch: artistByPath.get(r.reviewPath)?.lovedArtist,

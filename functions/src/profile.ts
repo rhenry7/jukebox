@@ -6,7 +6,7 @@
  */
 import { Firestore } from "firebase-admin/firestore";
 import { RANKING } from "./config";
-import { loadImplicitSignals } from "./implicit";
+import { ImplicitAction, loadImplicitSignals } from "./implicit";
 import { embed } from "./openai";
 import { ProfileBasis, UserAspect } from "./scoring";
 import { aspectsByReview, loadPreferences, ReviewVector, reviewVectorsByPath, reviewVectorsByUser } from "./store";
@@ -28,7 +28,7 @@ export interface Profile {
   /** Tracks the user has reviewed, saved, engaged with or dismissed — never recommended back. */
   knownTrackKeys: Set<string>;
   /** Other people's reviews the user liked / bookmarked / reposted / commented on, with 0–1 weight. */
-  liked: { review: ReviewVector; weight: number }[];
+  liked: { review: ReviewVector; weight: number; action: ImplicitAction }[];
   /** Reviews the user marked "Not for me" on For You. */
   disliked: ReviewVector[];
   /** Release years of the music the user loves (own liked reviews + engaged-with), weighted. */
@@ -60,7 +60,11 @@ export async function buildProfile(
   const otherVectors = await reviewVectorsByPath(db, [...implicit.liked.keys(), ...implicit.disliked]);
   const liked = otherVectors
     .filter((r) => implicit.liked.has(r.reviewPath))
-    .map((review) => ({ review, weight: implicit.liked.get(review.reviewPath)! }));
+    .map((review) => ({
+      review,
+      weight: implicit.liked.get(review.reviewPath)!,
+      action: implicit.actions.get(review.reviewPath) ?? "like",
+    }));
   const disliked = otherVectors.filter((r) => implicit.disliked.has(r.reviewPath));
   const aspectMap = await aspectsByReview(db, [
     ...reviews.map((r) => r.reviewPath),

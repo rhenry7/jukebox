@@ -2,6 +2,7 @@
  * Deterministic ranking (plan "Scoring"). Pure functions only — everything
  * here is unit-tested without Firestore or OpenAI.
  */
+import type { ImplicitAction } from "./implicit";
 import { RANKING } from "./config";
 import { idfOverlap, TagIdf } from "./relevance";
 import { cosine, recencyWeight, Vec } from "./vectors";
@@ -22,7 +23,7 @@ export interface UserAspect extends Aspect {
 /** Ranking weights; `RANKING.weights` unless tuning. */
 export type Weights = { -readonly [K in keyof typeof RANKING.weights]: number };
 
-export type Source = "aspect" | "style" | "cf" | "artist" | "song";
+export type Source = "aspect" | "style" | "cf" | "artist" | "song" | "liked";
 
 export interface Candidate {
   reviewPath: string;
@@ -42,6 +43,8 @@ export interface Candidate {
   styleSim: number;
   /** Title of the user's review that `styleSim` came from. */
   styleMatchTitle?: string;
+  /** Set when `styleSim` came from a review the user liked, not their own. */
+  styleVia?: ImplicitAction;
   /** 0–1: how strongly the user's neighbours vouch for this review's track. */
   cf: number;
   /**
@@ -58,6 +61,14 @@ export interface Candidate {
   /** The loved song `songSim` came from, for the reason line. */
   songMatch?: string;
   songVia?: MatchVia;
+  /**
+   * 0–1: how high this review sits in the "More like this" list of a review
+   * the user liked / saved, × how strong that action was. 0 if not found so.
+   */
+  likedSim?: number;
+  /** The liked review's song title and what the user did, for the reason line. */
+  likedMatch?: string;
+  likedAction?: ImplicitAction;
   /** 0–1: how much this review's artist is (or sounds like) one the user marked "Not for me". */
   dislike?: number;
   /** 0–1: how well the song's release year fits the eras the user loves. */
@@ -163,6 +174,7 @@ export function features(
     cf: c.cf,
     artistSim: c.artistSim ?? 0,
     songSim: c.songSim ?? 0,
+    likedSim: c.likedSim ?? 0,
     dislike: -(c.dislike ?? 0),
     eraFit: c.eraFit ?? 0,
     affinity: c.affinity,
@@ -219,6 +231,27 @@ function viaPhrase(name: string, via: MatchVia | undefined, whatYouDid: string):
   }
 }
 
+const ACTION_PAST: Record<ImplicitAction, string> = {
+  like: "liked",
+  bookmark: "saved",
+  repost: "reposted",
+  comment: "commented on",
+};
+
+/** "Because you saved Nights" — a pick from a liked review's "More like this". */
+export function becauseYou(action: ImplicitAction | undefined, title: string): string {
+  switch (action) {
+    case "bookmark":
+      return `Because you saved ${title}`;
+    case "repost":
+      return `Because you reposted ${title}`;
+    case "comment":
+      return `Because you commented on ${title}`;
+    default:
+      return `Because you liked a review of ${title}`;
+  }
+}
+
 /** Always-available, no-AI explanation from the strongest signal. */
 export function reasonFor(
   c: Candidate,
@@ -234,6 +267,17 @@ export function reasonFor(
   }
   const artistSim = c.artistSim ?? 0;
   const songSim = c.songSim ?? 0;
+  const likedSim = c.likedSim ?? 0;
+  if (
+    c.likedMatch &&
+    likedSim >= 0.2 &&
+    likedSim >= songSim * 0.6 &&
+    likedSim >= artistSim * 0.6 &&
+    likedSim >= c.styleSim * 0.6 &&
+    likedSim >= c.cf * 0.6
+  ) {
+    return becauseYou(c.likedAction, c.likedMatch);
+  }
   if (c.songMatch && songSim >= 0.5 && songSim >= artistSim && songSim >= c.styleSim && songSim >= c.cf) {
     return `Similar to ${viaPhrase(c.songMatch, c.songVia, "loved")}`;
   }
@@ -241,7 +285,9 @@ export function reasonFor(
     return `Sounds like ${viaPhrase(c.artistMatch, c.artistVia, "rated highly")}`;
   }
   if (c.styleMatchTitle && c.styleSim >= c.cf) {
-    return `Reads a lot like your review of ${c.styleMatchTitle}`;
+    return c.styleVia
+      ? `Reads a lot like the review of ${c.styleMatchTitle} you ${ACTION_PAST[c.styleVia]}`
+      : `Reads a lot like your review of ${c.styleMatchTitle}`;
   }
   if (c.cf > 0) return "Loved by listeners who rate music like you";
   switch (basis) {

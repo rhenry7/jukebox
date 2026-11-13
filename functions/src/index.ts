@@ -110,6 +110,51 @@ export const onForYouFeedback = onDocumentWritten(
   },
 );
 
+/** How long a burst of likes / saves settles before For You is rebuilt once. */
+const TASTE_REFRESH_DELAY_MS = 20_000;
+
+/**
+ * Rebuilds [uid]'s For You once a burst of actions settles: the first
+ * action claims a pending refresh (server-only `forYouRefresh/{uid}`) and
+ * waits; actions during the wait see it pending and stop, since the
+ * rebuild that follows reads them too. One that lands mid-rebuild starts
+ * the next one. Deterministic (no LLM).
+ */
+async function refreshForYouSoon(uid: string): Promise<void> {
+  const ref = db.collection("forYouRefresh").doc(uid);
+  const claimed = await db.runTransaction(async (tx) => {
+    const pendingUntil = ((await tx.get(ref)).get("pendingUntil") as Timestamp | undefined)?.toMillis() ?? 0;
+    if (pendingUntil > Date.now()) return false;
+    tx.set(ref, { pendingUntil: Timestamp.fromMillis(Date.now() + TASTE_REFRESH_DELAY_MS) });
+    return true;
+  });
+  if (!claimed) return;
+  await new Promise((resolve) => setTimeout(resolve, TASTE_REFRESH_DELAY_MS));
+  await computeForYou(db, OPENAI_API_KEY.value(), uid, { write: true, rerank: false });
+}
+
+/**
+ * Likes, comments and reposts (`activity`, written by ActivityService in the
+ * app) and bookmarks say what the user enjoys: For You pulls in "More like
+ * this" of those reviews (forYou.ts), so rebuild it shortly after, not
+ * overnight. Undoing one (a delete) rebuilds too.
+ */
+export const onTasteActivityWritten = onDocumentWritten(
+  { document: "users/{uid}/activity/{id}", secrets: [OPENAI_API_KEY], timeoutSeconds: 120 },
+  async (event) => {
+    const type = (event.data?.after.get("type") ?? event.data?.before.get("type")) as string | undefined;
+    if (type !== "like" && type !== "comment" && type !== "repost") return;
+    await refreshForYouSoon(event.params.uid);
+  },
+);
+
+export const onBookmarkWritten = onDocumentWritten(
+  { document: "users/{uid}/bookmarks/{id}", secrets: [OPENAI_API_KEY], timeoutSeconds: 120 },
+  async (event) => {
+    await refreshForYouSoon(event.params.uid);
+  },
+);
+
 /**
  * Called by the app right after posting a review: returns up to 5 reviews of
  * other tracks the user will probably like, based on what they just wrote.

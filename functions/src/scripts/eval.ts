@@ -175,6 +175,8 @@ const VARIANTS: Record<string, (c: Candidate, f: Features) => Features | null> =
     c.sources.size === 1 && c.sources.has("cf") ? null : { ...f, cf: 0 },
   "no ListenBrainz": (c, f) =>
     [...c.sources].every((s) => s === "artist" || s === "song") ? null : { ...f, artistSim: 0, songSim: 0 },
+  "no liked-review seeds": (c, f) =>
+    c.sources.size === 1 && c.sources.has("liked") ? null : { ...f, likedSim: 0 },
 };
 
 /** Ranked review paths for [c] under [weights] and [variant]. */

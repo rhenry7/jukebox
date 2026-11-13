@@ -18,9 +18,13 @@ export const IMPLICIT_WEIGHTS = {
   comment: 0.3,
 } as const;
 
+export type ImplicitAction = keyof typeof IMPLICIT_WEIGHTS;
+
 export interface ImplicitSignals {
   /** Review path → 0–1 interest (strongest action wins). Own reviews excluded. */
   liked: Map<string, number>;
+  /** Review path → the action behind that interest, for reason lines. */
+  actions: Map<string, ImplicitAction>;
   /** Review paths marked "Not for me". */
   disliked: Set<string>;
 }
@@ -34,22 +38,29 @@ export function combineImplicit(
 ): ImplicitSignals {
   const own = (path: string) => path.startsWith(`users/${userId}/`);
   const liked = new Map<string, number>();
-  const add = (path: string | undefined, w: number) => {
+  const actions = new Map<string, ImplicitAction>();
+  const add = (path: string | undefined, action: ImplicitAction) => {
     if (!path || own(path) || !path.startsWith("users/")) return;
-    liked.set(path, Math.max(liked.get(path) ?? 0, w));
+    const w = IMPLICIT_WEIGHTS[action];
+    if (w > (liked.get(path) ?? 0)) {
+      liked.set(path, w);
+      actions.set(path, action);
+    }
   };
   for (const a of activity) {
-    const w = IMPLICIT_WEIGHTS[a.type as keyof typeof IMPLICIT_WEIGHTS];
-    if (w !== undefined) add(a.reviewId, w);
+    if (a.type && a.type in IMPLICIT_WEIGHTS) add(a.reviewId, a.type as ImplicitAction);
   }
-  for (const b of bookmarks) add(b.reviewPath, IMPLICIT_WEIGHTS.bookmark);
+  for (const b of bookmarks) add(b.reviewPath, "bookmark");
   const disliked = new Set<string>();
   for (const f of feedback) {
     if (f.reviewPath && f.reason === "not_for_me") disliked.add(f.reviewPath);
   }
   // A dislike overrides an earlier like of the same review.
-  disliked.forEach((p) => liked.delete(p));
-  return { liked, disliked };
+  disliked.forEach((p) => {
+    liked.delete(p);
+    actions.delete(p);
+  });
+  return { liked, actions, disliked };
 }
 
 export async function loadImplicitSignals(db: Firestore, userId: string): Promise<ImplicitSignals> {

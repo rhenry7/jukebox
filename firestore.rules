@@ -249,6 +249,10 @@ service cloud.firestore {
     match /userVectors/{docId} {
       allow read, write: if false;
     }
+    // When each user's For You rebuild after a like / save is due (server only).
+    match /forYouRefresh/{userId} {
+      allow read, write: if false;
+    }
 
     // Similar artists per MusicBrainz artist ID, cached from ListenBrainz by
     // Cloud Functions. Public music data: anyone can read, only the server

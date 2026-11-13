@@ -61,6 +61,13 @@ export const RANKING = {
     artistSim: 0.3,
     /** Reviews of songs that sound like ones the user loved (ListenBrainz). */
     songSim: 0.1,
+    /**
+     * "More like this" of reviews the user liked, bookmarked, reposted or
+     * commented on (implicit.ts), scaled by how strong that action was. Set
+     * by hand: the eval holds out the user's own reviews, so it barely
+     * sees likes; between songSim and artistSim.
+     */
+    likedSim: 0.25,
     /** Penalty for artists the user marked "Not for me" (and ones like them). */
     dislike: 0.25,
     /** How well the song's release year fits the eras the user loves (era.ts). */
@@ -82,6 +89,8 @@ export const RANKING = {
   aspectHitsPerInterest: 200,
   aspectHitsPerNegative: 100,
   styleQueries: 8,
+  /** How many liked / saved reviews seed For You: their "More like this" lists and "reads alike" searches. */
+  likedSeeds: 8,
   styleHitsPerQuery: 100,
   neighbors: 20,
   neighborMinAffinity: 0.6,
